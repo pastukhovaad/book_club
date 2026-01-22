@@ -10,6 +10,8 @@ def text_formating(content):
 
 
 class UpdateUserProfileSerializer(serializers.ModelSerializer):
+    profile_picture = serializers.ImageField(required=False, allow_null=True, allow_empty_file=True)
+    
     class Meta:
         model = get_user_model()
         fields = [
@@ -26,6 +28,22 @@ class UpdateUserProfileSerializer(serializers.ModelSerializer):
             "instagram",
             "twitter",
         ]
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Сделаем поля необязательными
+        self.fields['profile_picture'].required = False
+        self.fields['facebook'].required = False
+        self.fields['youtube'].required = False
+        self.fields['instagram'].required = False
+        self.fields['twitter'].required = False
+    
+    def update(self, instance, validated_data):
+        # Если profile_picture не в initial_data, не обновляем его
+        if 'profile_picture' not in self.initial_data:
+            validated_data.pop('profile_picture', None)
+        
+        return super().update(instance, validated_data)
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):

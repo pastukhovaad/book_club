@@ -85,13 +85,13 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
     >
       <div className="flex flex-col gap-2 justify-center items-center mb-2">
         <h3 className="font-semibold text-2xl max-sm:text-xl">
-          {book ? "Update Post" : "Create Post"}
+          {book ? "Update Book" : "Create Book"}
         </h3>
 
         <p className="max-sm:text-[14px]">
           {book
-            ? "Do you want to update your post?"
-            : "Create a new post and share your ideas."}
+            ? "Do you want to update your book?"
+            : "Create a new book and share your ideas."}
         </p>
       </div>
 
@@ -109,7 +109,7 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
               message: "The title must be at least 3 characters",
             },
           })}
-          placeholder="Give your post a title"
+          placeholder="Give your book a title"
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-[400px] max-sm:w-[300px] max-sm:text-[14px]"
         />
 
