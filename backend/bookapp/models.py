@@ -132,3 +132,38 @@ class ReadingGroup(models.Model):  # REM
         self.slug = slug
 
         super().save(*args, **kwargs)
+
+
+class Notification(models.Model):
+
+    CATEGORY = (
+        ("GroupJoinRequest", "GroupJoinRequest"),
+        ("GroupRequestDeclined", "GroupRequestDeclined"),
+        ("GroupRequestAccepted", "GroupRequestAccepted"),
+    )
+
+    directed_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="directed_to",
+        null=True,
+        blank=True,
+    )
+    related_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="related_to",
+        null=True,
+        blank=True,
+    )
+    
+    extra_text = models.TextField(blank=True, null=True)
+    sent_at = models.DateTimeField(auto_now_add=True)
+    sent_date = models.DateTimeField(blank=True, null=True)
+    category = models.CharField(max_length=255, choices=CATEGORY, blank=True, null=True)
+
+    class Meta:
+        ordering = ["-sent_at"]
+
+    def __str__(self):
+        return self.extra_text

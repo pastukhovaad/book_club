@@ -8,9 +8,10 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Book, ReadingGroup
+from .models import Book, Notification, ReadingGroup
 from .serializers import (
     BookSerializer,
+    NotificationSerializer,
     ReadingGroupSerializer,
     SimpleAuthorSerializer,
     UpdateUserProfileSerializer,
@@ -90,6 +91,15 @@ def reading_group_list(request, amount):
     return paginator.get_paginated_response(serializer.data)
 
 
+@api_view(["GET"])
+def notification_list(request, amount):
+    notifications = Notification.objects.all()
+    paginator = AnyListPagination(amount=amount)
+    paginated_notifications = paginator.paginate_queryset(notifications, request)
+    serializer = NotificationSerializer(paginated_notifications, many=True)
+    return paginator.get_paginated_response(serializer.data)
+
+    
 @api_view(["POST"])
 def register_user(request):
     serializer = UserRegistrationSerializer(data=request.data)

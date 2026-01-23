@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import Book, ReadingGroup
+from .models import Book, Notification, ReadingGroup
 
 
 def text_formating(content):
@@ -126,6 +126,21 @@ class ReadingGroupSerializer(serializers.ModelSerializer):  # REM
             "description",
         ]
 
+class NotificationSerializer(serializers.ModelSerializer):
+    directed_to = SimpleAuthorSerializer(read_only=True)
+    related_to = SimpleAuthorSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = [
+            "id",
+            "directed_to",
+            "related_to",
+            "extra_text",
+            "sent_at",
+            "sent_date",
+            "category",
+        ]
 
 class UserInfoSerializer(serializers.ModelSerializer):
     author_posts = serializers.SerializerMethodField()
@@ -148,3 +163,4 @@ class UserInfoSerializer(serializers.ModelSerializer):
         books = Book.objects.filter(author=user)[:9]
         serializer = BookSerializer(books, many=True)
         return serializer.data
+

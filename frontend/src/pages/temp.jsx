@@ -18,46 +18,9 @@ import { Link } from 'react-router-dom'
 const BookPagesPage = ({ username, isAuthenticated }) => {
   const { slug } = useParams()
   const [showModal, setShowModal] = useState(false)
-  const [selectedText, setSelectedText] = useState('')
-  const [isSelectionMode, setIsSelectionMode] = useState(false)
-  const [selectedStartIndex, setSelectedStartIndex] = useState(null)
-  const [selectedEndIndex, setSelectedEndIndex] = useState(null)
-  const [fullTextStartIndex, setFullTextStartIndex] = useState(null)
-  const [fullTextEndIndex, setFullTextEndIndex] = useState(null)
   const navigate = useNavigate()
   function toggleModal() {
     setShowModal((curr) => !curr)
-  }
-
-  function handleTextSelection() {
-    setIsSelectionMode(!isSelectionMode)
-    if (isSelectionMode) {
-      setSelectedText('')
-      setSelectedStartIndex(null)
-      setSelectedEndIndex(null)
-      setFullTextStartIndex(null)
-      setFullTextEndIndex(null)
-    }
-  }
-
-  function handleMouseUp() {
-    if (!isSelectionMode) return
-    const selectedContent = window.getSelection().toString()
-    if (selectedContent) {
-      setSelectedText(selectedContent)
-
-      // Find start and end indices in currentText
-      const startIndex = currentText.indexOf(selectedContent)
-      const endIndex = startIndex + selectedContent.length
-      setSelectedStartIndex(startIndex)
-      setSelectedEndIndex(endIndex)
-
-      // Store indices relative to full book content
-      const fullStartIndex = pageStartIndexInFullText + startIndex
-      const fullEndIndex = fullStartIndex + selectedContent.length
-      setFullTextStartIndex(fullStartIndex)
-      setFullTextEndIndex(fullEndIndex)
-    }
   }
 
   const {
@@ -112,58 +75,14 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
   })
 
   const totalPages = Math.ceil(lines.length / linesPerPage)
+  // const currentText = lines
+  //   .slice((currentPage - 1) * linesPerPage, currentPage * linesPerPage)
+  //   .join('\n');
   const pageLines = lines.slice(
     (currentPage - 1) * linesPerPage,
     currentPage * linesPerPage
   )
   const currentText = pageLines.join('\n').replace(/\n{2,}/g, '\n')
-
-  // Calculate start index of current page in full text
-  const pageStartLine = (currentPage - 1) * linesPerPage
-  let pageStartIndexInFullText = 0
-  for (let i = 0; i < pageStartLine; i++) {
-    pageStartIndexInFullText += lines[i].length + 1
-  }
-
-  // Render text with underlined selected portions
-  const renderTextWithUnderline = () => {
-    if (fullTextStartIndex === null || fullTextEndIndex === null) {
-      return currentText
-    }
-
-    // Check if selection is on current page
-    const pageEndIndexInFullText = pageStartIndexInFullText + currentText.length
-
-    if (
-      fullTextStartIndex >= pageStartIndexInFullText &&
-      fullTextEndIndex <= pageEndIndexInFullText
-    ) {
-      const relativeStart = fullTextStartIndex - pageStartIndexInFullText
-      const relativeEnd = fullTextEndIndex - pageStartIndexInFullText
-
-      const before = currentText.substring(0, relativeStart)
-      const selected = currentText.substring(relativeStart, relativeEnd)
-      const after = currentText.substring(relativeEnd)
-
-      return (
-        <>
-          {before}
-          <span
-            style={{
-              textDecoration: 'underline',
-              textDecorationColor: 'red',
-              textDecorationThickness: '2px',
-            }}
-          >
-            {selected}
-          </span>
-          {after}
-        </>
-      )
-    }
-
-    return currentText
-  }
 
   // things like tabs
 
@@ -234,26 +153,9 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
         </nav>
 
         <div className="column-container flex justify-between gap-4">
-          <pre
-            className="break-cancel py-6 leading-normal text-2xl md:text-3xl text-[#181A2A] tracking-wide font-arial dark:text-[#FFFFFF] flex-1"
-            onMouseUp={handleMouseUp}
-            style={{
-              userSelect: isSelectionMode ? 'text' : 'none',
-              cursor: isSelectionMode ? 'text' : 'default',
-            }}
-          >
-            {renderTextWithUnderline()}
+          <pre className="break-cancel py-6 leading-normal text-2xl md:text-3xl text-[#181A2A] tracking-wide font-arial dark:text-[#FFFFFF]">
+            {currentText}
           </pre>
-          {selectedText && (
-            <div className="flex-1 bg-[#F0F0F1] dark:bg-[#252838] p-6 rounded-lg border border-[#E5E5E7] dark:border-[#3B3D4F]">
-              <h3 className="text-lg font-semibold text-[#141624] dark:text-[#FFFFFF] mb-4">
-                Selected Text
-              </h3>
-              <p className="text-[#3B3C4A] dark:text-[#BABABF] whitespace-pre-wrap break-words leading-normal">
-                {selectedText}
-              </p>
-            </div>
-          )}
         </div>
 
         {/* <BookWriter book={book} />  THESE BOOKS I HATE THEM
@@ -268,25 +170,12 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
           {book.content}
         </p> */}
       </div>
-      <div className="padding-dx lower-buttons-container flex justify-between gap-4 flex-wrap">
+      <div className="padding-dx lower-buttons-container flex justify-between gap-4">
         <button
           disabled={currentPage === 1}
           onClick={() => setCurrentPage((p) => p - 1)}
         >
           Previous page
-        </button>
-        <button
-          onClick={handleTextSelection}
-          style={{
-            backgroundColor: isSelectionMode ? '#4CAF50' : '#2196F3',
-            color: 'white',
-            padding: '8px 16px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            border: 'none',
-          }}
-        >
-          {isSelectionMode ? 'Stop Selection' : 'Select Text'}
         </button>
         <span>
           {' '}

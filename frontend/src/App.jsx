@@ -1,41 +1,42 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import AppLayout from "./ui_components/AppLayout";
-import AppLayout2 from "./ui_components/AppLayout2";
-import HomePage from "./pages/HomePage";
-import DetailPage from "./pages/DetailPage";
-import ReadingGroupPage from "./pages/ReadingGroupPage";
-import SignupPage from "./pages/SignupPage";
-import CreatePostPage from "./pages/CreatePostPage";
-import LoginPage from "./pages/LoginPage";
-import ProtectedRoute from "./ui_components/ProtectedRoute";
-import ProfilePage from "./pages/ProfilePage";
-import BookPagesPage from "./pages/BookPagesPage";
-import AllReadingGroupsPage from "./pages/AllReadingGroupsPage";
-import AllBooksPage from "./pages/AllBooksPage";
-import CreateReadingGroupPage from "./pages/CreateReadingGroupPage";
-import { useEffect, useState } from "react";
-import { getUsername } from "./services/apiBook";
-import { useQuery } from "@tanstack/react-query";
-import NotFoundPage from "./pages/NotFoundPage";
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import AppLayout from './ui_components/AppLayout'
+import AppLayout2 from './ui_components/AppLayout2'
+import HomePage from './pages/HomePage'
+import DetailPage from './pages/DetailPage'
+import ReadingGroupPage from './pages/ReadingGroupPage'
+import SignupPage from './pages/SignupPage'
+import CreatePostPage from './pages/CreatePostPage'
+import LoginPage from './pages/LoginPage'
+import ProtectedRoute from './ui_components/ProtectedRoute'
+import ProfilePage from './pages/ProfilePage'
+import BookPagesPage from './pages/BookPagesPage'
+import AllReadingGroupsPage from './pages/AllReadingGroupsPage'
+import AllBooksPage from './pages/AllBooksPage'
+import CreateReadingGroupPage from './pages/CreateReadingGroupPage'
+import NotificationsPage from './pages/NotificationsPage'
+import { useEffect, useState } from 'react'
+import { getUsername } from './services/apiBook'
+import { useQuery } from '@tanstack/react-query'
+import NotFoundPage from './pages/NotFoundPage'
 
 const App = () => {
-  const [username, setUsername] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [username, setUsername] = useState(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   const { data } = useQuery({
-    queryKey: ["username"],
+    queryKey: ['username'],
     queryFn: getUsername,
-  });
+  })
 
   useEffect(
     function () {
       if (data) {
-        setUsername(data.username);
-        setIsAuthenticated(true);
+        setUsername(data.username)
+        setIsAuthenticated(true)
       }
     },
     [data]
-  );
+  )
 
   return (
     <BrowserRouter>
@@ -53,11 +54,55 @@ const App = () => {
         >
           <Route index element={<HomePage />} />
           <Route path="*" element={<NotFoundPage />} />
-          <Route path="profile/:username" element={<ProfilePage authUsername={username} />} />
-          <Route path="books/:slug" element={<DetailPage username={username} isAuthenticated={isAuthenticated} />} />
-          <Route path="groups/:slug" element={<ReadingGroupPage username={username} isAuthenticated={isAuthenticated} />} />
-          <Route path="groups" element={<AllReadingGroupsPage username={username} isAuthenticated={isAuthenticated} />} />
-          <Route path="books" element={<AllBooksPage username={username} isAuthenticated={isAuthenticated} />} />
+          <Route
+            path="profile/:username"
+            element={<ProfilePage authUsername={username} />}
+          />
+          <Route
+            path="books/:slug"
+            element={
+              <DetailPage
+                username={username}
+                isAuthenticated={isAuthenticated}
+              />
+            }
+          />
+          <Route
+            path="groups/:slug"
+            element={
+              <ReadingGroupPage
+                username={username}
+                isAuthenticated={isAuthenticated}
+              />
+            }
+          />
+          <Route
+            path="groups"
+            element={
+              <AllReadingGroupsPage
+                username={username}
+                isAuthenticated={isAuthenticated}
+              />
+            }
+          />
+          <Route
+            path="books"
+            element={
+              <AllBooksPage
+                username={username}
+                isAuthenticated={isAuthenticated}
+              />
+            }
+          />
+          <Route
+            path="notifications"
+            element={
+              <NotificationsPage
+                username={username}
+                isAuthenticated={isAuthenticated}
+              />
+            }
+          />
           <Route path="signup" element={<SignupPage />} />
           <Route
             path="create_book"
@@ -100,7 +145,7 @@ const App = () => {
         </Route>
       </Routes>
     </BrowserRouter>
-  );
-};
+  )
+}
 
-export default App;
+export default App

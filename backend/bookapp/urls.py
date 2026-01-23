@@ -12,6 +12,11 @@ urlpatterns = [
         views.reading_group_list,
         name="group_list",
     ),
+    path(
+        "notifications/<int:amount>/",
+        views.notification_list,
+        name="notification_list",
+    ),
     path("books/<slug:slug>", views.get_book, name="get_book"),
     path("update_book/<int:pk>/", views.update_book, name="update_book"),
     path("delete_book/<int:pk>/", views.delete_book, name="delete_book"),
@@ -30,4 +35,5 @@ urlpatterns = [
     path("delete_group/<int:pk>/", views.delete_reading_group, name="delete_reading_group"),
     path("group/<int:pk>/add_user/", views.add_user_to_group, name="add_user_to_group"),
     path("group/<int:pk>/remove_user/", views.remove_user_from_group, name="remove_user_from_group"),
+    path("notifications/", views.notification_list, name="get_notifications"),  # REM
 ]
