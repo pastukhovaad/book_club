@@ -6,20 +6,33 @@ import InputError from "@/ui_components/InputError";
 import SmallSpinner from "@/ui_components/SmallSpinner";
 import SmallSpinnerText from "@/ui_components/SmallSpinnerText";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useState } from "react";
+import { BASE_URL } from "@/api";
 
 const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
 
-  console.log(userInfo)
-
   const queryClient = useQueryClient()
 
-  const { register, handleSubmit, formState, reset, watch } = useForm({defaultValues: userInfo ? userInfo : {}});
+  const [imagePreview, setImagePreview] = useState(null);
+
+  const { register, handleSubmit, formState, reset, watch, control } = useForm({defaultValues: userInfo ? userInfo : {}});
   const { errors } = formState;
 
   const password = watch("password");
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const updateProfileMutation = useMutation({
     mutationFn: (data) => updateProfile(data),
@@ -49,16 +62,15 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
   function onSubmit(data) {
     if(updateForm){
       const formData = new FormData()
-      formData.append("username", data.username)
-      formData.append("first_name", data.first_name)
-      formData.append("last_name", data.last_name)
-      formData.append("job_title", data.job_title)
-      formData.append("bio", data.bio)
+      formData.append("username", data.username || "")
+      formData.append("first_name", data.first_name || "")
+      formData.append("last_name", data.last_name || "")
+      formData.append("job_title", data.job_title || "")
+      formData.append("bio", data.bio || "")
 
-      if(data.profile_picture && data.profile_picture[0]){
-        if(data.profile_picture[0] != "/"){
-          formData.append("profile_picture", data.profile_picture[0])
-        }
+      // Добавляем новое изображение только если оно выбрано
+      if(data.profile_picture && Array.isArray(data.profile_picture) && data.profile_picture.length > 0){
+        formData.append("profile_picture", data.profile_picture[0])
       }
 
       updateProfileMutation.mutate(formData)
@@ -113,7 +125,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
         )}
       </div>
 
-      <div>
+      <div className="w-[300px]">
         <Label htmlFor="first_name">First Name</Label>
         <Input
           type="text"
@@ -126,14 +138,14 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
               message: "Firstname must be at least 3 characters",
             },
           })}
-          className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-[300px]"
+          className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full"
         />
         {errors?.first_name?.message && (
           <InputError error={errors.first_name.message} />
         )}
       </div>
 
-      <div>
+      <div className="w-[300px]">
         <Label htmlFor="last_name">Last Name</Label>
         <Input
           type="text"
@@ -146,14 +158,14 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
               message: "Lastname must be at least 3 characters",
             },
           })}
-          className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-[300px]"
+          className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full"
         />
         {errors?.last_name?.message && (
           <InputError error={errors.last_name.message} />
         )}
       </div>
 
-        {updateForm && <div>
+        {updateForm && <div className="w-[300px]">
         <Label htmlFor="job_title" className="dark:text-[97989F]">
           Job Title
         </Label>
@@ -168,7 +180,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
               message: "Your job title must be at least 3 characters",
             },
           })}
-          className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-[300px]"
+          className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full"
         />
         {errors?.job_title?.message && (
           <InputError error={errors.job_title.message} />
@@ -176,7 +188,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
       </div>}
 
 
-      {updateForm && <div>
+      {updateForm && <div className="w-[300px]">
         <Label htmlFor="content">Bio</Label>
         <Textarea
           id="content"
@@ -188,27 +200,56 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
               message: "The content must be at least 10 characters",
             },
           })}
-          className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[180px]  w-[300px] text-justify"
+          className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[60px] w-full text-justify"
         />
         {errors?.bio?.message && (
           <InputError error={errors.bio.message} />
         )}
       </div>}
 
-      {updateForm && <div className="w-full">
+      {updateForm && <div className="w-[300px]">
         <Label htmlFor="profile_picture">Profile Picture</Label>
+        
+        {/* Отображение текущего изображения */}
+        {!imagePreview && userInfo?.profile_picture && (
+          <div className="mb-3">
+            <img 
+              src={`${BASE_URL}${userInfo.profile_picture}`} 
+              alt="Current profile" 
+              className="h-40 w-40 rounded-lg object-cover border-2 border-[#141624] dark:border-[#3B3C4A]"
+            />
+            <p className="text-[12px] text-gray-500 mt-2">Current Image</p>
+          </div>
+        )}
+
+        {/* Отображение превью нового изображения */}
+        {imagePreview && (
+          <div className="mb-3">
+            <img 
+              src={imagePreview} 
+              alt="Preview" 
+              className="h-40 w-40 rounded-lg object-cover border-2 border-[#4B6BFB]"
+            />
+            <p className="text-[12px] text-blue-500 mt-2">New preview</p>
+          </div>
+        )}
+
         <Input
           type="file"
           id="picture"
+          accept="image/*"
           {...register("profile_picture", {
             required: false,
           })}
-          className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full max-sm:w-[300px] max-sm:text-[14px]"
+          onChange={(e) => {
+            handleImageChange(e);
+          }}
+          className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full text-[14px]"
         />
-
-        {/* {errors?.profile_picture?.message && (
-          <InputError error={errors.profile_picture.message} />
-        )} */}
+        
+        <p className="text-[12px] text-gray-500 mt-2">
+          Leave empty to keep current image
+        </p>
       </div>}
 
 
@@ -253,7 +294,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
         )}
       </div>}
 
-      <div className="w-full flex items-center justify-center flex-col my-4">
+      <div className="w-[300px] flex items-center justify-center flex-col my-4">
         {updateForm ? (
           <button className="bg-[#4B6BFB] text-white w-full py-3 px-2 rounded-md flex items-center justify-center gap-2">
             {updateProfileMutation.isPending ? (

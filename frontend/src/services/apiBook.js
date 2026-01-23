@@ -196,3 +196,16 @@ export async function addUserToGroup(id) {
     throw new Error(err.message);
   }
 }
+
+export async function removeUserFromGroup(id) {
+  try {
+    const response = await api.put(`group/${id}/remove_user/`);
+    return response.data;
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.response?.data?.message || "Failed to remove user from group");
+    }
+
+    throw new Error(err.message);
+  }
+}
