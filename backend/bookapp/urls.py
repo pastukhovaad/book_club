@@ -20,6 +20,11 @@ urlpatterns = [
     path("books/<slug:slug>", views.get_book, name="get_book"),
     path("update_book/<int:pk>/", views.update_book, name="update_book"),
     path("delete_book/<int:pk>/", views.delete_book, name="delete_book"),
+    path(
+        "delete_notification/<int:pk>/",
+        views.delete_notification,
+        name="delete_notification",
+    ),
     path("update_user/", views.update_user_profile, name="update_user"),
     path("get_username", views.get_username, name="get_username"),
     path("get_userinfo/<str:username>", views.get_userinfo, name="get_userinfo"),
@@ -31,9 +36,22 @@ urlpatterns = [
     path("books/", views.book_list, name="get_books"),  # REM
     path("books/<slug:slug>/page", views.get_book, name="get_book_page"),
     path("create_group/", views.create_reading_group, name="create_reading_group"),
-    path("update_group/<int:pk>/", views.update_reading_group, name="update_reading_group"),
-    path("delete_group/<int:pk>/", views.delete_reading_group, name="delete_reading_group"),
+    path(
+        "update_group/<int:pk>/",
+        views.update_reading_group,
+        name="update_reading_group",
+    ),
+    path(
+        "delete_group/<int:pk>/",
+        views.delete_reading_group,
+        name="delete_reading_group",
+    ),
     path("group/<int:pk>/add_user/", views.add_user_to_group, name="add_user_to_group"),
-    path("group/<int:pk>/remove_user/", views.remove_user_from_group, name="remove_user_from_group"),
-    path("notifications/", views.notification_list, name="get_notifications"),  # REM
+    path(
+        "group/<int:pk>/remove_user/",
+        views.remove_user_from_group,
+        name="remove_user_from_group",
+    ),
+    path("notifications/", views.notification_list, name="notification_list"),
+    path("get_notification/<int:id>/", views.get_notification, name="get_notification"),
 ]

@@ -10,8 +10,10 @@ def text_formating(content):
 
 
 class UpdateUserProfileSerializer(serializers.ModelSerializer):
-    profile_picture = serializers.ImageField(required=False, allow_null=True, allow_empty_file=True)
-    
+    profile_picture = serializers.ImageField(
+        required=False, allow_null=True, allow_empty_file=True
+    )
+
     class Meta:
         model = get_user_model()
         fields = [
@@ -28,21 +30,21 @@ class UpdateUserProfileSerializer(serializers.ModelSerializer):
             "instagram",
             "twitter",
         ]
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Сделаем поля необязательными
-        self.fields['profile_picture'].required = False
-        self.fields['facebook'].required = False
-        self.fields['youtube'].required = False
-        self.fields['instagram'].required = False
-        self.fields['twitter'].required = False
-    
+        self.fields["profile_picture"].required = False
+        self.fields["facebook"].required = False
+        self.fields["youtube"].required = False
+        self.fields["instagram"].required = False
+        self.fields["twitter"].required = False
+
     def update(self, instance, validated_data):
         # Если profile_picture не в initial_data, не обновляем его
-        if 'profile_picture' not in self.initial_data:
-            validated_data.pop('profile_picture', None)
-        
+        if "profile_picture" not in self.initial_data:
+            validated_data.pop("profile_picture", None)
+
         return super().update(instance, validated_data)
 
 
@@ -126,9 +128,11 @@ class ReadingGroupSerializer(serializers.ModelSerializer):  # REM
             "description",
         ]
 
+
 class NotificationSerializer(serializers.ModelSerializer):
     directed_to = SimpleAuthorSerializer(read_only=True)
-    related_to = SimpleAuthorSerializer(many=True, read_only=True)
+    related_to = SimpleAuthorSerializer(read_only=True)
+    related_group = ReadingGroupSerializer(read_only=True)
 
     class Meta:
         model = Notification
@@ -136,11 +140,13 @@ class NotificationSerializer(serializers.ModelSerializer):
             "id",
             "directed_to",
             "related_to",
+            "related_group",
             "extra_text",
             "sent_at",
             "sent_date",
             "category",
         ]
+
 
 class UserInfoSerializer(serializers.ModelSerializer):
     author_posts = serializers.SerializerMethodField()
@@ -164,3 +170,16 @@ class UserInfoSerializer(serializers.ModelSerializer):
         serializer = BookSerializer(books, many=True)
         return serializer.data
 
+
+class UserToReadingGroupStateSerializer(serializers.ModelSerializer):  # REM
+    user = SimpleAuthorSerializer(read_only=True)
+    reading_group = ReadingGroupSerializer(read_only=True)
+
+    class Meta:
+        model = ReadingGroup
+        fields = [
+            "id",
+            "user",
+            "reading_group",
+            "in_reading_group",
+        ]

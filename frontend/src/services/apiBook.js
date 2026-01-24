@@ -18,6 +18,15 @@ export async function getBook(slug) {
   }
 }
 
+export async function getNotification(id) {
+  try {
+    const response = await api.get(`get_notification/${id}`)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
 export async function getBookPage(slug) {
   // REM
   try {
@@ -56,6 +65,7 @@ export async function getNotifications(page, amount) {
     throw new Error(err.message)
   }
 }
+
 
 export async function getReadingGroup(slug) {
   try {
@@ -152,6 +162,19 @@ export async function deleteBook(id) {
   } catch (err) {
     if (err.response) {
       throw new Error(err.response?.data?.message || 'Failed to delete book')
+    }
+
+    throw new Error(err.message)
+  }
+}
+
+export async function deleteNotification(id) {
+  try {
+    const response = await api.post(`delete_notification/${id}/`)
+    return response.data
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.response?.data?.message || 'Failed to delete notification')
     }
 
     throw new Error(err.message)

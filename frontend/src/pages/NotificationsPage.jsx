@@ -1,23 +1,23 @@
 import { useState } from 'react'
-import { getBooks } from '@/services/apiBook'
-import BookContainer from '@/ui_components/BookContainer'
+import { getNotifications } from '@/services/apiBook'
+import NotificationContainer from '@/ui_components/NotificationContainer'
 import PagePagination from '../ui_components/PagePagination'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
 const AllBooksPage = () => {
   const [page, setPage] = useState(1)
-  const numOfBooksPerPage = 9
+  const numOfNotificationsPerPage = 9
 
   const { isPending, isError, error, data } = useQuery({
-    queryKey: ['books', page],
-    queryFn: () => getBooks(page, numOfBooksPerPage),
+    queryKey: ['notifications', page],
+    queryFn: () => getNotifications(page, numOfNotificationsPerPage),
     placeholderData: keepPreviousData,
   })
 
-  const books = data?.results || []
-  console.log(books)
-  const numOfPages = Math.ceil(data?.count / numOfBooksPerPage) // How to make the numOfBooksPerPage work here properly?
+  const notifications = data?.results || []
+  console.log(notifications)
+  const numOfPages = Math.ceil(data?.count / numOfNotificationsPerPage)
   console.log(numOfPages)
   console.log(page)
 
@@ -37,11 +37,11 @@ const AllBooksPage = () => {
     <div className="padding-y  max-container">
       <div className="flex justify-around items-center gap-4">
         <h2 className="py-6 leading-normal text-2xl md:text-3xl text-[#181A2A] tracking-wide font-semibold dark:text-[#FFFFFF]">
-          Your notifications
+          Ваши уведомления
         </h2>
       </div>
       {/* TODO: Make NotificationContainer and NotificationCard */}
-      <BookContainer isPending={isPending} books={books} />
+      <NotificationContainer isPending={isPending} notifications={notifications} />
       <PagePagination
         increasePageValue={increasePageValue}
         decreasePageValue={decreasePageValue}

@@ -220,7 +220,7 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
       <div className="padding-dx max-container py-6">
         <nav className="rounded max-container padding-x py-6 flex justify-between items-center gap-6 sticky top-0 z-10 bg-[#F6F6F7] dark:bg-[#141624]">
           <Link to="/" className="text-[#141624] text-2xl dark:text-[#FFFFFF]">
-            Home
+            На главную
           </Link>
           <Link
             to={`/books/${slug}`}
@@ -229,7 +229,7 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
             {book.title}
           </Link>
           <Link to="/" className="text-[#141624] text-2xl dark:text-[#FFFFFF]">
-            Chapters
+            Главы
           </Link>
         </nav>
 
@@ -273,7 +273,7 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
           disabled={currentPage === 1}
           onClick={() => setCurrentPage((p) => p - 1)}
         >
-          Previous page
+          Прошлая страница
         </button>
         <button
           onClick={handleTextSelection}
@@ -290,13 +290,13 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
         </button>
         <span>
           {' '}
-          Page {currentPage} of {totalPages}{' '}
+          Страница {currentPage} из {totalPages}{' '}
         </span>
         <button
           disabled={currentPage === totalPages}
           onClick={() => setCurrentPage((p) => p + 1)}
         >
-          Next page
+          Следующая страница
         </button>
       </div>
 

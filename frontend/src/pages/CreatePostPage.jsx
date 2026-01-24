@@ -85,31 +85,31 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
     >
       <div className="flex flex-col gap-2 justify-center items-center mb-2">
         <h3 className="font-semibold text-2xl max-sm:text-xl">
-          {book ? "Update Book" : "Create Book"}
+          {book ? "Обновить книгу" : "Создать книгу"}
         </h3>
 
         <p className="max-sm:text-[14px]">
           {book
-            ? "Do you want to update your book?"
-            : "Create a new book and share your ideas."}
+            ? "Хотите внести изменения в свою книгу?"
+            : "Создайте новую книгу и поделитесь своими идеями."}
         </p>
       </div>
 
       <div>
         <Label htmlFor="title" className="dark:text-[97989F]">
-          Title *
+          Название *
         </Label>
         <Input
           type="text"
           id="title"
           {...register("title", {
-            required: "Book's title is required",
+            required: "Название книги обязательно",
             minLength: {
               value: 3,
-              message: "The title must be at least 3 characters",
+              message: "Название книги должно содержать не менее 3 символов",
             },
           })}
-          placeholder="Give your book a title"
+          placeholder="Дайте название вашей книге"
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-[400px] max-sm:w-[300px] max-sm:text-[14px]"
         />
 
@@ -117,12 +117,12 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
       </div>
 
       <div>
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description">Описание</Label>
         <Textarea
           id="description"
-          placeholder="Give a brief description of your book"
+          placeholder="Дайте краткое описание вашей книге"
           {...register("description", {
-            required: "Book's content is required"
+            required: "Описание книги обязательно",
           })}
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[180px]  w-[400px] text-justify max-sm:w-[300px] max-sm:text-[14px]"
         />
@@ -132,15 +132,15 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
       </div>
 
       <div>
-        <Label htmlFor="content">Content *</Label>
+        <Label htmlFor="content">Содержимое *</Label>
         <Textarea
           id="content"
-          placeholder="Insert your book"
+          placeholder="Вставьте вашу книгу здесь"
           {...register("content", {
-            required: "Book's content is required",
+            required: "Содержимое книги обязательно",
             minLength: {
               value: 10,
-              message: "The content must be at least 10 characters",
+              message: "Книга должна содержать не менее 10 символов",
             },
           })}
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[180px]  w-[400px] text-justify max-sm:w-[300px] max-sm:text-[14px]"
@@ -151,15 +151,15 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
       </div>
 
       <div className="w-full">
-        <Label htmlFor="category">Category *</Label>
+        <Label htmlFor="category">Категория *</Label>
 
         <Select
-          {...register("category", { required: "Book's category is required" })}
+          {...register("category", { required: "Категория книги обязательна" })}
           onValueChange={(value) => setValue("category", value)}
           defaultValue={book ? book.category : ""}
         >
           <SelectTrigger className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full max-sm:w-[300px] max-sm:text-[14px]">
-            <SelectValue placeholder="Select a category" />
+            <SelectValue placeholder="Выберите категорию" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
@@ -206,10 +206,10 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
             {updateMutation.isPending ? (
               <>
                 {" "}
-                <SmallSpinner /> <SmallSpinnerText text="Updating book..." />{" "}
+                <SmallSpinner /> <SmallSpinnerText text="Обновление книги..." />{" "}
               </>
             ) : (
-              <SmallSpinnerText text="Update book" />
+              <SmallSpinnerText text="Обновить книгу" />
             )}
           </button>
         ) : (
@@ -220,10 +220,10 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
             {mutation.isPending ? (
               <>
                 {" "}
-                <SmallSpinner /> <SmallSpinnerText text="Creating book..." />{" "}
+                <SmallSpinner /> <SmallSpinnerText text="Создание книги..." />{" "}
               </>
             ) : (
-              <SmallSpinnerText text="Create book" />
+              <SmallSpinnerText text="Создать книгу" />
             )}
           </button>
         )}

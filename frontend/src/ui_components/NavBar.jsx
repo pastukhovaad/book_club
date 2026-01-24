@@ -36,6 +36,12 @@ const NavBar = ({
                 >
                   Hi, {username}
                 </NavLink></li>
+              <li><NavLink
+                  to={`/notifications`}
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                >
+                  Notifications
+                </NavLink></li>
               <li onClick={logout} className="cursor-pointer">
                 Logout
               </li>

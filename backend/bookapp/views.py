@@ -65,6 +65,13 @@ def get_reading_group(request, slug):
     return Response(serializer.data)
 
 
+@api_view(["GET"])  # REM
+def get_notification(request, id):
+    notification = Notification.objects.get(id=id)
+    serializer = NotificationSerializer(notification)
+    return Response(serializer.data)
+
+
 # @api_view(["GET"])
 # def reading_group_list(request):
 #     reading_groups = ReadingGroup.objects.all()
@@ -99,7 +106,7 @@ def notification_list(request, amount):
     serializer = NotificationSerializer(paginated_notifications, many=True)
     return paginator.get_paginated_response(serializer.data)
 
-    
+
 @api_view(["POST"])
 def register_user(request):
     serializer = UserRegistrationSerializer(data=request.data)
@@ -220,6 +227,22 @@ def delete_book(request, pk):
     book.delete()
     return Response(
         {"message": "Book deleted successfully"}, status=status.HTTP_204_NO_CONTENT
+    )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def delete_notification(request, pk):
+    notification = Notification.objects.get(id=pk)
+    user = request.user
+    if notification.directed_to != user:
+        return Response(
+            {"error": "Вы не являетесь получателем этого уведомления"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    notification.delete()
+    return Response(
+        {"message": "Сообщение успешно удалено"}, status=status.HTTP_204_NO_CONTENT
     )
 
 

@@ -34,20 +34,20 @@ const CreateReadingGroupPage = ({ reading_group, isAuthenticated }) => {
     mutationFn: ({ data, id }) => updateReadingGroup(data, id),
     onSuccess: () => {
       navigate("/");
-      toast.success("Your group has been updated successfully!");
-      console.log("Your group has been updated successfully!");
+      toast.success("Ваша группа была успешно обновлена!");
+      console.log("Ваша группа была успешно обновлена!");
     },
 
     onError: (err) => {
       toast.error(err.message);
-      console.log("Error updating group", err);
+      console.log("Возникла ошибка при обновлении группы", err);
     },
   });
 
   const mutation = useMutation({
     mutationFn: (data) => createReadingGroup(data),
     onSuccess: () => {
-      toast.success("New group added successfully");
+      toast.success("Новая группа успешно создана!");
       queryClient.invalidateQueries({ queryKey: ["reading_groups"] });
       navigate("/");
     },
@@ -83,28 +83,28 @@ const CreateReadingGroupPage = ({ reading_group, isAuthenticated }) => {
     >
       <div className="flex flex-col gap-2 justify-center items-center mb-2">
         <h3 className="font-semibold text-2xl max-sm:text-xl">
-          {reading_group ? "Update Group" : "Create Group"}
+          {reading_group ? "Обновить группу" : "Создать группу"}
         </h3>
 
         <p className="max-sm:text-[14px]">
           {reading_group
-            ? "Do you want to update your group?"
-            : "Create a group to start reading with others."}
+            ? "Хотите внести изменения в свою группу?"
+            : "Создайте группу, чтобы начать читать с другими."}
         </p>
       </div>
 
       <div>
         <Label htmlFor="name" className="dark:text-[97989F]">
-          Title *
+          Название *
         </Label>
         <Input
           type="text"
           id="name"
           {...register("name", {
-            required: "Group's name is required",
+            required: "Название группы обязательно",
             minLength: {
               value: 3,
-              message: "The name must be at least 3 characters",
+              message: "Название группы должно содержать не менее 3 символов",
             },
           })}
           placeholder="Give your group a name"
@@ -115,12 +115,12 @@ const CreateReadingGroupPage = ({ reading_group, isAuthenticated }) => {
       </div>
 
       <div>
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description">Описание</Label>
         <Textarea
           id="description"
-          placeholder="Give a brief description of your book"
+          placeholder="Дайте краткое описание вашей группы"
           {...register("description", {
-            required: "Book's content is required"
+            required: "Описание группы обязательно"
           })}
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[180px]  w-[400px] text-justify max-sm:w-[300px] max-sm:text-[14px]"
         />
@@ -162,12 +162,12 @@ const CreateReadingGroupPage = ({ reading_group, isAuthenticated }) => {
       {/* Could add group categories */}
 
       <div className="w-full">
-        <Label htmlFor="featured_image">Featured Image *</Label>
+        <Label htmlFor="featured_image">Картинка группы *</Label>
         <Input
           type="file"
           id="picture"
           {...register("featured_image", {
-            required: reading_group ? false : "Group's image is required",
+            required: reading_group ? false : "Картинка группы обязательна",
           })}
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full max-sm:w-[300px] max-sm:text-[14px]"
         />
@@ -186,10 +186,10 @@ const CreateReadingGroupPage = ({ reading_group, isAuthenticated }) => {
             {updateMutation.isPending ? (
               <>
                 {" "}
-                <SmallSpinner /> <SmallSpinnerText text="Updating group..." />{" "}
+                <SmallSpinner /> <SmallSpinnerText text="Обновление группы..." />{" "}
               </>
             ) : (
-              <SmallSpinnerText text="Update group" />
+              <SmallSpinnerText text="Обновить группу" />
             )}
           </button>
         ) : (
@@ -200,10 +200,10 @@ const CreateReadingGroupPage = ({ reading_group, isAuthenticated }) => {
             {mutation.isPending ? (
               <>
                 {" "}
-                <SmallSpinner /> <SmallSpinnerText text="Creating group..." />{" "}
+                <SmallSpinner /> <SmallSpinnerText text="Создание группы..." />{" "}
               </>
             ) : (
-              <SmallSpinnerText text="Create group" />
+              <SmallSpinnerText text="Создать группу" />
             )}
           </button>
         )}
