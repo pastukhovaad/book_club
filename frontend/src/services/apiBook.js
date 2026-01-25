@@ -27,6 +27,17 @@ export async function getNotification(id) {
   }
 }
 
+
+export async function createNotification(data) {
+  try {
+    const response = await api.post('create_notification/', data)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+
 export async function getBookPage(slug) {
   // REM
   try {
@@ -60,6 +71,17 @@ export async function getNotifications(page, amount) {
   // REM
   try {
     const response = await api.get(`notifications/${amount}/?page=${page}`)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+
+export async function getUserToReadingGroupStates(id) {
+  // REM
+  try {
+    const response = await api.get(`user_to_reading_group_state_list/${id}/`)
     return response.data
   } catch (err) {
     throw new Error(err.message)
@@ -242,6 +264,22 @@ export async function removeUserFromGroup(id) {
     if (err.response) {
       throw new Error(
         err.response?.data?.message || 'Failed to remove user from group'
+      )
+    }
+
+    throw new Error(err.message)
+  }
+}
+
+
+export async function confirmUserToGroup(groupId, userId) {
+  try {
+    const response = await api.put(`group/${groupId}/confirm_user/${userId}/`)
+    return response.data
+  } catch (err) {
+    if (err.response) {
+      throw new Error(
+        err.response?.data?.message || 'Failed to confirm user to group'
       )
     }
 

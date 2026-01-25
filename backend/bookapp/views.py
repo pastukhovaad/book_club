@@ -8,7 +8,13 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Book, Notification, ReadingGroup
+from .models import (
+    Book,
+    CustomUser,
+    Notification,
+    ReadingGroup,
+    UserToReadingGroupState,
+)
 from .serializers import (
     BookSerializer,
     NotificationSerializer,
@@ -17,6 +23,7 @@ from .serializers import (
     UpdateUserProfileSerializer,
     UserInfoSerializer,
     UserRegistrationSerializer,
+    UserToReadingGroupStateSerializer,
 )
 
 # logger = logging.getLogger(__name__)
@@ -99,6 +106,24 @@ def reading_group_list(request, amount):
 
 
 @api_view(["GET"])
+def user_to_reading_group_state_list(request, pk):
+
+    user = request.user
+    user_to_reading_group_states = UserToReadingGroupState.objects.filter(
+        reading_group_id=pk, user=user
+    )
+
+    # logging.warning(
+    #     f"User to Reading Group States retrieved: {user_to_reading_group_states}"
+    # )
+
+    serializer = UserToReadingGroupStateSerializer(
+        user_to_reading_group_states, many=True
+    )
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
 def notification_list(request, amount):
     notifications = Notification.objects.all()
     paginator = AnyListPagination(amount=amount)
@@ -134,6 +159,28 @@ def create_book(request):
     serializer = BookSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save(author=user)
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_notification(request):
+    user = request.user
+    directed_to_id = request.data.get("directed_to_id")
+    if directed_to_id:
+        directed_user = CustomUser.objects.get(id=directed_to_id)
+    related_group_id = request.data.get("related_group_id")
+    if related_group_id:
+        related_group = ReadingGroup.objects.get(id=related_group_id)
+    serializer = NotificationSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(
+            related_to=user,
+            directed_to=directed_user,
+            related_group=related_group,
+            extra_text="",
+        )
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -188,10 +235,22 @@ def update_reading_group(request, pk):
 def add_user_to_group(request, pk):
     user = request.user
     reading_group = ReadingGroup.objects.get(id=pk)
-    reading_group.user.add(user)
+    reading_group.user.add(user, through_defaults={"in_reading_group": False})
     serializer = ReadingGroupSerializer(reading_group)
     return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+def confirm_user_to_group(request, pk, user_id):
+    reading_group = ReadingGroup.objects.get(id=pk)
+    user = CustomUser.objects.get(id=user_id)
+    UserToReadingGroupState.objects.filter(
+        reading_group=reading_group, user=user  # HERE
+    ).update(in_reading_group=True)
+    serializer = ReadingGroupSerializer(reading_group)
+    return Response(serializer.data)
 
 
 @api_view(["PUT"])

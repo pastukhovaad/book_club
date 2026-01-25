@@ -6,7 +6,7 @@ const NotFoundPage = () => {
     
 
     <h2 className="text-[#3B3C4A] text-4xl max-md:leading-[2rem] lg:leading-normal lg:mx-[200px] text-center dark:text-[#BABABF]">
-      Page Not Found.
+      Страница не найдена.
     </h2>
 
    

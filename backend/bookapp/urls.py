@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     path("register_user/", views.register_user, name="register_user"),
     path("create_book/", views.create_book, name="create_book"),
+    path("create_notification/", views.create_notification, name="create_notification"),
     path("book_list/<int:amount>/", views.book_list, name="book_list"),
     # path("group_list", views.reading_group_list, name="group_list"),
     path(
@@ -54,4 +55,14 @@ urlpatterns = [
     ),
     path("notifications/", views.notification_list, name="notification_list"),
     path("get_notification/<int:id>/", views.get_notification, name="get_notification"),
+    path(
+        "user_to_reading_group_state_list/<int:pk>/",
+        views.user_to_reading_group_state_list,
+        name="user_to_reading_group_state_list",
+    ),
+    path(
+        "group/<int:pk>/confirm_user/<int:user_id>/",
+        views.confirm_user_to_group,
+        name="confirm_user_to_group",
+    ),
 ]

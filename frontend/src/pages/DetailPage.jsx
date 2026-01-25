@@ -40,7 +40,7 @@ const DetailPage = ({ username, isAuthenticated }) => {
   const deleteMutation = useMutation({
     mutationFn: (id) => deleteBook(id),
     onSuccess: () => {
-      toast.success('Your book has been deleted successfully!')
+      toast.success('Ваша книга была успешно удалена!')
       navigate('/')
     },
 
@@ -51,7 +51,7 @@ const DetailPage = ({ username, isAuthenticated }) => {
   })
 
   function handleDeleteBook() {
-    const popUp = window.confirm('Are you sure you want to delete this book?')
+    const popUp = window.confirm('Вы уверены, что хотите удалить эту книгу?')
     if (!popUp) {
       return
     }
@@ -104,7 +104,7 @@ const DetailPage = ({ username, isAuthenticated }) => {
           />
         </div>
         <p className="text-[16px] leading-[2rem] text-justify text-[#3B3C4A] dark:text-[#BABABF]">
-          {book.description || "This book doesn't have a description."}
+          {book.description || "У этой книги нет описания."}
           {/* Logical or */}
         </p>
       </div>

@@ -4,7 +4,7 @@ import Badge from "@/ui_components/Badge";
 import GroupCreator from "@/ui_components/GroupCreator";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { deleteReadingGroup, getReadingGroup, addUserToGroup, removeUserFromGroup} from "@/services/apiBook";
+import { deleteReadingGroup, getReadingGroup, addUserToGroup, removeUserFromGroup, createNotification, getUserToReadingGroupStates} from "@/services/apiBook";
 import Spinner from "@/ui_components/Spinner";
 import { BASE_URL } from "@/api";
 import { HiPencilAlt } from "react-icons/hi";
@@ -15,6 +15,7 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import SmallSpinner from "@/ui_components/SmallSpinner";
 import SmallSpinnerText from "@/ui_components/SmallSpinnerText";
+// import { create } from "domain";
 
 
 const ReadingGroupPage = ({ username, isAuthenticated }) => {
@@ -39,12 +40,22 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
 
   const reading_groupID = reading_group?.id
 
-  console.log(reading_group);
+  const { data: userStates } = useQuery({
+    queryKey: ["userToReadingGroupState", reading_groupID],
+    queryFn: () => getUserToReadingGroupStates(reading_groupID),
+  });
+
+
+
+
+  console.log("reading_group:", reading_group);
+  console.log("userStates:", userStates);
+
 
   const deleteMutation = useMutation({
     mutationFn: (id) => deleteReadingGroup(id),
     onSuccess: () => {
-      toast.success("Your group has been deleted successfully! I think?")  // REM
+      toast.success("Ваша группа была успешно удалена!")
       navigate("/")
     },
 
@@ -55,10 +66,25 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
   })
 
 
-  const mutation = useMutation({
+  const confirmMutation = useMutation({
+    mutationFn: (data) => createNotification(data),
+    onSuccess: () => {
+      toast.success("Отправлена нотификация.");
+      queryClient.invalidateQueries({ queryKey: ["groups", slug] });
+    },
+  });
+
+  const requestMutation = useMutation({
     mutationFn: (id) => addUserToGroup(id),
     onSuccess: () => {
-      toast.success("You have successfully joined the group!");
+
+      const formData = new FormData()
+      formData.append("directed_to_id", reading_group.creator.id || "")
+      formData.append("related_group_id", reading_group.id || "")
+      formData.append("category", "GroupJoinRequest")
+
+      confirmMutation.mutate(formData);
+      toast.success("Отправлен запрос на добавление в группу.");
       queryClient.invalidateQueries({ queryKey: ["groups", slug] });
     },
   });
@@ -66,7 +92,7 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
   const leaveMutation = useMutation({
     mutationFn: (id) => removeUserFromGroup(id),
     onSuccess: () => {
-      toast.success("You have successfully left the group!");
+      toast.success("Вы успешно покинули группу!");
       queryClient.invalidateQueries({ queryKey: ["groups", slug] });
     },
     onError: (err) => {
@@ -75,9 +101,9 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
   });
 
 
-  function onSubmit() {
+  function onJoinRequest() {
     
-      mutation.mutate(reading_groupID);
+      requestMutation.mutate(reading_groupID);
     
   }
 
@@ -86,11 +112,16 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
   }
 
   // Check if current user is a member of the group
-  const isUserMember = reading_group?.user?.some(member => member.username === username);
+  // const isUserMember = reading_group?.user?.some(member => member.username === username) && ;
+  const isUserMember = userStates?.some(state => state.reading_group.id === reading_groupID && state.in_reading_group && state.user.username === username);
+  const isUserPending = userStates?.some(state => state.reading_group.id === reading_groupID && state.in_reading_group === false && state.user.username === username);
+  //const isUserPending = reading_group?.user?.some(member => member.username === username && !member.in_reading_group);
 
+  console.log("isUserMember:", isUserMember, username, reading_group?.user);
+  console.log("isUserPending:", isUserPending, username);
 
   function handleDeleteReadingGroup(){
-    const popUp = window.confirm("Are you sure you want to delete this group? Haha group not post")  // REM
+    const popUp = window.confirm("Вы уверены, что хотите удалить эту группу?")
     if(!popUp){
       return;
     }
@@ -132,24 +163,31 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
                   {leaveMutation.isPending ? (
                     <>
                       {" "}
-                      <SmallSpinner /> <SmallSpinnerText text="Leaving..." />{" "}
+                      <SmallSpinner /> <SmallSpinnerText text="..." />{" "}
                     </>
                     ) : (
-                      <SmallSpinnerText text="Leave group" />
+                      <SmallSpinnerText text="Выйти" />
                   )}
                 </button>
+            ) : isUserPending ? (
+              <button
+                disabled={true}
+                className="bg-[#939393] text-white py-3 px-8 rounded-md flex items-right justify-center gap-2 transition-colors"
+                >
+                  <p>Запрос на вступление отправлен</p>
+                </button>
             ) : (
-              <button onClick={onSubmit}
-                disabled={mutation.isPending}
+              <button onClick={onJoinRequest}
+                disabled={requestMutation.isPending}
                 className="bg-[#4B6BFB] text-white py-3 px-8 rounded-md flex items-right justify-center gap-2 hover:bg-blue-700 transition-colors"
                 >
-                  {mutation.isPending ? (
+                  {requestMutation.isPending ? (
                     <>
                       {" "}
-                      <SmallSpinner /> <SmallSpinnerText text="Joining group..." />{" "}
+                      <SmallSpinner /> <SmallSpinnerText text="..." />{" "}
                     </>
                     ) : (
-                      <SmallSpinnerText text="Join group" />
+                      <SmallSpinnerText text="Присоединиться" />
                   )}
                 </button>
             )}
@@ -202,7 +240,7 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
             </div>
           ) : (
             <p className="text-[#3B3C4A] dark:text-[#BABABF]">
-              No members in this group yet.
+              В этой группе пока нет участников.
             </p>
           )}
         </div>

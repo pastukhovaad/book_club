@@ -99,7 +99,7 @@ class ReadingGroup(models.Model):  # REM
     )
     user = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
-        # through="UserToReadingGroupState",
+        through="UserToReadingGroupState",
         related_name="reading_groups_user",
         blank=True,
     )
@@ -151,7 +151,7 @@ class UserToReadingGroupState(models.Model):  # REM
         ordering = ["in_reading_group"]
 
     def __str__(self):
-        return f"{self.user.username} - {self.reading_group.name}"
+        return f"{self.user.username} - {self.reading_group.name} - {self.in_reading_group}"
 
 
 class Notification(models.Model):
@@ -187,7 +187,6 @@ class Notification(models.Model):
 
     extra_text = models.TextField(blank=True, null=True)
     sent_at = models.DateTimeField(auto_now_add=True)
-    sent_date = models.DateTimeField(blank=True, null=True)
     category = models.CharField(max_length=255, choices=CATEGORY, blank=True, null=True)
 
     class Meta:

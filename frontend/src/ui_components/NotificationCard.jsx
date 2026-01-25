@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { FormatDate } from "@/services/formatDate";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { deleteNotification, getNotification } from '@/services/apiBook'
+import { deleteNotification, getUserToReadingGroupStates, getNotification, confirmUserToGroup, createNotification } from '@/services/apiBook'
 import { useState } from "react";
+import { set } from "react-hook-form";
+import { decl } from "postcss";
 
 
 const NotificationCard = ({ notification }) => {
@@ -21,9 +23,43 @@ const NotificationCard = ({ notification }) => {
       },
   })
 
+  const declineUserMutation = useMutation({
+    mutationFn: () => deleteMutation.mutate(notificationID),
+    onSuccess: () => {
+      setIsDeleted(true);
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      createNotification({
+        user_id: notification.related_to.id,
+        category: "GroupRequestAccepted",
+        related_group_id: notification.related_group.id,
+      })
+    },
+  })
+
+  const confirmUserMutation = useMutation({
+      mutationFn: () => confirmUserToGroup(notification.related_group.id, notification.related_to.id),
+      onSuccess: () => {
+        deleteMutation.mutate(notificationID);
+        setIsDeleted(true);
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        createNotification({
+          user_id: notification.related_to.id,
+          category: "GroupRequestAccepted",
+          related_group_id: notification.related_group.id,
+        })
+      },
+  })
+
+
   function handleDeleteNotification() {
-    setIsDeleting(true);
-    deleteMutation.mutate(notificationID)
+  }
+
+  function handleGroupAcceptRequest() {
+    confirmUserMutation.mutate();
+  }
+
+  function handleGroupDeclineRequest() {
+    declineUserMutation.mutate();
   }
 
   const shouldShowOkButton =
@@ -31,7 +67,7 @@ const NotificationCard = ({ notification }) => {
     notification.category === "GroupRequestAccepted" ||
     notification.category === null;
 
-  const shouldShowAcceptDeclineButtons =
+  const shouldShowGroupAcceptDeclineButtons =
     notification.category === "GroupJoinRequest";
   
   if (isDeleted) {
@@ -120,17 +156,17 @@ const NotificationCard = ({ notification }) => {
         >
           {isDeleting ? "..." : "Ок"}
         </button>
-      ) : shouldShowAcceptDeclineButtons ? (
+      ) : shouldShowGroupAcceptDeclineButtons ? (
         <div className="flex gap-4">
           <button
-            onClick={handleDeleteNotification}
+            onClick={handleGroupAcceptRequest}
             disabled={isDeleting}
             className="flex-1 px-3 py-1 bg-green-600 dark:bg-green-500 text-white rounded hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 transition-colors whitespace-nowrap"
           >
             {isDeleting ? "..." : "Принять"}
           </button>
           <button
-            onClick={handleDeleteNotification}
+            onClick={handleGroupDeclineRequest}
             disabled={isDeleting}
             className="flex-1 px-3 py-1 bg-red-600 dark:bg-red-500 text-white rounded hover:bg-red-700 dark:hover:bg-red-600 disabled:opacity-50 transition-colors whitespace-nowrap"
           >
