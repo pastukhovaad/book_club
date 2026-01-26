@@ -26,10 +26,10 @@ from .serializers import (
     UserToReadingGroupStateSerializer,
 )
 
-# logger = logging.getLogger(__name__)
-# logging.basicConfig(
-#     filename="/home/sasha/book_club/backend/bookapp/myapp.log", level=logging.INFO
-# )
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    filename="/home/sasha/book_club/backend/bookapp/new_log.log", level=logging.INFO
+)
 
 
 class AnyListPagination(PageNumberPagination):
@@ -125,7 +125,8 @@ def user_to_reading_group_state_list(request, pk):
 
 @api_view(["GET"])
 def notification_list(request, amount):
-    notifications = Notification.objects.all()
+    user = request.user
+    notifications = Notification.objects.filter(directed_to=user)
     paginator = AnyListPagination(amount=amount)
     paginated_notifications = paginator.paginate_queryset(notifications, request)
     serializer = NotificationSerializer(paginated_notifications, many=True)
@@ -167,9 +168,11 @@ def create_book(request):
 @permission_classes([IsAuthenticated])
 def create_notification(request):
     user = request.user
-    directed_to_id = request.data.get("directed_to_id")
+    directed_to_id = request.data.get("directed_to_id")  # HERE FFS
     if directed_to_id:
         directed_user = CustomUser.objects.get(id=directed_to_id)
+    else:
+        directed_user = None
     related_group_id = request.data.get("related_group_id")
     if related_group_id:
         related_group = ReadingGroup.objects.get(id=related_group_id)
@@ -295,10 +298,15 @@ def delete_notification(request, pk):
     notification = Notification.objects.get(id=pk)
     user = request.user
     if notification.directed_to != user:
+        logger.info(f"Correct user: {notification.directed_to}; Recieved user: {user}")
         return Response(
-            {"error": "Вы не являетесь получателем этого уведомления"},
+            {
+                "error": f"Вы не являетесь получателем этого уведомления; {notification.directed_to}"
+            },
             status=status.HTTP_403_FORBIDDEN,
         )
+
+    # figure out why the above check does not work properly
     notification.delete()
     return Response(
         {"message": "Сообщение успешно удалено"}, status=status.HTTP_204_NO_CONTENT

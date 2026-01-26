@@ -21,6 +21,9 @@ const NotificationCard = ({ notification }) => {
         setIsDeleted(true);
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
       },
+      onError: (error) => {
+        console.error("Error deleting notification:", error);
+      }
   })
 
   const declineUserMutation = useMutation({
@@ -29,11 +32,15 @@ const NotificationCard = ({ notification }) => {
       setIsDeleted(true);
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       createNotification({
-        user_id: notification.related_to.id,
-        category: "GroupRequestAccepted",
+        directed_to_id: notification.related_to.id,
+        category: "GroupRequestDeclined",
         related_group_id: notification.related_group.id,
+        related_to: notification.directed_to.id,
       })
     },
+    onError: (error) => {
+      console.error("Error declining user:", error);
+    }
   })
 
   const confirmUserMutation = useMutation({
@@ -43,15 +50,21 @@ const NotificationCard = ({ notification }) => {
         setIsDeleted(true);
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
         createNotification({
-          user_id: notification.related_to.id,
+          directed_to_id: notification.related_to.id,
           category: "GroupRequestAccepted",
           related_group_id: notification.related_group.id,
+          related_to: notification.directed_to.id,
         })
+
       },
+      onError: (error) => {
+        console.error("Error accepting/confirming user:", error);
+      }
   })
 
 
   function handleDeleteNotification() {
+    deleteMutation.mutate(notificationID);
   }
 
   function handleGroupAcceptRequest() {

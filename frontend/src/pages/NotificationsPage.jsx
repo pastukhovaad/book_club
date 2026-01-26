@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { getNotifications } from '@/services/apiBook'
+import { getNotifications, getUsername } from '@/services/apiBook'
 import NotificationContainer from '@/ui_components/NotificationContainer'
 import PagePagination from '../ui_components/PagePagination'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
-const AllBooksPage = () => {
+const AllBooksPage = ( { authUsername } ) => {
   const [page, setPage] = useState(1)
   const numOfNotificationsPerPage = 9
 
@@ -16,6 +16,7 @@ const AllBooksPage = () => {
   })
 
   const notifications = data?.results || []
+  console.log(authUsername)
   console.log(notifications)
   const numOfPages = Math.ceil(data?.count / numOfNotificationsPerPage)
   console.log(numOfPages)
