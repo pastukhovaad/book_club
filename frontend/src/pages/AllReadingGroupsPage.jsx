@@ -43,10 +43,10 @@ const AllReadingGroupsPage = () => {
       
         <div className="flex justify-around items-center gap-4">
           <h2 className="py-6 leading-normal text-2xl md:text-3xl text-[#181A2A] tracking-wide font-semibold dark:text-[#FFFFFF]">
-            All groups
+            Все группы
           </h2>
           <Link to={`/create_group`} className="bg-[#4B6BFB] text-white py-3 px-6 rounded-md flex gap-2">
-            Create group
+            Создать группу
           </Link>
         </div>
       <ReadingGroupContainer isPending={isPending} reading_groups={reading_groups} />

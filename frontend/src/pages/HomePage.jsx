@@ -38,7 +38,7 @@ const HomePage = () => {
       <Header />
       <section className="py-6 max-container">
           <h2 className="font-semibold text-xl mb-6 dark:text-white text-center">
-            Latest Books
+            Последние книги
           </h2>
           <BookContainer isPending={isPending} books={books} />
           <PagePagination

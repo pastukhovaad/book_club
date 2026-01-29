@@ -1,0 +1,54 @@
+# Logs
+logs
+*.log
+
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.egg
+*.eggs
+*.whl
+
+
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+.env/
+env.bak/
+venv.bak/
+
+# Django migrations
+*/migrations/*.pyc
+*/migrations/__pycache__/
+*/migrations/*.py[cod]
+*/migrations/*.pyo
+*/migrations/*.pyd
+*/migrations/*.pdb
+*/migrations/*.egg-info/
+*/migrations/*.egg
+*/migrations/*.eggs
+*/migrations/*.whl  
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+.env
+.env.production
+
+*.epub

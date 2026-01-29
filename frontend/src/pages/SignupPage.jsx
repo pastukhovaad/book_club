@@ -37,7 +37,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
   const updateProfileMutation = useMutation({
     mutationFn: (data) => updateProfile(data),
     onSuccess: () => {
-      toast.success("Profile updated successfully!")
+      toast.success("Профиль успешно обновлен!")
       toggleModal()
       queryClient.invalidateQueries({queryKey: ["users", userInfo?.username]})
     },
@@ -50,7 +50,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
   const mutation = useMutation({
     mutationFn: (data) => registerUser(data),
     onSuccess: () => {
-      toast.success("You have successfully created an account!");
+      toast.success("Аккаунт успешно создан!");
       reset();
     },
 
@@ -69,7 +69,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
       formData.append("bio", data.bio || "")
 
       // Добавляем новое изображение только если оно выбрано
-      if(data.profile_picture && Array.isArray(data.profile_picture) && data.profile_picture.length > 0){
+      if(data.profile_picture && data.profile_picture.length > 0){
         formData.append("profile_picture", data.profile_picture[0])
       }
 
@@ -94,28 +94,28 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
     >
       <div className="flex flex-col gap-2 justify-center items-center mb-2">
         <h3 className="font-semibold text-2xl">
-          {updateForm ? "Update Profile Form" : "SignUp Form"}
+          {updateForm ? "Зарегистрироваться" : "Войти"}
         </h3>
         <p>
           {updateForm
-            ? "You can tell us more about you."
-            : "Create your account to get started!"}
+            ? "Расскажите больше о себе!"
+            : "Создайте аккаунт, чтобы продолжить."}
         </p>
       </div>
 
       <div>
         <Label htmlFor="username" className="dark:text-[97989F]">
-          Username
+          Имя пользователя
         </Label>
         <Input
           type="text"
           id="username"
-          placeholder="Enter username"
+          placeholder="Введите имя пользователя"
           {...register("username", {
-            required: "Username is required",
+            required: "Имя пользователя обязательно",
             minLength: {
               value: 3,
-              message: "Username must be at least 3 characters",
+              message: "Имя пользователя должно содержать не менее 3 символов",
             },
           })}
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-[300px]"
@@ -130,12 +130,12 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
         <Input
           type="text"
           id="first_name"
-          placeholder="Enter first name"
+          placeholder="Введите имя"
           {...register("first_name", {
-            required: "Firstname is required",
+            required: "Имя обязательно",
             minLength: {
               value: 3,
-              message: "Firstname must be at least 3 characters",
+              message: "Имя должно содержать не менее 3 символов",
             },
           })}
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full"
@@ -150,12 +150,12 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
         <Input
           type="text"
           id="last_name"
-          placeholder="Enter last name"
+          placeholder="Введите фамилию"
           {...register("last_name", {
-            required: "Lastname is required",
+            required: "Фамилия обязательна",
             minLength: {
               value: 3,
-              message: "Lastname must be at least 3 characters",
+              message: "Фамилия должна содержать не менее 3 символов",
             },
           })}
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full"
@@ -172,12 +172,12 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
         <Input
           type="text"
           id="job_title"
-          placeholder="Enter Job Title"
+          placeholder="Введите вашу должность"
           {...register("job_title", {
-            required: "Your job title is required",
+            required: "Ваша должность обязательна",
             minLength: {
               value: 3,
-              message: "Your job title must be at least 3 characters",
+              message: "Ваша должность должна содержать не менее 3 символов",
             },
           })}
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full"
@@ -192,12 +192,12 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
         <Label htmlFor="content">Bio</Label>
         <Textarea
           id="content"
-          placeholder="Tell us more about you"
+          placeholder="Расскажите о себе"
           {...register("bio", {
-            required: "Your bio is required",
+            required: "Ваше описание обязательно",
             minLength: {
               value: 10,
-              message: "The content must be at least 10 characters",
+              message: "Ваше описание должно содержать не менее 10 символов",
             },
           })}
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[60px] w-full text-justify"
@@ -208,7 +208,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
       </div>}
 
       {updateForm && <div className="w-[300px]">
-        <Label htmlFor="profile_picture">Profile Picture</Label>
+        <Label htmlFor="profile_picture">Картинка профиля</Label>
         
         {/* Отображение текущего изображения */}
         {!imagePreview && userInfo?.profile_picture && (
@@ -218,7 +218,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
               alt="Current profile" 
               className="h-40 w-40 rounded-lg object-cover border-2 border-[#141624] dark:border-[#3B3C4A]"
             />
-            <p className="text-[12px] text-gray-500 mt-2">Current Image</p>
+            <p className="text-[12px] text-gray-500 mt-2">Текущая картинка</p>
           </div>
         )}
 
@@ -230,7 +230,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
               alt="Preview" 
               className="h-40 w-40 rounded-lg object-cover border-2 border-[#4B6BFB]"
             />
-            <p className="text-[12px] text-blue-500 mt-2">New preview</p>
+            <p className="text-[12px] text-blue-500 mt-2">Новая картинка</p>
           </div>
         )}
 
@@ -248,22 +248,22 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
         />
         
         <p className="text-[12px] text-gray-500 mt-2">
-          Leave empty to keep current image
+          Оставьте пустым, чтобы сохранить текущее изображение.
         </p>
       </div>}
 
 
       {updateForm || <div>
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">Пароль</Label>
         <Input
           type="password"
           id="password"
-          placeholder="Enter password"
+          placeholder="Введите пароль"
           {...register("password", {
-            required: "Password is required",
+            required: "Пароль обязателен",
             minLength: {
               value: 8,
-              message: "Password must be at least 8 characters",
+              message: "Пароль должен содержать не менее 8 символов",
             },
           })}
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-[300px]"
@@ -274,18 +274,18 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
       </div>}
 
      {updateForm ||  <div>
-        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <Label htmlFor="confirmPassword">Подтвердите пароль</Label>
         <Input
           type="password"
           id="confirmPassword"
-          placeholder="Confirm password"
+          placeholder="Подтвердите пароль"
           {...register("confirmPassword", {
-            required: "Password is required",
+            required: "Пароль обязателен",
             minLength: {
               value: 8,
-              message: "Password must be at least 8 characters",
+              message: "Пароль должен содержать не менее 8 символов",
             },
-            validate: (value) => value === password || "Passwords do not match",
+            validate: (value) => value === password || "Пароли не совпадают",
           })}
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-[300px]"
         />
@@ -300,10 +300,10 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
             {updateProfileMutation.isPending ? (
               <>
                 <SmallSpinner />
-                <SmallSpinnerText text="Updating user..." />
+                <SmallSpinnerText text="..." />
               </>
             ) : (
-              <SmallSpinnerText text="Update user profile" />
+              <SmallSpinnerText text="Обновить профиль" />
             )}
           </button>
         ) : (
@@ -311,15 +311,15 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
             {mutation.isPending ? (
               <>
                 <SmallSpinner />
-                <SmallSpinnerText text="Creating user..." />
+                <SmallSpinnerText text="..." />
               </>
             ) : (
-              <SmallSpinnerText text="Signup" />
+              <SmallSpinnerText text="Зарегистрироваться" />
             )}
           </button>
         )}
        {updateForm || <p className="text-[14px]">
-          Already have an account? <Link to="/signin">Sign In</Link>
+          Уже есть аккаунт? <Link to="/signin">Войти</Link>
         </p>}
       </div>
     </form>

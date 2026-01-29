@@ -2,26 +2,63 @@
 
 // import Badge from "@/ui_components/Badge";
 // import BookWriter from "@/ui_components/BookWriter";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router-dom";
-import { getBookPage } from "@/services/apiBook";
-import Spinner from "@/ui_components/Spinner";
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { useNavigate, useParams } from 'react-router-dom'
+import { getBookPage } from '@/services/apiBook'
+import Spinner from '@/ui_components/Spinner'
 // import { BASE_URL } from "@/api";
 // import { HiPencilAlt } from "react-icons/hi";
 // import { MdDelete } from "react-icons/md";
 // import Modal from "@/ui_components/Modal";
 // import CreatePostPage from "./CreatePostPage";
-import { useState } from "react";
+import { useState, useEffect } from 'react'
 // import { toast } from "react-toastify";
-import { Link } from "react-router-dom";
-
+import { Link } from 'react-router-dom'
+import EpubReaderPage from './EpubReaderPage'
 
 const BookPagesPage = ({ username, isAuthenticated }) => {
-  const { slug } = useParams();
+  const { slug } = useParams()
   const [showModal, setShowModal] = useState(false)
+  const [selectedText, setSelectedText] = useState('')
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [selectedStartIndex, setSelectedStartIndex] = useState(null)
+  const [selectedEndIndex, setSelectedEndIndex] = useState(null)
+  const [fullTextStartIndex, setFullTextStartIndex] = useState(null)
+  const [fullTextEndIndex, setFullTextEndIndex] = useState(null)
   const navigate = useNavigate()
-  function toggleModal(){
-    setShowModal(curr => !curr)
+  function toggleModal() {
+    setShowModal((curr) => !curr)
+  }
+
+  function handleTextSelection() {
+    setIsSelectionMode(!isSelectionMode)
+    if (isSelectionMode) {
+      setSelectedText('')
+      setSelectedStartIndex(null)
+      setSelectedEndIndex(null)
+      setFullTextStartIndex(null)
+      setFullTextEndIndex(null)
+    }
+  }
+
+  function handleMouseUp() {
+    if (!isSelectionMode) return
+    const selectedContent = window.getSelection().toString()
+    if (selectedContent) {
+      setSelectedText(selectedContent)
+
+      // Find start and end indices in currentText
+      const startIndex = currentText.indexOf(selectedContent)
+      const endIndex = startIndex + selectedContent.length
+      setSelectedStartIndex(startIndex)
+      setSelectedEndIndex(endIndex)
+
+      // Store indices relative to full book content
+      const fullStartIndex = pageStartIndexInFullText + startIndex
+      const fullEndIndex = fullStartIndex + selectedContent.length
+      setFullTextStartIndex(fullStartIndex)
+      setFullTextEndIndex(fullEndIndex)
+    }
   }
 
   const {
@@ -30,65 +67,130 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
     error,
     data: book,
   } = useQuery({
-    queryKey: ["books", slug],
+    queryKey: ['books', slug],
     queryFn: () => getBookPage(slug),
-  });
+  })
 
   const bookID = book?.id
 
-  console.log(book);
+  console.log(book)
 
-
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1)
   // const wordsPerPage = 220; // Define how much text per page
 
-  if (isPending) {
-    return <Spinner />;
+  // Check if book is EPUB and redirect to EPUB reader
+  if (book && book.content_type === 'epub') {
+    return <EpubReaderPage />
   }
 
+  if (isPending) {
+    return <Spinner />
+  }
+
+  // Handle case where book has no content
+  if (!book.content) {
+    return (
+      <div className="padding-dx max-container py-9">
+        <div className="flex flex-col items-center justify-center h-[50vh]">
+          <p className="text-xl text-gray-600 dark:text-gray-400">
+            This book has no content available.
+          </p>
+          <Link to={`/books/${slug}`} className="mt-4 text-blue-600 hover:underline">
+            Back to book details
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   // const words = book.content.split(' ');
   // const totalPages = Math.ceil(words.length / wordsPerPage);
-  
+
   // const currentText = words
   //   .slice((currentPage - 1) * wordsPerPage, currentPage * wordsPerPage)
   //   .join(' ');
 
-  const linesPerPage = 18;
-  const symbolsPerLine = 75;
+  const linesPerPage = 18
+  const symbolsPerLine = 75
 
-  const lines = book.content.split('\n').flatMap(paragraph => {
-    if (!paragraph.trim()) return [''];
-    
-    const words = paragraph.split(' ');
-    const wrappedLines = [];
-    let currentLine = '';
+  const lines = book.content.split('\n').flatMap((paragraph) => {
+    if (!paragraph.trim()) return ['']
 
-    words.forEach(word => {
+    const words = paragraph.split(' ')
+    const wrappedLines = []
+    let currentLine = ''
+
+    words.forEach((word) => {
       if (currentLine.length + word.length + 1 > symbolsPerLine) {
-        wrappedLines.push(currentLine);
-        currentLine = word;
+        wrappedLines.push(currentLine)
+        currentLine = word
       } else {
-        currentLine += (currentLine.length ? ' ' : '') + word;
+        currentLine += (currentLine.length ? ' ' : '') + word
       }
-    });
+    })
 
-    if (currentLine) wrappedLines.push(currentLine);
-    return wrappedLines;
-  });
+    if (currentLine) wrappedLines.push(currentLine)
+    return wrappedLines
+  })
 
-  const totalPages = Math.ceil(lines.length / linesPerPage);
-  // const currentText = lines
-  //   .slice((currentPage - 1) * linesPerPage, currentPage * linesPerPage)
-  //   .join('\n');
-  const pageLines = lines.slice((currentPage - 1) * linesPerPage, currentPage * linesPerPage);
-  const currentText = pageLines.join('\n').replace(/\n{2,}/g, '\n');
-  
-  
+  const totalPages = Math.ceil(lines.length / linesPerPage)
+  const pageLines = lines.slice(
+    (currentPage - 1) * linesPerPage,
+    currentPage * linesPerPage
+  )
+  const currentText = pageLines.join('\n').replace(/\n{2,}/g, '\n')
+
+  // Calculate start index of current page in full text
+  const pageStartLine = (currentPage - 1) * linesPerPage
+  let pageStartIndexInFullText = 0
+  for (let i = 0; i < pageStartLine; i++) {
+    pageStartIndexInFullText += lines[i].length + 1
+  }
+
+  // Render text with underlined selected portions
+  const renderTextWithUnderline = () => {
+    if (fullTextStartIndex === null || fullTextEndIndex === null) {
+      return currentText
+    }
+
+    // Check if selection is on current page
+    const pageEndIndexInFullText = pageStartIndexInFullText + currentText.length
+
+    if (
+      fullTextStartIndex >= pageStartIndexInFullText &&
+      fullTextEndIndex <= pageEndIndexInFullText
+    ) {
+      const relativeStart = fullTextStartIndex - pageStartIndexInFullText
+      const relativeEnd = fullTextEndIndex - pageStartIndexInFullText
+
+      const before = currentText.substring(0, relativeStart)
+      const selected = currentText.substring(relativeStart, relativeEnd)
+      const after = currentText.substring(relativeEnd)
+
+      return (
+        <>
+          {before}
+          <span
+            style={{
+              textDecoration: 'underline',
+              textDecorationColor: 'red',
+              textDecorationThickness: '2px',
+            }}
+          >
+            {selected}
+          </span>
+          {after}
+        </>
+      )
+    }
+
+    return currentText
+  }
+
   // things like tabs
 
-  // const symbolsPerLine = 75; 
-  // const linesPerPage = 18; 
+  // const symbolsPerLine = 75;
+  // const linesPerPage = 18;
   // const content = book.content;
   // const lines = [];
   // const words = content.split(' ');
@@ -103,8 +205,7 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
   //   currentLine += (currentLine.length ? ' ' : '') + word;
   // });
 
-
-  // if (currentLine) {  
+  // if (currentLine) {
   //   lines.push(currentLine);
   // }
 
@@ -138,26 +239,44 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
   return (
     <>
       {/* Fix rounding */}
-      <div className="padding-dx max-container py-6">  
+      <div className="padding-dx max-container py-6">
         <nav className="rounded max-container padding-x py-6 flex justify-between items-center gap-6 sticky top-0 z-10 bg-[#F6F6F7] dark:bg-[#141624]">
-            <Link to="/" className="text-[#141624] text-2xl dark:text-[#FFFFFF]">
-              Home
-            </Link>
-            <Link to={`/books/${slug}`} className="text-[#141624] text-2xl dark:text-[#FFFFFF]">
-              {book.title}
-            </Link>
-            <Link to="/" className="text-[#141624] text-2xl dark:text-[#FFFFFF]">
-              Chapters
-            </Link>
+          <Link to="/" className="text-[#141624] text-2xl dark:text-[#FFFFFF]">
+            На главную
+          </Link>
+          <Link
+            to={`/books/${slug}`}
+            className="text-[#141624] text-2xl dark:text-[#FFFFFF]"
+          >
+            {book.title}
+          </Link>
+          <Link to="/" className="text-[#141624] text-2xl dark:text-[#FFFFFF]">
+            Главы
+          </Link>
         </nav>
 
         <div className="column-container flex justify-between gap-4">
-          <pre className="break-cancel py-6 leading-normal text-2xl md:text-3xl text-[#181A2A] tracking-wide font-arial dark:text-[#FFFFFF]">
-            {currentText}
+          <pre
+            className="break-cancel py-6 leading-normal text-2xl md:text-3xl text-[#181A2A] tracking-wide font-arial dark:text-[#FFFFFF] flex-1"
+            onMouseUp={handleMouseUp}
+            style={{
+              userSelect: isSelectionMode ? 'text' : 'none',
+              cursor: isSelectionMode ? 'text' : 'default',
+            }}
+          >
+            {renderTextWithUnderline()}
           </pre>
+          {selectedText && (
+            <div className="flex-1 bg-[#F0F0F1] dark:bg-[#252838] p-6 rounded-lg border border-[#E5E5E7] dark:border-[#3B3D4F]">
+              <h3 className="text-lg font-semibold text-[#141624] dark:text-[#FFFFFF] mb-4">
+                Selected Text
+              </h3>
+              <p className="text-[#3B3C4A] dark:text-[#BABABF] whitespace-pre-wrap break-words leading-normal">
+                {selectedText}
+              </p>
+            </div>
+          )}
         </div>
-
-        
 
         {/* <BookWriter book={book} />  THESE BOOKS I HATE THEM
 
@@ -171,21 +290,43 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
           {book.content}
         </p> */}
       </div>
-      <div className="padding-dx lower-buttons-container flex justify-between gap-4">
-            <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
-                Previous page
-            </button>
-            <span> Page {currentPage} of {totalPages} </span>
-            <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
-                Next page
-            </button>
-          </div>
+      <div className="padding-dx lower-buttons-container flex justify-between gap-4 flex-wrap">
+        <button
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage((p) => p - 1)}
+        >
+          Прошлая страница
+        </button>
+        <button
+          onClick={handleTextSelection}
+          style={{
+            backgroundColor: isSelectionMode ? '#4CAF50' : '#2196F3',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            border: 'none',
+          }}
+        >
+          {isSelectionMode ? 'Stop Selection' : 'Select Text'}
+        </button>
+        <span>
+          {' '}
+          Страница {currentPage} из {totalPages}{' '}
+        </span>
+        <button
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage((p) => p + 1)}
+        >
+          Следующая страница
+        </button>
+      </div>
 
-     {/* {showModal && <Modal toggleModal={toggleModal}> 
+      {/* {showModal && <Modal toggleModal={toggleModal}> 
         <CreatePostPage book={book} />
       </Modal>} */}
     </>
-  );
-};
+  )
+}
 
-export default BookPagesPage;
+export default BookPagesPage

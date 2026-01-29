@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from datetime import timedelta
 from pathlib import Path
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,10 +22,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-+xfdqmroulmm-cn(cmbt3)oqu36i3z$mc&fp5$ug9@b)rr8lk+"
+SECRET_KEY = config('SECRET_KEY', default="django-insecure-+xfdqmroulmm-cn(cmbt3)oqu36i3z$mc&fp5$ug9@b)rr8lk+")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = ["*"]
 
@@ -89,11 +90,11 @@ WSGI_APPLICATION = "book_api.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "bookclub_db",
-        "USER": "bookclub",
-        "PASSWORD": "sD9fG3hJ7kL1zX6c",
-        "HOST": "109.173.104.21",
-        "PORT": "56424",
+        "NAME": config('DB_NAME'),
+        "USER": config('DB_USER'),
+        "PASSWORD": config('DB_PASSWORD'),
+        "HOST": config('DB_HOST'),
+        "PORT": config('DB_PORT'),
     }
 }
 
@@ -137,6 +138,15 @@ STATIC_ROOT = BASE_DIR / "static"
 MEDIA_URL = "img/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# EPUB File Upload Configuration
+MAX_EPUB_FILE_SIZE = 50 * 1024 * 1024  # 50MB in bytes
+ALLOWED_EPUB_EXTENSIONS = ['.epub']
+EPUB_UPLOAD_DIR = 'epub_files/'
+
+# File Upload Size Limits
+DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
@@ -159,6 +169,48 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",
     "http://localhost:5175",
     "http://localhost:3000",
-    "https://devfolio-xvbo.onrender.com",
-    "https://devscribe.onrender.com",
 ]
+
+# Logging configuration
+LOG_FILE_PATH = config('LOG_FILE_PATH', default='bookapp/app.log')
+LOG_LEVEL = config('LOG_LEVEL', default='INFO')
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': LOG_LEVEL,
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / LOG_FILE_PATH,
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['file', 'console'],
+        'level': LOG_LEVEL,
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file', 'console'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+        'bookapp': {
+            'handlers': ['file', 'console'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+    },
+}

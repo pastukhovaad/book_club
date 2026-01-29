@@ -2,7 +2,7 @@ import { Switch } from "@/components/ui/switch";
 import { FaHamburger } from "react-icons/fa";
 import ResponsiveNavBar from "./ResponsiveNavBar";
 import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 
 const NavBar = ({
   darkMode,
@@ -13,12 +13,14 @@ const NavBar = ({
   setUsername,
 }) => {
   const [showNavBar, setShowNavBar] = useState(false);
+  const navigate = useNavigate();
 
   function logout() {
     localStorage.removeItem("access");
     localStorage.removeItem("refresh");
     setIsAuthenticated(false);
     setUsername(null);
+    navigate("/");
   }
 
   return (
@@ -34,10 +36,16 @@ const NavBar = ({
                   to={`/profile/${username}`}
                   className={({ isActive }) => (isActive ? "active" : "")}
                 >
-                  Hi, {username}
+                  Привет, {username}
+                </NavLink></li>
+              <li><NavLink
+                  to={`/notifications`}
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                >
+                  Уведомления
                 </NavLink></li>
               <li onClick={logout} className="cursor-pointer">
-                Logout
+                Выйти
               </li>
             </>
           ) : (
@@ -47,7 +55,7 @@ const NavBar = ({
                   to="/signin"
                   className={({ isActive }) => (isActive ? "active" : "")}
                 >
-                  Login
+                  Войти
                 </NavLink>
               </li>
 
@@ -56,7 +64,7 @@ const NavBar = ({
                   to="/signup"
                   className={({ isActive }) => (isActive ? "active" : "")}
                 >
-                  Register
+                  Зарегистрироваться
                 </NavLink>
               </li>
             </>
@@ -68,7 +76,7 @@ const NavBar = ({
               to="/groups"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
-              Groups
+              Группы
             </NavLink>
           </li>
 
@@ -78,7 +86,7 @@ const NavBar = ({
               to="/books"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
-              Books
+              Книги
             </NavLink>
           </li>
 
@@ -88,7 +96,7 @@ const NavBar = ({
               to="/create_book"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
-              Create book
+              Создать книгу
             </NavLink>
           </li>
         </ul>

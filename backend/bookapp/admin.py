@@ -2,7 +2,13 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 
-from .models import Book, CustomUser, ReadingGroup
+from .models import (
+    Book,
+    CustomUser,
+    Notification,
+    ReadingGroup,
+    UserToReadingGroupState,
+)
 
 # Register your models here.
 
@@ -85,3 +91,22 @@ class ReadingGroupAdmin(admin.ModelAdmin):
 
 
 admin.site.register(ReadingGroup, ReadingGroupAdmin)
+
+
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = (
+        "directed_to",
+        "related_to",
+        "extra_text",
+        "category",
+    )
+
+
+admin.site.register(Notification, NotificationAdmin)
+
+
+class UserToReadingGroupStateAdmin(admin.ModelAdmin):
+    list_display = ("user", "reading_group", "in_reading_group")
+
+
+admin.site.register(UserToReadingGroupState, UserToReadingGroupStateAdmin)

@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
+import { useState, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -28,7 +29,15 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const [contentType, setContentType] = useState(book?.content_type || "plaintext");
+  const [epubFileName, setEpubFileName] = useState("");
+
   const bookID = book?.id;
+
+  // Register category field for validation (without ref, since Radix Select doesn't support it)
+  useEffect(() => {
+    register("category", { required: "Категория книги обязательна" });
+  }, [register]);
 
   const updateMutation = useMutation({
     mutationFn: ({ data, id }) => updateBook(data, id),
@@ -57,8 +66,17 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
     const formData = new FormData();
     formData.append("title", data.title);
     formData.append("description", data.description);
-    formData.append("content", data.content);
     formData.append("category", data.category);
+    formData.append("content_type", contentType);
+
+    // Add content based on content type
+    if (contentType === "plaintext") {
+      formData.append("content", data.content);
+    } else if (contentType === "epub") {
+      if (data.epub_file && data.epub_file[0]) {
+        formData.append("epub_file", data.epub_file[0]);
+      }
+    }
 
     if (data.featured_image && data.featured_image[0]) {
       if (data.featured_image[0] != "/") {
@@ -71,6 +89,13 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
       mutation.mutate(formData);
     }
   }
+
+  const handleEpubFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEpubFileName(file.name);
+    }
+  };
 
   if (isAuthenticated === false) {
     return <LoginPage />;
@@ -85,31 +110,31 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
     >
       <div className="flex flex-col gap-2 justify-center items-center mb-2">
         <h3 className="font-semibold text-2xl max-sm:text-xl">
-          {book ? "Update Book" : "Create Book"}
+          {book ? "Обновить книгу" : "Создать книгу"}
         </h3>
 
         <p className="max-sm:text-[14px]">
           {book
-            ? "Do you want to update your book?"
-            : "Create a new book and share your ideas."}
+            ? "Хотите внести изменения в свою книгу?"
+            : "Создайте новую книгу и поделитесь своими идеями."}
         </p>
       </div>
 
       <div>
         <Label htmlFor="title" className="dark:text-[97989F]">
-          Title *
+          Название *
         </Label>
         <Input
           type="text"
           id="title"
           {...register("title", {
-            required: "Book's title is required",
+            required: "Название книги обязательно",
             minLength: {
               value: 3,
-              message: "The title must be at least 3 characters",
+              message: "Название книги должно содержать не менее 3 символов",
             },
           })}
-          placeholder="Give your book a title"
+          placeholder="Дайте название вашей книге"
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-[400px] max-sm:w-[300px] max-sm:text-[14px]"
         />
 
@@ -117,12 +142,12 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
       </div>
 
       <div>
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description">Описание</Label>
         <Textarea
           id="description"
-          placeholder="Give a brief description of your book"
+          placeholder="Дайте краткое описание вашей книге"
           {...register("description", {
-            required: "Book's content is required"
+            required: "Описание книги обязательно",
           })}
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[180px]  w-[400px] text-justify max-sm:w-[300px] max-sm:text-[14px]"
         />
@@ -131,35 +156,92 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
         )}
       </div>
 
-      <div>
-        <Label htmlFor="content">Content *</Label>
-        <Textarea
-          id="content"
-          placeholder="Insert your book"
-          {...register("content", {
-            required: "Book's content is required",
-            minLength: {
-              value: 10,
-              message: "The content must be at least 10 characters",
-            },
-          })}
-          className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[180px]  w-[400px] text-justify max-sm:w-[300px] max-sm:text-[14px]"
-        />
-        {errors?.content?.message && (
-          <InputError error={errors.content.message} />
-        )}
+      <div className="w-full">
+        <Label className="dark:text-[97989F]">Тип содержимого *</Label>
+        <div className="flex gap-6 mt-2 mb-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="radio"
+              id="plaintext"
+              name="content_type"
+              value="plaintext"
+              checked={contentType === "plaintext"}
+              onChange={(e) => setContentType(e.target.value)}
+              className="w-4 h-4 cursor-pointer"
+            />
+            <Label htmlFor="plaintext" className="cursor-pointer font-normal">
+              Обычный текст
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="radio"
+              id="epub"
+              name="content_type"
+              value="epub"
+              checked={contentType === "epub"}
+              onChange={(e) => setContentType(e.target.value)}
+              className="w-4 h-4 cursor-pointer"
+            />
+            <Label htmlFor="epub" className="cursor-pointer font-normal">
+              EPUB файл
+            </Label>
+          </div>
+        </div>
       </div>
 
+      {contentType === "plaintext" ? (
+        <div>
+          <Label htmlFor="content">Содержимое *</Label>
+          <Textarea
+            id="content"
+            placeholder="Вставьте вашу книгу здесь"
+            {...register("content", {
+              required: contentType === "plaintext" ? "Содержимое книги обязательно" : false,
+              minLength: {
+                value: 10,
+                message: "Книга должна содержать не менее 10 символов",
+              },
+            })}
+            className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[180px]  w-[400px] text-justify max-sm:w-[300px] max-sm:text-[14px]"
+          />
+          {errors?.content?.message && (
+            <InputError error={errors.content.message} />
+          )}
+        </div>
+      ) : (
+        <div className="w-full">
+          <Label htmlFor="epub_file">EPUB файл *</Label>
+          <Input
+            type="file"
+            id="epub_file"
+            accept=".epub"
+            {...register("epub_file", {
+              required: contentType === "epub" && !book ? "EPUB файл обязателен" : false,
+            })}
+            onChange={handleEpubFileChange}
+            className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full max-sm:w-[300px] max-sm:text-[14px]"
+          />
+          {epubFileName && (
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              Выбран файл: {epubFileName}
+            </p>
+          )}
+          {errors?.epub_file?.message && (
+            <InputError error={errors.epub_file.message} />
+          )}
+        </div>
+      )}
+
       <div className="w-full">
-        <Label htmlFor="category">Category *</Label>
+        <Label htmlFor="category">Категория *</Label>
 
         <Select
-          {...register("category", { required: "Book's category is required" })}
-          onValueChange={(value) => setValue("category", value)}
+          onValueChange={(value) => setValue("category", value, { shouldValidate: true })}
           defaultValue={book ? book.category : ""}
         >
           <SelectTrigger className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full max-sm:w-[300px] max-sm:text-[14px]">
-            <SelectValue placeholder="Select a category" />
+            <SelectValue placeholder="Выберите категорию" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
@@ -206,10 +288,10 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
             {updateMutation.isPending ? (
               <>
                 {" "}
-                <SmallSpinner /> <SmallSpinnerText text="Updating book..." />{" "}
+                <SmallSpinner /> <SmallSpinnerText text="Обновление книги..." />{" "}
               </>
             ) : (
-              <SmallSpinnerText text="Update book" />
+              <SmallSpinnerText text="Обновить книгу" />
             )}
           </button>
         ) : (
@@ -220,10 +302,10 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
             {mutation.isPending ? (
               <>
                 {" "}
-                <SmallSpinner /> <SmallSpinnerText text="Creating book..." />{" "}
+                <SmallSpinner /> <SmallSpinnerText text="Создание книги..." />{" "}
               </>
             ) : (
-              <SmallSpinnerText text="Create book" />
+              <SmallSpinnerText text="Создать книгу" />
             )}
           </button>
         )}

@@ -12,7 +12,9 @@ const Hero = ({ userInfo, authUsername, toggleModal }) => {
       <div className="flex gap-4">
         <div className="w-[70px] h-[70px] rounded-full overflow-hidden">
           <img
-            src={`${BASE_URL}${userInfo?.profile_picture}`}
+            src={userInfo?.profile_picture ? `${BASE_URL}${userInfo.profile_picture}` : pic}
+            alt={`${userInfo?.first_name} ${userInfo?.last_name}`}
+            onError={(e) => { e.target.src = pic }}
             className="w-[70px] h-[70px] rounded-full object-cover"
           />
         </div>
