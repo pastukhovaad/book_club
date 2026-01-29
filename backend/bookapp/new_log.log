@@ -1,0 +1,29 @@
+INFO:bookapp.views:Correct user: None; Recieved user: KATY
+WARNING:django.request:Forbidden: /delete_notification/42/
+WARNING:django.request:Unauthorized: /get_username
+WARNING:django.request:Unauthorized: /get_username
+WARNING:django.request:Unauthorized: /get_username
+WARNING:django.request:Unauthorized: /get_username
+WARNING:django.request:Unauthorized: /get_username
+WARNING:django.request:Unauthorized: /get_username
+WARNING:django.request:Unauthorized: /get_username
+WARNING:django.request:Unauthorized: /get_username
+WARNING:django.request:Unauthorized: /get_username
+WARNING:django.request:Not Found: /user_to_reading_group_state_list/undefined/
+WARNING:django.request:Not Found: /user_to_reading_group_state_list/undefined/
+WARNING:django.request:Not Found: /user_to_reading_group_state_list/undefined/
+WARNING:django.request:Not Found: /user_to_reading_group_state_list/undefined/
+INFO:bookapp.views:Correct user: None; Recieved user: One2
+WARNING:django.request:Forbidden: /delete_notification/45/
+WARNING:django.request:Not Found: /user_to_reading_group_state_list/undefined/
+WARNING:django.request:Not Found: /user_to_reading_group_state_list/undefined/
+INFO:django.utils.autoreload:/home/sasha/book_club/backend/bookapp/views.py changed, reloading.
+WARNING:django.request:Not Found: /user_to_reading_group_state_list/undefined/
+WARNING:django.request:Not Found: /user_to_reading_group_state_list/undefined/
+WARNING:django.request:Not Found: /user_to_reading_group_state_list/undefined/
+WARNING:django.request:Not Found: /user_to_reading_group_state_list/undefined/
+WARNING:django.request:Not Found: /user_to_reading_group_state_list/undefined/
+WARNING:django.request:Not Found: /user_to_reading_group_state_list/undefined/
+WARNING:django.request:Not Found: /user_to_reading_group_state_list/undefined/
+WARNING:django.request:Not Found: /user_to_reading_group_state_list/undefined/
+INFO:django.utils.autoreload:/home/sasha/book_club/backend/bookapp/views.py changed, reloading.
