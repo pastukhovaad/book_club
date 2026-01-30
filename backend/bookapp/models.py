@@ -325,3 +325,27 @@ class BookComment(models.Model):
     def replies_count(self):
         """Get the number of replies to this comment."""
         return self.replies.count()
+
+
+class BookReview(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+
+    title = models.CharField(
+        max_length=255, null=True, blank=True, verbose_name="Название"
+    )
+    description = models.TextField(
+        max_length=1000, null=False, blank=False, verbose_name="Описание"
+    )
+    stars_amount = models.IntegerField(null=False, blank=False, verbose_name="Звезды")
+    creation_date = models.DateField(
+        null=False, blank=False, verbose_name="Дата создания"
+    )
+    likes = models.JSONField(verbose_name="Лайки")
+
+    class Meta:
+        verbose_name = "Отзыв к книге"
+        verbose_name_plural = "Отзывы к книге"
+
+    def __str__(self):
+        return self.title

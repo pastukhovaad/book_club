@@ -1,10 +1,10 @@
-import pic from "../images/pic.jpg";
-import { FaInstagram } from "react-icons/fa";
-import { FaFacebookF } from "react-icons/fa";
-import { BsTwitterX } from "react-icons/bs";
-import { FaYoutube } from "react-icons/fa";
-import { HiPencilAlt } from "react-icons/hi";
-import { BASE_URL } from "@/api";
+import pic from '../images/pic.jpg'
+import { FaInstagram } from 'react-icons/fa'
+import { FaFacebookF } from 'react-icons/fa'
+import { BsTwitterX } from 'react-icons/bs'
+import { FaYoutube } from 'react-icons/fa'
+import { HiPencilAlt } from 'react-icons/hi'
+import { BASE_URL } from '@/api'
 
 const Hero = ({ userInfo, authUsername, toggleModal }) => {
   return (
@@ -12,9 +12,15 @@ const Hero = ({ userInfo, authUsername, toggleModal }) => {
       <div className="flex gap-4">
         <div className="w-[70px] h-[70px] rounded-full overflow-hidden">
           <img
-            src={userInfo?.profile_picture ? `${BASE_URL}${userInfo.profile_picture}` : pic}
+            src={
+              userInfo?.profile_picture
+                ? `${BASE_URL}${userInfo.profile_picture}`
+                : pic
+            }
             alt={`${userInfo?.first_name} ${userInfo?.last_name}`}
-            onError={(e) => { e.target.src = pic }}
+            onError={(e) => {
+              e.target.src = pic
+            }}
             className="w-[70px] h-[70px] rounded-full object-cover"
           />
         </div>
@@ -24,7 +30,10 @@ const Hero = ({ userInfo, authUsername, toggleModal }) => {
             {userInfo?.first_name} {userInfo?.last_name}
           </p>
           <p className="text-[14px] text-[#696A75] font-thin dark:text-[#BABABF]">
-            {userInfo?.job_title || "Collaborator & Editor"}
+            {userInfo?.username || 'Error showing username'}
+          </p>
+          <p className="text-[14px] text-[#696A75] font-thin dark:text-[#BABABF]">
+            {userInfo?.job_title || 'Collaborator & Editor'}
           </p>
         </span>
 
@@ -57,7 +66,7 @@ const Hero = ({ userInfo, authUsername, toggleModal }) => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Hero;
+export default Hero

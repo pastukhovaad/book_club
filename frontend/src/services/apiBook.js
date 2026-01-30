@@ -27,7 +27,6 @@ export async function getNotification(id) {
   }
 }
 
-
 export async function createNotification(data) {
   try {
     const response = await api.post('create_notification/', data)
@@ -36,7 +35,6 @@ export async function createNotification(data) {
     throw new Error(err.message)
   }
 }
-
 
 export async function getBookPage(slug) {
   // REM
@@ -95,7 +93,6 @@ export async function getNotifications(page, amount) {
   }
 }
 
-
 export async function getUserToReadingGroupStates(id) {
   // REM
   try {
@@ -114,7 +111,6 @@ export async function getUserReadingGroups() {
     throw new Error(err.message)
   }
 }
-
 
 export async function getReadingGroup(slug) {
   try {
@@ -144,7 +140,7 @@ export async function signin(data) {
     return response.data
   } catch (err) {
     if (err.status === 401) {
-      throw new Error('Invalid Credentials')
+      throw new Error('Неправильный логин или пароль')
     }
 
     throw new Error(err)
@@ -223,7 +219,9 @@ export async function deleteNotification(id) {
     return response.data
   } catch (err) {
     if (err.response) {
-      throw new Error(err.response?.data?.message || 'Failed to delete notification')
+      throw new Error(
+        err.response?.data?.message || 'Failed to delete notification',
+      )
     }
 
     throw new Error(err.message)
@@ -260,7 +258,7 @@ export async function updateProfile(data) {
     console.log(err)
     if (err.response) {
       throw new Error(
-        err?.response?.data.username[0] || 'Failed to update profile'
+        err?.response?.data.username[0] || 'Failed to update profile',
       )
     }
 
@@ -275,7 +273,7 @@ export async function addUserToGroup(id) {
   } catch (err) {
     if (err.response) {
       throw new Error(
-        err.response?.data?.message || 'Failed to add user to group'
+        err.response?.data?.message || 'Failed to add user to group',
       )
     }
 
@@ -290,14 +288,13 @@ export async function removeUserFromGroup(id) {
   } catch (err) {
     if (err.response) {
       throw new Error(
-        err.response?.data?.message || 'Failed to remove user from group'
+        err.response?.data?.message || 'Failed to remove user from group',
       )
     }
 
     throw new Error(err.message)
   }
 }
-
 
 export async function confirmUserToGroup(groupId, userId) {
   try {
@@ -306,7 +303,7 @@ export async function confirmUserToGroup(groupId, userId) {
   } catch (err) {
     if (err.response) {
       throw new Error(
-        err.response?.data?.message || 'Failed to confirm user to group'
+        err.response?.data?.message || 'Failed to confirm user to group',
       )
     }
 
@@ -324,9 +321,7 @@ export async function getBookComments(slug, readingGroupId = null) {
     return response.data
   } catch (err) {
     if (err.response) {
-      throw new Error(
-        err.response?.data?.error || 'Failed to fetch comments'
-      )
+      throw new Error(err.response?.data?.error || 'Failed to fetch comments')
     }
     throw new Error(err.message)
   }
@@ -338,9 +333,7 @@ export async function createBookComment(slug, data) {
     return response.data
   } catch (err) {
     if (err.response) {
-      throw new Error(
-        err.response?.data?.error || 'Failed to create comment'
-      )
+      throw new Error(err.response?.data?.error || 'Failed to create comment')
     }
     throw new Error(err.message)
   }
@@ -352,9 +345,7 @@ export async function getBookComment(slug, commentId) {
     return response.data
   } catch (err) {
     if (err.response) {
-      throw new Error(
-        err.response?.data?.error || 'Failed to fetch comment'
-      )
+      throw new Error(err.response?.data?.error || 'Failed to fetch comment')
     }
     throw new Error(err.message)
   }
@@ -364,14 +355,12 @@ export async function updateBookComment(slug, commentId, data) {
   try {
     const response = await api.put(
       `books/${slug}/comments/${commentId}/update/`,
-      data
+      data,
     )
     return response.data
   } catch (err) {
     if (err.response) {
-      throw new Error(
-        err.response?.data?.error || 'Failed to update comment'
-      )
+      throw new Error(err.response?.data?.error || 'Failed to update comment')
     }
     throw new Error(err.message)
   }
@@ -380,14 +369,12 @@ export async function updateBookComment(slug, commentId, data) {
 export async function deleteBookComment(slug, commentId) {
   try {
     const response = await api.delete(
-      `books/${slug}/comments/${commentId}/delete/`
+      `books/${slug}/comments/${commentId}/delete/`,
     )
     return response.data
   } catch (err) {
     if (err.response) {
-      throw new Error(
-        err.response?.data?.error || 'Failed to delete comment'
-      )
+      throw new Error(err.response?.data?.error || 'Failed to delete comment')
     }
     throw new Error(err.message)
   }
@@ -398,14 +385,12 @@ export async function deleteBookComment(slug, commentId) {
 export async function getCommentReplies(slug, commentId) {
   try {
     const response = await api.get(
-      `books/${slug}/comments/${commentId}/replies/`
+      `books/${slug}/comments/${commentId}/replies/`,
     )
     return response.data
   } catch (err) {
     if (err.response) {
-      throw new Error(
-        err.response?.data?.error || 'Failed to fetch replies'
-      )
+      throw new Error(err.response?.data?.error || 'Failed to fetch replies')
     }
     throw new Error(err.message)
   }
@@ -415,14 +400,12 @@ export async function createCommentReply(slug, commentId, data) {
   try {
     const response = await api.post(
       `books/${slug}/comments/${commentId}/replies/create/`,
-      data
+      data,
     )
     return response.data
   } catch (err) {
     if (err.response) {
-      throw new Error(
-        err.response?.data?.error || 'Failed to create reply'
-      )
+      throw new Error(err.response?.data?.error || 'Failed to create reply')
     }
     throw new Error(err.message)
   }
@@ -432,14 +415,12 @@ export async function updateCommentReply(slug, commentId, replyId, data) {
   try {
     const response = await api.put(
       `books/${slug}/comments/${commentId}/replies/${replyId}/update/`,
-      data
+      data,
     )
     return response.data
   } catch (err) {
     if (err.response) {
-      throw new Error(
-        err.response?.data?.error || 'Failed to update reply'
-      )
+      throw new Error(err.response?.data?.error || 'Failed to update reply')
     }
     throw new Error(err.message)
   }
@@ -448,14 +429,12 @@ export async function updateCommentReply(slug, commentId, replyId, data) {
 export async function deleteCommentReply(slug, commentId, replyId) {
   try {
     const response = await api.delete(
-      `books/${slug}/comments/${commentId}/replies/${replyId}/delete/`
+      `books/${slug}/comments/${commentId}/replies/${replyId}/delete/`,
     )
     return response.data
   } catch (err) {
     if (err.response) {
-      throw new Error(
-        err.response?.data?.error || 'Failed to delete reply'
-      )
+      throw new Error(err.response?.data?.error || 'Failed to delete reply')
     }
     throw new Error(err.message)
   }

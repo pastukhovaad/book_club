@@ -8,6 +8,7 @@ from .models import (
     Notification,
     ReadingGroup,
     UserToReadingGroupState,
+    BookComment,
 )
 
 # Register your models here.
@@ -110,3 +111,8 @@ class UserToReadingGroupStateAdmin(admin.ModelAdmin):
 
 
 admin.site.register(UserToReadingGroupState, UserToReadingGroupStateAdmin)
+
+class BookCommentAdmin(admin.ModelAdmin):
+    list_display = ("user", "book", "reading_group", "parent_comment", "created_at", "comment_text")
+
+admin.site.register(BookComment, BookCommentAdmin)

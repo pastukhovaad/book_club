@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
-import { IoCloseOutline, IoChevronDown } from 'react-icons/io5';
-import { BiMessageSquareDetail } from 'react-icons/bi';
-import { HiUserGroup } from 'react-icons/hi';
-import CommentCard from './CommentCard';
-import SmallSpinner from './SmallSpinner';
+import { useState, useRef, useEffect } from 'react'
+import { IoCloseOutline, IoChevronDown } from 'react-icons/io5'
+import { BiMessageSquareDetail } from 'react-icons/bi'
+import { HiUserGroup } from 'react-icons/hi'
+import CommentCard from './CommentCard'
+import SmallSpinner from './SmallSpinner'
 
 const CommentsSidebar = ({
   comments,
@@ -25,20 +25,20 @@ const CommentsSidebar = ({
   bookSlug,
   isAuthenticated = true,
 }) => {
-  const [showGroupDropdown, setShowGroupDropdown] = useState(false);
-  const dropdownRef = useRef(null);
+  const [showGroupDropdown, setShowGroupDropdown] = useState(false)
+  const dropdownRef = useRef(null)
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowGroupDropdown(false);
+        setShowGroupDropdown(false)
       }
-    };
+    }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
   return (
     <div className="w-96 bg-white dark:bg-[#141624] border-l dark:border-gray-700 flex flex-col h-full">
       {/* Header */}
@@ -68,8 +68,8 @@ const CommentsSidebar = ({
           <div className="flex gap-2">
             <button
               onClick={() => {
-                onCommentTypeChange('personal');
-                setShowGroupDropdown(false);
+                onCommentTypeChange('personal')
+                setShowGroupDropdown(false)
               }}
               className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 commentType === 'personal'
@@ -84,10 +84,10 @@ const CommentsSidebar = ({
                 onClick={() => {
                   if (commentType === 'group' && readingGroupId) {
                     // If already in group mode, toggle dropdown
-                    setShowGroupDropdown(!showGroupDropdown);
+                    setShowGroupDropdown(!showGroupDropdown)
                   } else {
                     // If in personal mode, show dropdown to select a group
-                    setShowGroupDropdown(!showGroupDropdown);
+                    setShowGroupDropdown(!showGroupDropdown)
                   }
                 }}
                 className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
@@ -114,8 +114,8 @@ const CommentsSidebar = ({
                         <button
                           key={group.id}
                           onClick={() => {
-                            onSelectGroup(group);
-                            setShowGroupDropdown(false);
+                            onSelectGroup(group)
+                            setShowGroupDropdown(false)
                           }}
                           className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
                             selectedGroup?.id === group.id
@@ -129,7 +129,7 @@ const CommentsSidebar = ({
                     </div>
                   ) : (
                     <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">
-                      You are not a member of any reading groups
+                      Вы не являетесь участником ни одной группы
                     </div>
                   )}
                 </div>
@@ -138,7 +138,7 @@ const CommentsSidebar = ({
           </div>
         ) : (
           <div className="text-center py-2 text-sm text-gray-500 dark:text-gray-400">
-            Sign in to view and add comments
+            Войдите, чтобы просматривать и добавлять комментарии
           </div>
         )}
       </div>
@@ -158,9 +158,7 @@ const CommentsSidebar = ({
             <p className="text-red-500 dark:text-red-400 mb-2">
               Failed to load comments
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {error}
-            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{error}</p>
           </div>
         )}
 
@@ -172,7 +170,9 @@ const CommentsSidebar = ({
               className="mx-auto text-gray-300 dark:text-gray-600 mb-3"
             />
             <p className="text-gray-500 dark:text-gray-400 mb-1">
-              No {commentType === 'personal' ? 'personal notes' : 'group comments'} yet
+              No{' '}
+              {commentType === 'personal' ? 'personal notes' : 'group comments'}{' '}
+              yet
             </p>
             <p className="text-sm text-gray-400 dark:text-gray-500">
               {commentType === 'personal'
@@ -213,7 +213,7 @@ const CommentsSidebar = ({
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default CommentsSidebar;
+export default CommentsSidebar
