@@ -1,15 +1,38 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getMyQuests } from "@/services/apiBook";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { generateDailyPersonalQuests, getMyQuests, getUserReadingGroups } from "@/services/apiBook";
 import QuestCard from "@/ui_components/QuestCard";
 import Spinner from "@/ui_components/Spinner";
+import { toast } from "react-toastify";
 
 const QuestsPage = () => {
-  const [filter, setFilter] = useState('all'); // 'all', 'active', 'completed'
+  const [filter, setFilter] = useState('all'); // 'personal', 'all', 'group'
+  const [selectedGroupId, setSelectedGroupId] = useState('all');
+  const queryClient = useQueryClient();
 
   const { isPending, isError, error, data } = useQuery({
     queryKey: ["myQuests"],
     queryFn: getMyQuests,
+  });
+
+  console.log("Loaded quests:", data);
+
+  const { data: userGroups } = useQuery({
+    queryKey: ["userReadingGroups"],
+    queryFn: getUserReadingGroups,
+  });
+
+  console.log("User's reading groups:", userGroups);
+
+  const generatePersonalQuestsMutation = useMutation({
+    mutationFn: generateDailyPersonalQuests,
+    onSuccess: (data) => {
+      toast.success(data.message || "Ежедневные личные задания созданы!");
+      queryClient.invalidateQueries(["myQuests"]);
+    },
+    onError: (err) => {
+      toast.error(err.message || "Не удалось создать личные задания");
+    },
   });
 
   if (isPending) {
@@ -32,12 +55,21 @@ const QuestsPage = () => {
 
   const quests = data || [];
 
-  const filteredQuests = quests.filter(item => {
-    if (filter === 'completed') {
-      return item.progress?.current_count >= item.quest.target_count;
+  const personalQuests = quests.filter(
+    (item) => item.quest?.participation_type === 'personal'
+  );
+  const groupQuests = quests.filter(
+    (item) => item.quest?.participation_type === 'group'
+  );
+
+  const filteredQuests = quests.filter((item) => {
+    if (filter === 'personal') {
+      return item.quest?.participation_type === 'personal';
     }
-    if (filter === 'active') {
-      return item.progress?.current_count < item.quest.target_count;
+    if (filter === 'group') {
+      if (item.quest?.participation_type !== 'group') return false;
+      if (selectedGroupId === 'all') return true;
+      return String(item.quest?.reading_group) === String(selectedGroupId);
     }
     return true;
   });
@@ -51,7 +83,17 @@ const QuestsPage = () => {
       </div>
 
       {/* Filter buttons */}
-      <div className="flex gap-3 mb-6">
+      <div className="flex gap-3 mb-6 flex-wrap">
+        <button
+          onClick={() => setFilter('personal')}
+          className={`px-4 py-2 rounded-md transition-colors ${
+            filter === 'personal'
+              ? 'bg-[#4B6BFB] text-white'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+          }`}
+        >
+          Личные ({personalQuests.length})
+        </button>
         <button
           onClick={() => setFilter('all')}
           className={`px-4 py-2 rounded-md transition-colors ${
@@ -63,31 +105,54 @@ const QuestsPage = () => {
           Все ({quests.length})
         </button>
         <button
-          onClick={() => setFilter('active')}
+          onClick={() => setFilter('group')}
           className={`px-4 py-2 rounded-md transition-colors ${
-            filter === 'active'
+            filter === 'group'
               ? 'bg-[#4B6BFB] text-white'
               : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
           }`}
         >
-          Активные ({quests.filter(q => q.progress?.current_count < q.quest.target_count).length})
-        </button>
-        <button
-          onClick={() => setFilter('completed')}
-          className={`px-4 py-2 rounded-md transition-colors ${
-            filter === 'completed'
-              ? 'bg-[#4B6BFB] text-white'
-              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-          }`}
-        >
-          Завершенные ({quests.filter(q => q.progress?.current_count >= q.quest.target_count).length})
+          Групповые ({groupQuests.length})
         </button>
       </div>
+
+      {filter === 'group' && (
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Группа
+          </label>
+          <select
+            value={selectedGroupId}
+            onChange={(e) => setSelectedGroupId(e.target.value)}
+            className="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+          >
+            <option value="all">Все группы</option>
+            {(userGroups || []).map((group) => (
+              <option key={group.id} value={group.id}>
+                {group.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Quests grid */}
       {filteredQuests.length === 0 ? (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-          {filter === 'all' ? 'У вас пока нет заданий' : `Нет ${filter === 'active' ? 'активных' : 'завершенных'} заданий`}
+          {filter === 'personal' && (
+            <div className="flex flex-col items-center gap-4">
+              <p>У вас пока нет личных ежедневных заданий</p>
+              <button
+                onClick={() => generatePersonalQuestsMutation.mutate()}
+                disabled={generatePersonalQuestsMutation.isPending}
+                className="bg-[#4B6BFB] text-white py-3 px-8 rounded-md hover:bg-[#3a5ae0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {generatePersonalQuestsMutation.isPending ? "Создание..." : "Открыть личные ежедневные задания"}
+              </button>
+            </div>
+          )}
+          {filter === 'group' && 'У вас пока нет групповых заданий'}
+          {filter === 'all' && 'У вас пока нет заданий'}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

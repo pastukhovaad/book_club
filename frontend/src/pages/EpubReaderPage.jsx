@@ -158,7 +158,7 @@ const EpubReaderPage = () => {
     handleCloseCommentForm,
     handleSelectGroup,
     handleCommentTypeChange,
-  } = useBookComments(slug, hasToken)
+  } = useBookComments(slug, hasToken, userData?.username)
 
   const {
     showCommentButton,

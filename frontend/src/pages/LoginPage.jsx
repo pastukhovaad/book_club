@@ -22,7 +22,7 @@ const LoginPage = ({setIsAuthenticated, setUsername}) => {
         localStorage.setItem("refresh", response.refresh)
         setIsAuthenticated(true)
         getUsername().then(res => setUsername(res.username))
-        toast.success("You have successfully signed up!!");
+        toast.success("Вы успешно вошли.");
         const from = location?.state?.from?.pathname || "/"
         navigate(from, {replace:true})
 

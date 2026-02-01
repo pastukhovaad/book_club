@@ -1,12 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { getMyRewards } from "@/services/apiBook";
+import { getMyRewards, getUserRewards } from "@/services/apiBook";
 import RewardCard from "@/ui_components/RewardCard";
 import Spinner from "@/ui_components/Spinner";
+import { useSearchParams } from "react-router-dom";
 
 const RewardsPage = () => {
+  const [searchParams] = useSearchParams();
+  const username = searchParams.get("user");
+
   const { isPending, isError, error, data } = useQuery({
-    queryKey: ["myRewards"],
-    queryFn: getMyRewards,
+    queryKey: ["userRewards", username || "me"],
+    queryFn: () => (username ? getUserRewards(username) : getMyRewards()),
   });
 
   if (isPending) {
@@ -32,13 +36,13 @@ const RewardsPage = () => {
   return (
     <div className="padding-y max-container">
       <h2 className="py-6 leading-normal text-2xl md:text-3xl text-[#181A2A] tracking-wide font-semibold dark:text-[#FFFFFF]">
-        Мои награды
+        {username ? `Награды пользователя ${username}` : "Мои награды"}
       </h2>
 
       {rewards.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 dark:text-gray-400 text-lg mb-4">
-            У вас пока нет наград
+            {username ? "У пользователя пока нет наград" : "У вас пока нет наград"}
           </p>
           <p className="text-gray-400 dark:text-gray-500">
             Выполняйте задания, чтобы получить награды!

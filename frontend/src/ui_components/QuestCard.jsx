@@ -5,38 +5,41 @@ import { BASE_URL } from "@/api";
 const QuestCard = ({ quest, userProgress = null, className = "" }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ru-RU', {
-      month: 'short',
-      day: 'numeric'
+    return date.toLocaleDateString("ru-RU", {
+      month: "short",
+      day: "numeric",
     });
   };
 
   const getQuestTypeLabel = (type) => {
     const labels = {
-      'read_books': 'Прочитать книги',
-      'create_comments': 'Оставить комментарии',
-      'reply_comments': 'Ответить на комментарии',
-      'place_rewards': 'Разместить призы'
+      read_books: "Прочитать книги",
+      create_comments: "Оставить комментарии",
+      reply_comments: "Ответить на комментарии",
+      place_rewards: "Разместить призы",
     };
     return labels[type] || type;
   };
 
   const getParticipationTypeLabel = (type) => {
     const labels = {
-      'personal': 'Личное',
-      'group': 'Групповое',
-      'global': 'Глобальное'
+      personal: "Личное",
+      group: "Групповое",
+      global: "Глобальное",
     };
     return labels[type] || type;
   };
 
-  const currentCount = userProgress?.current_count || 0;
+  const progressData = userProgress || quest.progress_data;
+  const currentCount = progressData?.current_count || 0;
   const targetCount = quest.target_count;
-  const progressPercentage = userProgress?.progress_percentage || 0;
+  const progressPercentage = progressData?.progress_percentage || 0;
   const isCompleted = quest.is_completed || currentCount >= targetCount;
 
   return (
-    <div className={`px-4 py-4 rounded-md w-full max-w-[400px] h-auto flex flex-col gap-3 dark:border-gray-800 border shadow-lg ${className}`}>
+    <div
+      className={`px-4 py-4 rounded-md w-full max-w-[400px] h-auto flex flex-col gap-3 dark:border-gray-800 border shadow-lg ${className}`}
+    >
       <div className="flex justify-between items-start">
         <h3 className="font-semibold text-lg text-[#181A2A] dark:text-white flex-1">
           {quest.title}
@@ -63,6 +66,35 @@ const QuestCard = ({ quest, userProgress = null, className = "" }) => {
           {getParticipationTypeLabel(quest.participation_type)}
         </span>
       </div>
+
+      {quest.reading_group_slug && quest.reading_group_name && (
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          Группа:{" "}
+          <Link
+            to={`/groups/${quest.reading_group_slug}`}
+            className="text-[#4B6BFB] hover:underline"
+          >
+            {quest.reading_group_name}
+          </Link>
+        </div>
+      )}
+
+      {quest.participation_type === "group" && progressData && (
+        <div className="flex gap-2 flex-wrap">
+        {progressData.participated 
+          ? (
+          <p className="text-sm px-3 py-2 rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+            Вы участвовали в квесте и{" "}
+            {progressData.reward_received ? "получили награду" : "не получили награду"}
+          </p>
+        ) : (
+          <p className="text-sm px-3 py-2 rounded-full bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+            Вы не участвовали в квесте и не получили награду
+          </p>
+        )}
+        </div>
+      )}
+
       <div className="flex flex-col gap-2">
         <div className="flex justify-between text-sm">
           <span className="text-gray-600 dark:text-gray-400">
@@ -97,10 +129,6 @@ const QuestCard = ({ quest, userProgress = null, className = "" }) => {
       </div>
     </div>
   );
-
-  // return (
-  //   <p>Wow! You have a new quest!</p>
-  // )
 };
 
 export default QuestCard;

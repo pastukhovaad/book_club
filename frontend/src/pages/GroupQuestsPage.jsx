@@ -32,10 +32,12 @@ const GroupQuestsPage = ({ username }) => {
       state.user.username === username
   );
   const isCreator = username === reading_group?.creator?.username;
+  const isGroupMember = isUserMember || isCreator;
 
   const { isPending, isError, error, data } = useQuery({
     queryKey: ["groupQuests", slug],
     queryFn: () => getGroupQuests(slug),
+    enabled: !!reading_groupID && isGroupMember,
   });
 
   const generateMutation = useMutation({
@@ -91,7 +93,7 @@ const GroupQuestsPage = ({ username }) => {
           <p className="text-gray-500 dark:text-gray-400 mb-6 text-lg">
             Ежедневные задания ещё не созданы
           </p>
-          {(isUserMember || isCreator) && (
+          {isGroupMember && (
             <button
               onClick={() => generateMutation.mutate()}
               disabled={generateMutation.isPending}

@@ -14,6 +14,7 @@ from .models import (
     ReadingProgress,
     RewardTemplate,
     UserReward,
+    UserRewardSummary,
     UserStats,
     UserToReadingGroupState,
 )
@@ -192,7 +193,7 @@ class UserWithStatusSerializer(serializers.ModelSerializer):
         return False
 
 
-class ReadingGroupSerializer(serializers.ModelSerializer):  # REM
+class ReadingGroupSerializer(serializers.ModelSerializer):
     creator = SimpleAuthorSerializer(read_only=True)
     user = serializers.SerializerMethodField()
 
@@ -243,8 +244,8 @@ class NotificationSerializer(serializers.ModelSerializer):
         """Return quest data if related_quest exists."""
         if obj.related_quest:
             return {
-                'id': obj.related_quest.id,
-                'title': obj.related_quest.title,
+                "id": obj.related_quest.id,
+                "title": obj.related_quest.title,
             }
         return None
 
@@ -252,16 +253,20 @@ class NotificationSerializer(serializers.ModelSerializer):
         """Return reward data if related_reward exists."""
         if obj.related_reward:
             from .models import RewardTemplate
+
             return {
-                'id': obj.related_reward.id,
-                'name': obj.related_reward.name,
-                'image': obj.related_reward.image.url if obj.related_reward.image else None,
+                "id": obj.related_reward.id,
+                "name": obj.related_reward.name,
+                "image": (
+                    obj.related_reward.image.url if obj.related_reward.image else None
+                ),
             }
         return None
 
 
 class UserInfoSerializer(serializers.ModelSerializer):
     author_posts = serializers.SerializerMethodField()
+    reading_groups = serializers.SerializerMethodField()
 
     class Meta:
         model = get_user_model()
@@ -275,6 +280,7 @@ class UserInfoSerializer(serializers.ModelSerializer):
             "bio",
             "profile_picture",
             "author_posts",
+            "reading_groups",
         ]
 
     def get_author_posts(self, user):
@@ -282,8 +288,20 @@ class UserInfoSerializer(serializers.ModelSerializer):
         serializer = BookSerializer(books, many=True, context=self.context)
         return serializer.data
 
+    def get_reading_groups(self, user):
+        groups = (
+            UserToReadingGroupState.objects.filter(user=user, in_reading_group=True)
+            .select_related("reading_group")
+            .values_list("reading_group", flat=True)
+        )
+        reading_groups = ReadingGroup.objects.filter(id__in=groups)
+        serializer = ReadingGroupSerializer(
+            reading_groups, many=True, context=self.context
+        )
+        return serializer.data
 
-class UserToReadingGroupStateSerializer(serializers.ModelSerializer):  # REM
+
+class UserToReadingGroupStateSerializer(serializers.ModelSerializer):
     user = SimpleAuthorSerializer(read_only=True)
     reading_group = ReadingGroupSerializer(read_only=True)
 
@@ -485,6 +503,30 @@ class UserRewardSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "user", "received_at"]
 
 
+class UserRewardSummarySerializer(serializers.ModelSerializer):
+    """Serializer for aggregated user reward counts."""
+
+    user = SimpleAuthorSerializer(read_only=True)
+    reward_template = RewardTemplateSerializer(read_only=True)
+    user_id = serializers.IntegerField(source="user.id", read_only=True)
+    reward_template_id = serializers.IntegerField(
+        source="reward_template.id", read_only=True
+    )
+
+    class Meta:
+        model = UserRewardSummary
+        fields = [
+            "id",
+            "user",
+            "user_id",
+            "reward_template",
+            "reward_template_id",
+            "total_count",
+            "last_received_at",
+        ]
+        read_only_fields = ["id", "user", "reward_template"]
+
+
 class QuestSerializer(serializers.ModelSerializer):
     """Serializer for quests."""
 
@@ -661,6 +703,7 @@ class UserStatsSerializer(serializers.ModelSerializer):
             "total_quests_completed",
             "total_books_read",
             "total_comments_created",
+            "total_replies_created",
             "total_rewards_received",
         ]
         read_only_fields = ["id", "user"]

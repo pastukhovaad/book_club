@@ -191,7 +191,7 @@ class Book(models.Model):
         super().save(*args, **kwargs)
 
 
-class ReadingGroup(models.Model):  # REM
+class ReadingGroup(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     creator = models.ForeignKey(
@@ -240,7 +240,7 @@ class ReadingGroup(models.Model):  # REM
         super().save(*args, **kwargs)
 
 
-class UserToReadingGroupState(models.Model):  # REM
+class UserToReadingGroupState(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -296,7 +296,7 @@ class Notification(models.Model):
         related_name="notifications",
         null=True,
         blank=True,
-        verbose_name="Связанное задание"
+        verbose_name="Связанное задание",
     )
     related_reward = models.ForeignKey(
         "RewardTemplate",
@@ -304,7 +304,7 @@ class Notification(models.Model):
         related_name="notifications",
         null=True,
         blank=True,
-        verbose_name="Связанная награда"
+        verbose_name="Связанная награда",
     )
 
     extra_text = models.TextField(blank=True, null=True)
@@ -475,6 +475,38 @@ class UserReward(models.Model):
         return f"{self.user.username} - {self.reward_template.name}"
 
 
+class UserRewardSummary(models.Model):
+    """Aggregated reward counts per user and reward template."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reward_summaries",
+        verbose_name="Пользователь",
+    )
+    reward_template = models.ForeignKey(
+        RewardTemplate,
+        on_delete=models.CASCADE,
+        related_name="reward_summaries",
+        verbose_name="Шаблон приза",
+    )
+    total_count = models.PositiveIntegerField(default=0, verbose_name="Количество")
+    last_received_at = models.DateTimeField(
+        null=True, blank=True, verbose_name="Последняя дата получения"
+    )
+
+    class Meta:
+        verbose_name = "Сводка по призам"
+        verbose_name_plural = "Сводки по призам"
+        unique_together = ["user", "reward_template"]
+        indexes = [
+            models.Index(fields=["user", "reward_template"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.reward_template.name}: {self.total_count}"
+
+
 class Quest(models.Model):
     """Quest/Challenge that users can complete to earn rewards."""
 
@@ -539,7 +571,11 @@ class Quest(models.Model):
     start_date = models.DateTimeField(verbose_name="Дата начала")
     end_date = models.DateTimeField(verbose_name="Дата окончания")
     is_active = models.BooleanField(default=True, verbose_name="Активно")
-    is_completed = models.BooleanField(default=False, verbose_name="Завершено", help_text="Задание выполнено и награды розданы")
+    is_completed = models.BooleanField(
+        default=False,
+        verbose_name="Завершено",
+        help_text="Задание выполнено и награды розданы",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
 
@@ -708,12 +744,10 @@ class ReadingProgress(models.Model):
     current_page = models.IntegerField(
         default=1,
         verbose_name="Текущая страница",
-        help_text="Номер текущей страницы для обычных книг"
+        help_text="Номер текущей страницы для обычных книг",
     )
     total_pages = models.IntegerField(
-        default=1,
-        verbose_name="Всего страниц",
-        help_text="Общее количество страниц"
+        default=1, verbose_name="Всего страниц", help_text="Общее количество страниц"
     )
     progress_percent = models.FloatField(
         default=0, verbose_name="Прогресс (%)", help_text="Процент прочитанного (0-100)"
@@ -751,6 +785,9 @@ class UserStats(models.Model):
     )
     total_comments_created = models.PositiveIntegerField(
         default=0, verbose_name="Всего комментариев создано"
+    )
+    total_replies_created = models.PositiveIntegerField(
+        default=0, verbose_name="Всего ответов создано"
     )
     total_rewards_received = models.PositiveIntegerField(
         default=0, verbose_name="Всего призов получено"

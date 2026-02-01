@@ -140,15 +140,6 @@ const App = () => {
             }
           />
           <Route
-            path="groups/:slug/board"
-            element={
-              <PrizeBoardPage
-                username={username}
-                isAuthenticated={isAuthenticated}
-              />
-            }
-          />
-          <Route
             path="rewards"
             element={
               <ProtectedRoute>
@@ -199,6 +190,15 @@ const App = () => {
         >
           <Route index element={<BookPagesPage />} />
         </Route>
+        <Route
+          path="/groups/:slug/board"
+          element={
+            <PrizeBoardPage
+              username={username}
+              isAuthenticated={isAuthenticated}
+            />
+          }
+        />
       </Routes>
     </BrowserRouter>
   )

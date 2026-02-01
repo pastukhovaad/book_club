@@ -478,6 +478,15 @@ export async function getMyRewards() {
   }
 }
 
+export async function getMyRewardPlacements() {
+  try {
+    const response = await api.get('rewards/my/placements/')
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
 export async function getUserRewards(username) {
   try {
     const response = await api.get(`rewards/user/${username}/`)
@@ -545,6 +554,18 @@ export async function getMyQuests() {
     const response = await api.get('quests/my/')
     return response.data
   } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+export async function generateDailyPersonalQuests() {
+  try {
+    const response = await api.post('quests/daily/personal/')
+    return response.data
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.response?.data?.error || 'Failed to generate daily personal quests')
+    }
     throw new Error(err.message)
   }
 }

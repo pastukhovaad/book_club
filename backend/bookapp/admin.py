@@ -16,6 +16,7 @@ from .models import (
     ReadingProgress,
     RewardTemplate,
     UserReward,
+    UserRewardSummary,
     UserStats,
     UserToReadingGroupState,
 )
@@ -157,6 +158,15 @@ class UserRewardAdmin(admin.ModelAdmin):
 admin.site.register(UserReward, UserRewardAdmin)
 
 
+class UserRewardSummaryAdmin(admin.ModelAdmin):
+    list_display = ("user", "reward_template", "total_count", "last_received_at")
+    list_filter = ("reward_template",)
+    search_fields = ("user__username", "reward_template__name")
+
+
+admin.site.register(UserRewardSummary, UserRewardSummaryAdmin)
+
+
 class QuestAdmin(admin.ModelAdmin):
     list_display = (
         "title",
@@ -226,6 +236,7 @@ class UserStatsAdmin(admin.ModelAdmin):
         "total_quests_completed",
         "total_books_read",
         "total_comments_created",
+        "total_replies_created",
         "total_rewards_received",
     )
     search_fields = ("user__username",)

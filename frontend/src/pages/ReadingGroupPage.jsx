@@ -3,10 +3,9 @@
 import Badge from "@/ui_components/Badge";
 import GroupCreator from "@/ui_components/GroupCreator";
 import QuestCard from "@/ui_components/QuestCard";
-import PrizeBoard from "@/ui_components/PrizeBoard";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { deleteReadingGroup, getReadingGroup, addUserToGroup, removeUserFromGroup, createNotification, getUserToReadingGroupStates, getGroupQuests, generateDailyQuests, getPrizeBoard, placeRewardOnBoard, removeRewardFromBoard, getMyRewards} from "@/services/apiBook";
+import { deleteReadingGroup, getReadingGroup, addUserToGroup, removeUserFromGroup, createNotification, getUserToReadingGroupStates, getGroupQuests, generateDailyQuests } from "@/services/apiBook";
 import Spinner from "@/ui_components/Spinner";
 import { BASE_URL } from "@/api";
 import { HiPencilAlt } from "react-icons/hi";
@@ -23,7 +22,7 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
 
   const { slug } = useParams();
   const [showModal, setShowModal] = useState(false)
-  const [activeTab, setActiveTab] = useState('info') // 'info', 'quests', 'board'
+  const [activeTab, setActiveTab] = useState('info') // 'info', 'quests'
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   function toggleModal(){
@@ -51,19 +50,21 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
   // Check if current user is a member of the group
   const isUserMember = userStates?.some(state => state.reading_group.id === reading_groupID && state.in_reading_group && state.user.username === username);
   const isUserPending = userStates?.some(state => state.reading_group.id === reading_groupID && state.in_reading_group === false && state.user.username === username);
+  const isCreator = username === reading_group?.creator?.username;
+  const isGroupMember = isUserMember || isCreator;
 
   // Debug info
   console.log("Username:", username);
   console.log("Creator:", reading_group?.creator?.username);
   console.log("Is User Member:", isUserMember);
-  console.log("Is Creator:", username === reading_group?.creator?.username);
+  console.log("Is Creator:", isCreator);
   console.log("User States:", userStates);
 
   // Fetch group quests
   const { data: groupQuests, isError: questsError } = useQuery({
     queryKey: ["groupQuests", slug],
     queryFn: () => getGroupQuests(slug),
-    enabled: activeTab === 'quests' && (isUserMember || username === reading_group?.creator?.username),
+    enabled: activeTab === 'quests' && isGroupMember,
     retry: false,
   });
 
@@ -77,21 +78,6 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
     onError: (err) => {
       toast.error(err.message || "Не удалось создать задания");
     },
-  });
-
-  // Fetch prize board
-  const { data: boardData, isError: boardError, error: boardErrorMsg } = useQuery({
-    queryKey: ["prizeBoard", slug],
-    queryFn: () => getPrizeBoard(slug),
-    enabled: activeTab === 'board',
-    retry: false,
-  });
-
-  // Fetch user's rewards (only for members)
-  const { data: userRewards } = useQuery({
-    queryKey: ["myRewards"],
-    queryFn: getMyRewards,
-    enabled: activeTab === 'board' && boardData?.can_edit,
   });
 
 
@@ -145,29 +131,6 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
     }
   });
 
-  // Prize board mutations
-  const placeRewardMutation = useMutation({
-    mutationFn: ({ rewardId, x, y }) => placeRewardOnBoard(slug, { reward_id: rewardId, x, y }),
-    onSuccess: () => {
-      toast.success("Награда размещена на доске!");
-      queryClient.invalidateQueries(["prizeBoard", slug]);
-      queryClient.invalidateQueries(["myRewards"]);
-    },
-    onError: (err) => {
-      toast.error(err.message);
-    }
-  });
-
-  const removeRewardMutation = useMutation({
-    mutationFn: ({ x, y }) => removeRewardFromBoard(slug, x, y),
-    onSuccess: () => {
-      toast.success("Награда убрана с доски!");
-      queryClient.invalidateQueries(["prizeBoard", slug]);
-    },
-    onError: (err) => {
-      toast.error(err.message);
-    }
-  });
 
 
   function onJoinRequest() {
@@ -193,16 +156,6 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
 
     deleteMutation.mutate(reading_groupID)
   }
-
-  const handlePlaceReward = (reward, x, y) => {
-    placeRewardMutation.mutate({ rewardId: reward.id, x, y });
-  };
-
-  const handleRemoveReward = (x, y) => {
-    if (window.confirm("Вы уверены, что хотите убрать эту награду с доски?")) {
-      removeRewardMutation.mutate({ x, y });
-    }
-  };
 
 
 
@@ -250,7 +203,7 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
             </h1>
           </span>
           <span className="flex items-center gap-2">
-            {isUserMember ? (
+            {isCreator ? null : isGroupMember ? (
               <button onClick={handleLeaveGroup}
                 disabled={leaveMutation.isPending}
                 className="bg-red-600 text-white py-3 px-8 rounded-md flex items-center justify-center gap-2 hover:bg-red-700 transition-colors"
@@ -321,16 +274,6 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
             >
               Задания
             </button>
-            <button
-              onClick={() => setActiveTab('board')}
-              className={`px-4 py-2 border-b-2 transition-colors ${
-                activeTab === 'board'
-                  ? 'border-[#4B6BFB] text-[#4B6BFB] font-semibold'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-              }`}
-            >
-              Доска призов
-            </button>
           </div>
         </div>
 
@@ -341,6 +284,14 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
               <p className="text-[18px] leading-[2rem] text-justify text-[#3B3C4A] dark:text-[#BABABF] mb-8">
                 {reading_group.description || "This group doesn't have a description."}
               </p>
+              <div className="mb-8">
+                <button
+                  onClick={() => navigate(`/groups/${slug}/board`)}
+                  className="bg-[#4B6BFB] text-white py-3 px-6 rounded-md hover:bg-[#3a5ae0] transition-colors"
+                >
+                  Открыть поле фигурок
+                </button>
+              </div>
 
               <div className="mt-8">
                 <h2 className="text-xl md:text-2xl font-semibold text-[#181A2A] dark:text-[#FFFFFF] mb-4">
@@ -404,7 +355,7 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
                   <p className="text-gray-500 dark:text-gray-400 mb-6 text-lg">
                     Ежедневные задания ещё не созданы
                   </p>
-                  {isAuthenticated && (isUserMember || username === reading_group?.creator?.username) && (
+                  {isAuthenticated && isGroupMember && (
                     <button
                       onClick={() => generateQuestsMutation.mutate()}
                       disabled={generateQuestsMutation.isPending}
@@ -423,35 +374,6 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
             </div>
           )}
 
-          {activeTab === 'board' && (
-            <div>
-              {boardError ? (
-                <div className="mt-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-600 rounded-md text-red-700 dark:text-red-400">
-                  Ошибка загрузки доски: {boardErrorMsg?.message || 'Неизвестная ошибка'}
-                </div>
-              ) : boardData ? (
-                <>
-                  <PrizeBoard
-                    board={boardData}
-                    cells={boardData.cells || []}
-                    userRewards={userRewards || []}
-                    onPlaceReward={handlePlaceReward}
-                    onRemoveReward={handleRemoveReward}
-                    canEdit={boardData.can_edit || false}
-                  />
-                  {!boardData.can_edit && (
-                    <div className="mt-4 p-3 bg-blue-100 dark:bg-blue-900/20 border border-blue-400 dark:border-blue-600 rounded-md text-blue-700 dark:text-blue-400">
-                      Только участники группы могут размещать призы на доске.
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="flex justify-center items-center py-12">
-                  <Spinner />
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { getUserInfo, getUserRewards, getUserStats } from "@/services/apiBook";
+import { getUserInfo, getUserRewards, getUserStats, getUserToReadingGroupStates } from "@/services/apiBook";
 import BookContainer from "@/ui_components/BookContainer";
 import Hero from "@/ui_components/Hero";
 import Spinner from "@/ui_components/Spinner";
@@ -36,6 +36,16 @@ const ProfilePage = ({ authUsername }) => {
     enabled: !!username,
   });
 
+  const { data: userGroupStates } = useQuery({
+    queryKey: ["userGroupStates", data?.id],
+    queryFn: () => getUserToReadingGroupStates(data.id),
+    enabled: !!data?.id,
+  });
+
+  const joinedGroups = (userGroupStates || [])
+    .filter((state) => state?.in_reading_group && state?.reading_group)
+    .map((state) => state.reading_group);
+
   const books = data?.author_posts;
 
   if (isPending) {
@@ -52,7 +62,7 @@ const ProfilePage = ({ authUsername }) => {
           <h2 className="text-2xl font-semibold mb-6 text-[#181A2A] dark:text-white">
             Статистика
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800">
               <div className="text-3xl font-bold text-[#4B6BFB]">{userStats.total_quests_completed}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Заданий выполнено</div>
@@ -63,12 +73,42 @@ const ProfilePage = ({ authUsername }) => {
             </div>
             <div className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800">
               <div className="text-3xl font-bold text-purple-600">{userStats.total_comments_created}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Комментариев создано</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Оставленных комментариев</div>
+            </div>
+            <div className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800">
+              <div className="text-3xl font-bold text-indigo-600">{userStats.total_replies_created ?? 0}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Ответов на комментарии</div>
             </div>
             <div className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800">
               <div className="text-3xl font-bold text-yellow-600">{userStats.total_rewards_received}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Наград получено</div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {joinedGroups.length > 0 && (
+        <div className="max-container padding-y">
+          <h2 className="text-2xl font-semibold mb-6 text-[#181A2A] dark:text-white">
+            Вступил в группы FIXLATER
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {joinedGroups.map((group) => (
+              <Link
+                key={group.id}
+                to={`/groups/${group.slug}`}
+                className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-[#4B6BFB] transition-colors"
+              >
+                <div className="text-lg font-semibold text-[#181A2A] dark:text-white">
+                  {group.name}
+                </div>
+                {group.description && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
+                    {group.description}
+                  </p>
+                )}
+              </Link>
+            ))}
           </div>
         </div>
       )}
@@ -80,11 +120,9 @@ const ProfilePage = ({ authUsername }) => {
             <h2 className="text-2xl font-semibold text-[#181A2A] dark:text-white">
               Награды
             </h2>
-            {authUsername === username && (
-              <Link to="/rewards" className="text-[#4B6BFB] hover:underline">
-                Посмотреть все
-              </Link>
-            )}
+            <Link to={`/rewards?user=${username}`} className="text-[#4B6BFB] hover:underline">
+              Посмотреть все
+            </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {userRewards.slice(0, 4).map((reward) => (

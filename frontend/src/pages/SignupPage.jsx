@@ -90,7 +90,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
     >
       <div className="flex flex-col gap-2 justify-center items-center mb-2">
         <h3 className="font-semibold text-2xl">
-          {updateForm ? 'Зарегистрироваться' : 'Зарегистрироваться'}
+          {updateForm ? 'Изменить профиль' : 'Зарегистрироваться'}
         </h3>
         <p>
           {updateForm
@@ -164,14 +164,14 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
       {updateForm && (
         <div className="w-[300px]">
           <Label htmlFor="job_title" className="dark:text-[97989F]">
-            Job Title
+            Должность
           </Label>
           <Input
             type="text"
             id="job_title"
             placeholder="Введите вашу должность"
             {...register('job_title', {
-              required: 'Ваша должность обязательна',
+              // required: 'Ваша должность обязательна',
               minLength: {
                 value: 3,
                 message: 'Ваша должность должна содержать не менее 3 символов',
