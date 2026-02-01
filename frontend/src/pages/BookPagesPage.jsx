@@ -2,9 +2,9 @@
 
 // import Badge from "@/ui_components/Badge";
 // import BookWriter from "@/ui_components/BookWriter";
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getBookPage } from '@/services/apiBook'
+import { getBookPage, getReadingProgress, updateReadingProgress } from '@/services/apiBook'
 import Spinner from '@/ui_components/Spinner'
 // import { BASE_URL } from "@/api";
 // import { HiPencilAlt } from "react-icons/hi";
@@ -18,6 +18,7 @@ import EpubReaderPage from './EpubReaderPage'
 
 const BookPagesPage = ({ username, isAuthenticated }) => {
   const { slug } = useParams()
+  const queryClient = useQueryClient()
   const [showModal, setShowModal] = useState(false)
   const [selectedText, setSelectedText] = useState('')
   const [isSelectionMode, setIsSelectionMode] = useState(false)
@@ -25,7 +26,9 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
   const [selectedEndIndex, setSelectedEndIndex] = useState(null)
   const [fullTextStartIndex, setFullTextStartIndex] = useState(null)
   const [fullTextEndIndex, setFullTextEndIndex] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
   const navigate = useNavigate()
+
   function toggleModal() {
     setShowModal((curr) => !curr)
   }
@@ -39,6 +42,33 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
       setFullTextStartIndex(null)
       setFullTextEndIndex(null)
     }
+  }
+
+  // Calculate total pages and save progress
+  const saveReadingProgress = (page, total) => {
+    if (!isAuthenticated) return
+
+    updateProgressMutation.mutate({
+      current_page: page,
+      total_pages: total,
+    })
+  }
+
+  // Handle page navigation
+  const handlePreviousPage = () => {
+    setCurrentPage((p) => {
+      const newPage = p - 1
+      // We'll save progress after totalPages is calculated
+      return newPage
+    })
+  }
+
+  const handleNextPage = () => {
+    setCurrentPage((p) => {
+      const newPage = p + 1
+      // We'll save progress after totalPages is calculated
+      return newPage
+    })
   }
 
   function handleMouseUp() {
@@ -75,8 +105,65 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
 
   console.log(book)
 
-  const [currentPage, setCurrentPage] = useState(1)
-  // const wordsPerPage = 220; // Define how much text per page
+  // Fetch reading progress
+  const { data: readingProgressData } = useQuery({
+    queryKey: ['readingProgress', slug],
+    queryFn: () => getReadingProgress(slug),
+    enabled: !!isAuthenticated && !!book,
+    retry: false,
+  })
+
+  // Update reading progress mutation
+  const updateProgressMutation = useMutation({
+    mutationFn: (data) => updateReadingProgress(slug, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['readingProgress', slug])
+      queryClient.invalidateQueries(['myQuests'])
+    },
+    onError: (err) => {
+      console.error('Failed to update reading progress:', err)
+    },
+  })
+
+  // Load saved reading position on mount
+  useEffect(() => {
+    if (readingProgressData?.current_page && readingProgressData.current_page > 1) {
+      setCurrentPage(readingProgressData.current_page)
+    }
+  }, [readingProgressData])
+
+  // Auto-save reading progress when page changes
+  useEffect(() => {
+    if (!isAuthenticated || !book?.content) return
+
+    // Calculate total pages
+    const linesPerPage = 18
+    const symbolsPerLine = 75
+    const lines = book.content.split('\n').flatMap((paragraph) => {
+      if (!paragraph.trim()) return ['']
+      const words = paragraph.split(' ')
+      const wrappedLines = []
+      let currentLine = ''
+      words.forEach((word) => {
+        if (currentLine.length + word.length + 1 > symbolsPerLine) {
+          wrappedLines.push(currentLine)
+          currentLine = word
+        } else {
+          currentLine += (currentLine.length ? ' ' : '') + word
+        }
+      })
+      if (currentLine) wrappedLines.push(currentLine)
+      return wrappedLines
+    })
+    const totalPages = Math.ceil(lines.length / linesPerPage)
+
+    // Save progress after a short delay to avoid too many requests
+    const timer = setTimeout(() => {
+      saveReadingProgress(currentPage, totalPages)
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [currentPage, book, isAuthenticated])
 
   // Check if book is EPUB and redirect to EPUB reader
   if (book && book.content_type === 'epub') {
@@ -293,7 +380,7 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
       <div className="padding-dx lower-buttons-container flex justify-between gap-4 flex-wrap">
         <button
           disabled={currentPage === 1}
-          onClick={() => setCurrentPage((p) => p - 1)}
+          onClick={handlePreviousPage}
         >
           Прошлая страница
         </button>
@@ -312,11 +399,14 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
         </button>
         <span>
           {' '}
-          Страница {currentPage} из {totalPages}{' '}
+          Страница {currentPage} из {totalPages}
+          {readingProgressData?.is_completed && (
+            <span className="ml-2 text-green-600 dark:text-green-400">✓ Прочитано</span>
+          )}
         </span>
         <button
           disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage((p) => p + 1)}
+          onClick={handleNextPage}
         >
           Следующая страница
         </button>

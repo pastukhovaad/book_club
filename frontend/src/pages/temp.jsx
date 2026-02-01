@@ -148,7 +148,7 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
             {book.title}
           </Link>
           <Link to="/" className="text-[#141624] text-2xl dark:text-[#FFFFFF]">
-            Chapters
+            Главы
           </Link>
         </nav>
 
@@ -175,17 +175,17 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
           disabled={currentPage === 1}
           onClick={() => setCurrentPage((p) => p - 1)}
         >
-          Previous page
+          Предыдущая страница
         </button>
         <span>
           {' '}
-          Page {currentPage} of {totalPages}{' '}
+          Страница {currentPage} из {totalPages}{' '}
         </span>
         <button
           disabled={currentPage === totalPages}
           onClick={() => setCurrentPage((p) => p + 1)}
         >
-          Next page
+          Следующая страница
         </button>
       </div>
 

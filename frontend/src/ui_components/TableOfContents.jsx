@@ -19,7 +19,7 @@ const TableOfContents = ({
     >
       <div className="sticky top-0 bg-white dark:bg-[#141624] border-b dark:border-gray-700 px-4 py-3 flex justify-between items-center z-10">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-          Chapters
+          Главы
         </h2>
         <button
           onClick={onClose}

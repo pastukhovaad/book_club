@@ -119,4 +119,100 @@ urlpatterns = [
         views.delete_comment_reply,
         name="delete_comment_reply"
     ),
+    # Gamification - Reward Templates
+    path(
+        "rewards/templates/",
+        views.get_reward_templates,
+        name="get_reward_templates"
+    ),
+    path(
+        "rewards/templates/create/",
+        views.create_reward_template,
+        name="create_reward_template"
+    ),
+    # Gamification - User Rewards
+    path(
+        "rewards/my/",
+        views.get_my_rewards,
+        name="get_my_rewards"
+    ),
+    path(
+        "rewards/user/<str:username>/",
+        views.get_user_rewards,
+        name="get_user_rewards"
+    ),
+    # Gamification - Quests
+    path(
+        "quests/",
+        views.get_quests,
+        name="get_quests"
+    ),
+    path(
+        "groups/<slug:slug>/quests/",
+        views.get_group_quests,
+        name="get_group_quests"
+    ),
+    path(
+        "groups/<slug:slug>/quests/generate/",
+        views.generate_daily_quests,
+        name="generate_daily_quests"
+    ),
+    path(
+        "quests/create/",
+        views.create_quest,
+        name="create_quest"
+    ),
+    path(
+        "quests/<int:quest_id>/progress/",
+        views.get_quest_progress,
+        name="get_quest_progress"
+    ),
+    path(
+        "quests/my/",
+        views.get_my_quests,
+        name="get_my_quests"
+    ),
+    # Gamification - Prize Board
+    path(
+        "groups/<slug:slug>/board/",
+        views.get_prize_board,
+        name="get_prize_board"
+    ),
+    path(
+        "groups/<slug:slug>/board/settings/",
+        views.update_prize_board_settings,
+        name="update_prize_board_settings"
+    ),
+    path(
+        "groups/<slug:slug>/board/place/",
+        views.place_reward_on_board,
+        name="place_reward_on_board"
+    ),
+    path(
+        "groups/<slug:slug>/board/remove/<int:x>/<int:y>/",
+        views.remove_reward_from_board,
+        name="remove_reward_from_board"
+    ),
+    # Gamification - Reading Progress
+    path(
+        "books/<slug:slug>/progress/",
+        views.get_reading_progress,
+        name="get_reading_progress"
+    ),
+    path(
+        "books/<slug:slug>/progress/update/",
+        views.update_reading_progress,
+        name="update_reading_progress"
+    ),
+    path(
+        "books/<slug:slug>/complete/",
+        views.complete_book,
+        name="complete_book"
+    ),
+    # Gamification - User Stats
+    path(
+        "users/<str:username>/stats/",
+        views.get_user_stats,
+        name="get_user_stats"
+    ),
 ]

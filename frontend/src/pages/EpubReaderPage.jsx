@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ReactReader } from 'react-reader'
-import { useQuery } from '@tanstack/react-query'
-import { getBook, getBookChaptersList, getUsername } from '@/services/apiBook'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { getBook, getBookChaptersList, getUsername, getReadingProgress, updateReadingProgress } from '@/services/apiBook'
 
 import SmallSpinner from '@/ui_components/SmallSpinner'
 import CommentButton from '@/ui_components/CommentButton'
@@ -20,11 +20,14 @@ import { IoHomeOutline } from 'react-icons/io5'
 import { FiChevronLeft, FiChevronRight, FiList } from 'react-icons/fi'
 import { AiOutlinePlus, AiOutlineMinus } from 'react-icons/ai'
 import { BiMessageSquareDetail } from 'react-icons/bi'
+import { FiCheckCircle } from 'react-icons/fi'
 
 const EpubReaderPage = () => {
   const { slug } = useParams()
   const [showCommentsSidebar, setShowCommentsSidebar] = useState(true)
   const prevSidebarVisibilityRef = useRef(true)
+  const queryClient = useQueryClient()
+  const hasLoadedPosition = useRef(false)
 
   // Check if user has a token (basic auth check)
   const hasToken = !!localStorage.getItem('access')
@@ -54,6 +57,45 @@ const EpubReaderPage = () => {
     retry: false,
   })
 
+  // Fetch reading progress
+  const { data: readingProgressData } = useQuery({
+    queryKey: ['readingProgress', slug],
+    queryFn: () => getReadingProgress(slug),
+    enabled: hasToken,
+    retry: false,
+  })
+
+  // Update reading progress mutation
+  const updateProgressMutation = useMutation({
+    mutationFn: (data) => updateReadingProgress(slug, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['readingProgress', slug])
+      queryClient.invalidateQueries(['myQuests'])
+    },
+    onError: (err) => {
+      console.error('Failed to update reading progress:', err)
+    },
+  })
+
+  // Debounced progress update
+  const progressUpdateTimerRef = useRef(null)
+  const updateProgress = useCallback((newLocation) => {
+    if (!hasToken) return
+
+    // Clear existing timer
+    if (progressUpdateTimerRef.current) {
+      clearTimeout(progressUpdateTimerRef.current)
+    }
+
+    // Set new timer to update after 2 seconds of no location change
+    progressUpdateTimerRef.current = setTimeout(() => {
+      updateProgressMutation.mutate({
+        current_cfi: newLocation,
+        progress_percent: 0, // Backend can calculate this if needed
+      })
+    }, 2000)
+  }, [hasToken, updateProgressMutation])
+
   // Show warning if user data fails to load (only if has token)
   useEffect(() => {
     if (hasToken && userError) {
@@ -64,7 +106,7 @@ const EpubReaderPage = () => {
   // Custom hooks
   const {
     location,
-    setLocation,
+    setLocation: setLocationOriginal,
     fontSize,
     showToc,
     rendition,
@@ -80,6 +122,21 @@ const EpubReaderPage = () => {
     handleTocChanged,
     setShowToc,
   } = useEpubReader()
+
+  // Wrapper for setLocation that also updates progress
+  const setLocation = useCallback((newLocation) => {
+    setLocationOriginal(newLocation)
+    updateProgress(newLocation)
+  }, [setLocationOriginal, updateProgress])
+
+  // Load saved reading position on mount (only once)
+  useEffect(() => {
+    if (readingProgressData?.current_cfi && !hasLoadedPosition.current) {
+      setLocationOriginal(readingProgressData.current_cfi)
+      hasLoadedPosition.current = true
+    }
+  }, [readingProgressData, setLocationOriginal])
+
 
   const {
     comments,
@@ -261,6 +318,14 @@ const EpubReaderPage = () => {
               <FiList size={20} />
               <span className="max-sm:hidden">Chapters</span>
             </button>
+
+            {/* Completed indicator */}
+            {readingProgressData?.is_completed && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg border border-green-300 dark:border-green-700">
+                <FiCheckCircle size={20} />
+                <span className="max-sm:hidden font-medium">Прочитано</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -351,7 +416,7 @@ const EpubReaderPage = () => {
       {chaptersData && (
         <div className="px-6 py-2 bg-[#F6F6F7] dark:bg-[#141624] border-t border-[#E8E8EA] dark:border-[#242535]">
           <p className="text-sm text-[#3B3C4A] dark:text-[#BABABF] text-center">
-            {chaptersData.chapters?.length || 0} главы
+            {chaptersData.chapters?.length || 0} глав(ы)
           </p>
         </div>
       )}

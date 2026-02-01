@@ -4,11 +4,20 @@ from django.utils.translation import gettext_lazy as _
 
 from .models import (
     Book,
+    BookComment,
     CustomUser,
     Notification,
+    PrizeBoard,
+    PrizeBoardCell,
+    Quest,
+    QuestCompletion,
+    QuestProgress,
     ReadingGroup,
+    ReadingProgress,
+    RewardTemplate,
+    UserReward,
+    UserStats,
     UserToReadingGroupState,
-    BookComment,
 )
 
 # Register your models here.
@@ -112,7 +121,114 @@ class UserToReadingGroupStateAdmin(admin.ModelAdmin):
 
 admin.site.register(UserToReadingGroupState, UserToReadingGroupStateAdmin)
 
+
 class BookCommentAdmin(admin.ModelAdmin):
-    list_display = ("user", "book", "reading_group", "parent_comment", "created_at", "comment_text")
+    list_display = (
+        "user",
+        "book",
+        "reading_group",
+        "parent_comment",
+        "created_at",
+        "comment_text",
+    )
+
 
 admin.site.register(BookComment, BookCommentAdmin)
+
+
+# ============================================================================
+# Gamification Admin
+# ============================================================================
+
+
+class RewardTemplateAdmin(admin.ModelAdmin):
+    list_display = ("name", "image")
+
+
+admin.site.register(RewardTemplate, RewardTemplateAdmin)
+
+
+class UserRewardAdmin(admin.ModelAdmin):
+    list_display = ("user", "reward_template", "quest_completed", "received_at")
+    list_filter = ("received_at", "reward_template")
+    search_fields = ("user__username", "reward_template__name")
+
+
+admin.site.register(UserReward, UserRewardAdmin)
+
+
+class QuestAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "quest_type",
+        "participation_type",
+        "target_count",
+        "reading_group",
+        "is_active",
+        "start_date",
+        "end_date",
+    )
+    list_filter = ("quest_type", "participation_type", "is_active", "reading_group")
+    search_fields = ("title", "description")
+
+
+admin.site.register(Quest, QuestAdmin)
+
+
+class QuestProgressAdmin(admin.ModelAdmin):
+    list_display = ("user", "quest", "current_count", "last_updated")
+    list_filter = ("quest", "last_updated")
+    search_fields = ("user__username", "quest__title")
+
+
+admin.site.register(QuestProgress, QuestProgressAdmin)
+
+
+class QuestCompletionAdmin(admin.ModelAdmin):
+    list_display = ("user", "quest", "reading_group", "completed_at")
+    list_filter = ("quest", "completed_at", "reading_group")
+    search_fields = ("user__username", "quest__title")
+
+
+admin.site.register(QuestCompletion, QuestCompletionAdmin)
+
+
+class PrizeBoardAdmin(admin.ModelAdmin):
+    list_display = ("reading_group", "width", "height", "created_at")
+    list_filter = ("created_at",)
+    search_fields = ("reading_group__name",)
+
+
+admin.site.register(PrizeBoard, PrizeBoardAdmin)
+
+
+class PrizeBoardCellAdmin(admin.ModelAdmin):
+    list_display = ("board", "x", "y", "placed_by", "placed_at")
+    list_filter = ("board", "placed_at")
+    search_fields = ("placed_by__username", "board__reading_group__name")
+
+
+admin.site.register(PrizeBoardCell, PrizeBoardCellAdmin)
+
+
+class ReadingProgressAdmin(admin.ModelAdmin):
+    list_display = ("user", "book", "progress_percent", "is_completed", "last_read_at")
+    list_filter = ("is_completed", "last_read_at")
+    search_fields = ("user__username", "book__title")
+
+
+admin.site.register(ReadingProgress, ReadingProgressAdmin)
+
+
+class UserStatsAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "total_quests_completed",
+        "total_books_read",
+        "total_comments_created",
+        "total_rewards_received",
+    )
+    search_fields = ("user__username",)
+
+
+admin.site.register(UserStats, UserStatsAdmin)

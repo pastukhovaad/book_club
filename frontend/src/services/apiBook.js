@@ -439,3 +439,205 @@ export async function deleteCommentReply(slug, commentId, replyId) {
     throw new Error(err.message)
   }
 }
+
+// ============================================================================
+// Gamification API Functions
+// ============================================================================
+
+// Reward Templates
+
+export async function getRewardTemplates() {
+  try {
+    const response = await api.get('rewards/templates/')
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+export async function createRewardTemplate(data) {
+  try {
+    const response = await api.post('rewards/templates/create/', data)
+    return response.data
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.response?.data?.error || 'Failed to create reward template')
+    }
+    throw new Error(err.message)
+  }
+}
+
+// User Rewards
+
+export async function getMyRewards() {
+  try {
+    const response = await api.get('rewards/my/')
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+export async function getUserRewards(username) {
+  try {
+    const response = await api.get(`rewards/user/${username}/`)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+// Quests
+
+export async function getQuests() {
+  try {
+    const response = await api.get('quests/')
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+export async function getGroupQuests(slug) {
+  try {
+    const response = await api.get(`groups/${slug}/quests/`)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+export async function generateDailyQuests(slug) {
+  try {
+    const response = await api.post(`groups/${slug}/quests/generate/`)
+    return response.data
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.response?.data?.error || 'Failed to generate quests')
+    }
+    throw new Error(err.message)
+  }
+}
+
+export async function createQuest(data) {
+  try {
+    const response = await api.post('quests/create/', data)
+    return response.data
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.response?.data?.error || 'Failed to create quest')
+    }
+    throw new Error(err.message)
+  }
+}
+
+export async function getQuestProgress(questId) {
+  try {
+    const response = await api.get(`quests/${questId}/progress/`)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+export async function getMyQuests() {
+  try {
+    const response = await api.get('quests/my/')
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+// Prize Board
+
+export async function getPrizeBoard(slug) {
+  try {
+    const response = await api.get(`groups/${slug}/board/`)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+export async function updatePrizeBoardSettings(slug, data) {
+  try {
+    const response = await api.put(`groups/${slug}/board/settings/`, data)
+    return response.data
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.response?.data?.error || 'Failed to update board settings')
+    }
+    throw new Error(err.message)
+  }
+}
+
+export async function placeRewardOnBoard(slug, data) {
+  try {
+    const response = await api.post(`groups/${slug}/board/place/`, data)
+    return response.data
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.response?.data?.error || 'Failed to place reward')
+    }
+    throw new Error(err.message)
+  }
+}
+
+export async function removeRewardFromBoard(slug, x, y) {
+  try {
+    const response = await api.delete(`groups/${slug}/board/remove/${x}/${y}/`)
+    return response.data
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.response?.data?.error || 'Failed to remove reward')
+    }
+    throw new Error(err.message)
+  }
+}
+
+// Reading Progress
+
+export async function getReadingProgress(slug) {
+  try {
+    const response = await api.get(`books/${slug}/progress/`)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+export async function updateReadingProgress(slug, data) {
+  try {
+    const response = await api.put(`books/${slug}/progress/update/`, data)
+    return response.data
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.response?.data?.error || 'Failed to update progress')
+    }
+    throw new Error(err.message)
+  }
+}
+
+export async function completeBook(slug) {
+  try {
+    const response = await api.post(`books/${slug}/complete/`)
+    return response.data
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.response?.data?.error || 'Failed to complete book')
+    }
+    throw new Error(err.message)
+  }
+}
+
+// User Stats
+
+export async function getUserStats(username) {
+  try {
+    const response = await api.get(`users/${username}/stats/`)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}

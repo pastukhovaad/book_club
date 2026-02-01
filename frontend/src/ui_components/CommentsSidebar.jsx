@@ -47,7 +47,7 @@ const CommentsSidebar = ({
           <div className="flex items-center gap-2">
             <BiMessageSquareDetail size={24} className="text-blue-600" />
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-              Comments
+              Комментарии
             </h2>
             {!isLoading && comments && (
               <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -77,7 +77,7 @@ const CommentsSidebar = ({
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
-              Personal
+              Личные
             </button>
             <div className="flex-1 relative" ref={dropdownRef}>
               <button
@@ -97,7 +97,7 @@ const CommentsSidebar = ({
                 }`}
               >
                 <HiUserGroup size={16} />
-                <span>Group</span>
+                <span>Групповые</span>
                 <IoChevronDown size={14} />
               </button>
 
@@ -176,8 +176,8 @@ const CommentsSidebar = ({
             </p>
             <p className="text-sm text-gray-400 dark:text-gray-500">
               {commentType === 'personal'
-                ? 'Select text and add a note for yourself'
-                : 'Select text and add a comment to start the discussion'}
+                ? 'Выберите текст и оставьте комментарий для себя'
+                : 'Выберите текст и оставьте комментарий, чтобы начать обсуждение'}
             </p>
           </div>
         )}
@@ -207,8 +207,8 @@ const CommentsSidebar = ({
         <div className="border-t dark:border-gray-700 px-4 py-2 bg-gray-50 dark:bg-[#0F1117]">
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
             {commentType === 'personal'
-              ? 'Your personal notes - visible only to you'
-              : 'Group comments - visible to all confirmed members'}
+              ? 'Ваши личные комментарии - видны только вам'
+              : 'Комментарии группы - видны всем участникам выбранной группы'}
           </p>
         </div>
       )}

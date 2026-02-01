@@ -2,7 +2,9 @@ import logging
 import os
 
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.shortcuts import render
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.pagination import PageNumberPagination
@@ -15,7 +17,16 @@ from .models import (
     BookComment,
     CustomUser,
     Notification,
+    PrizeBoard,
+    PrizeBoardCell,
+    Quest,
+    QuestCompletion,
+    QuestProgress,
     ReadingGroup,
+    ReadingProgress,
+    RewardTemplate,
+    UserReward,
+    UserStats,
     UserToReadingGroupState,
 )
 from .serializers import (
@@ -25,11 +36,20 @@ from .serializers import (
     CommentReplyCreateSerializer,
     CommentReplySerializer,
     NotificationSerializer,
+    PrizeBoardCellSerializer,
+    PrizeBoardSerializer,
+    QuestCompletionSerializer,
+    QuestProgressSerializer,
+    QuestSerializer,
     ReadingGroupSerializer,
+    ReadingProgressSerializer,
+    RewardTemplateSerializer,
     SimpleAuthorSerializer,
     UpdateUserProfileSerializer,
     UserInfoSerializer,
     UserRegistrationSerializer,
+    UserRewardSerializer,
+    UserStatsSerializer,
     UserToReadingGroupStateSerializer,
 )
 from .validators import validate_epub_file_complete
@@ -1083,4 +1103,698 @@ def delete_comment_reply(request, slug, comment_id, reply_id):
         return Response(
             {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+# ============================================================================
+# Gamification Views
+# ============================================================================
+
+# Reward Templates
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_reward_templates(request):
+    """Get all reward templates (global and user's groups)."""
+    user = request.user
+
+    # Get global rewards and rewards from user's groups
+    user_groups = UserToReadingGroupState.objects.filter(
+        user=user, in_reading_group=True
+    ).values_list('reading_group_id', flat=True)
+
+    templates = RewardTemplate.objects.filter(
+        models.Q(reading_group__isnull=True) |
+        models.Q(reading_group_id__in=user_groups)
+    ).select_related('created_by', 'reading_group')
+
+    serializer = RewardTemplateSerializer(templates, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_reward_template(request):
+    """Create a reward template (admin for global, group leader for group)."""
+    user = request.user
+    reading_group_id = request.data.get('reading_group')
+
+    # Check permissions
+    if reading_group_id:
+        try:
+            reading_group = ReadingGroup.objects.get(id=reading_group_id)
+            if reading_group.creator != user:
+                return Response(
+                    {"error": "Only group leaders can create group rewards"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except ReadingGroup.DoesNotExist:
+            return Response(
+                {"error": "Reading group not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    elif not user.is_staff:
+        return Response(
+            {"error": "Only admins can create global rewards"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    serializer = RewardTemplateSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(created_by=user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# User Rewards
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_my_rewards(request):
+    """Get current user's rewards."""
+    user = request.user
+    rewards = UserReward.objects.filter(user=user).select_related(
+        'reward_template', 'quest_completed'
+    ).order_by('-received_at')
+
+    serializer = UserRewardSerializer(rewards, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_user_rewards(request, username):
+    """Get specific user's rewards."""
+    try:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.get(username=username)
+
+        rewards = UserReward.objects.filter(user=user).select_related(
+            'reward_template', 'quest_completed'
+        ).order_by('-received_at')
+
+        serializer = UserRewardSerializer(rewards, many=True)
+        return Response(serializer.data)
+    except User.DoesNotExist:
+        return Response(
+            {"error": "User not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+# Quests
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_quests(request):
+    """Get all active global quests and user's group quests."""
+    user = request.user
+    from django.utils import timezone
+
+    # Get user's groups
+    user_groups = UserToReadingGroupState.objects.filter(
+        user=user, in_reading_group=True
+    ).values_list('reading_group_id', flat=True)
+
+    # Get active quests
+    quests = Quest.objects.filter(
+        is_active=True,
+        start_date__lte=timezone.now(),
+        end_date__gte=timezone.now()
+    ).filter(
+        models.Q(reading_group__isnull=True) |
+        models.Q(reading_group_id__in=user_groups)
+    ).select_related('created_by', 'reward_template', 'reading_group')
+
+    serializer = QuestSerializer(quests, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_group_quests(request, slug):
+    """Get quests for a specific group with user's progress."""
+    try:
+        from django.utils import timezone
+
+        reading_group = ReadingGroup.objects.get(slug=slug)
+        user = request.user
+
+        # Check if user is a member
+        try:
+            membership = UserToReadingGroupState.objects.get(
+                user=user, reading_group=reading_group
+            )
+            if not membership.in_reading_group:
+                return Response(
+                    {"error": "You must be a confirmed member to view group quests"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except UserToReadingGroupState.DoesNotExist:
+            return Response(
+                {"error": "You must be a member to view group quests"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        quests = Quest.objects.filter(
+            reading_group=reading_group,
+            is_active=True,
+            start_date__lte=timezone.now(),
+            end_date__gte=timezone.now()
+        ).select_related('created_by', 'reward_template')
+
+        # Get or create progress for each quest
+        result = []
+        for quest in quests:
+            progress, created = QuestProgress.objects.get_or_create(
+                user=user,
+                quest=quest,
+                defaults={'current_count': 0}
+            )
+            result.append({
+                'quest': QuestSerializer(quest).data,
+                'progress': QuestProgressSerializer(progress).data
+            })
+
+        return Response(result)
+    except ReadingGroup.DoesNotExist:
+        return Response(
+            {"error": "Reading group not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def generate_daily_quests(request, slug):
+    """Generate 3 random daily quests for a reading group."""
+    try:
+        reading_group = ReadingGroup.objects.get(slug=slug)
+        user = request.user
+
+        # Check if user is a member
+        try:
+            membership = UserToReadingGroupState.objects.get(
+                user=user, reading_group=reading_group
+            )
+            if not membership.in_reading_group:
+                return Response(
+                    {"error": "You must be a confirmed member to generate quests"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except UserToReadingGroupState.DoesNotExist:
+            return Response(
+                {"error": "You must be a member to generate quests"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Check if there are already active quests for today
+        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = timezone.now().replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        existing_quests = Quest.objects.filter(
+            reading_group=reading_group,
+            is_active=True,
+            start_date__gte=today_start,
+            end_date__lte=today_end
+        )
+
+        if existing_quests.exists():
+            # Return existing quests
+            serializer = QuestSerializer(existing_quests, many=True)
+            return Response({
+                "message": "Daily quests already exist for today",
+                "quests": serializer.data
+            })
+
+        # Quest templates
+        import random
+        quest_templates = [
+            {
+                'title': 'Читательский марафон',
+                'description': 'Прочитайте книгу сегодня',
+                'quest_type': 'read_books',
+                'target_count': 1,
+            },
+            {
+                'title': 'Активный читатель',
+                'description': 'Оставьте комментарии к книгам',
+                'quest_type': 'create_comments',
+                'target_count': 3,
+            },
+            {
+                'title': 'Обсуждение',
+                'description': 'Ответьте на комментарии других читателей',
+                'quest_type': 'reply_comments',
+                'target_count': 2,
+            },
+            {
+                'title': 'Щедрость',
+                'description': 'Разместите призы на доске',
+                'quest_type': 'place_rewards',
+                'target_count': 1,
+            },
+            {
+                'title': 'Книжный червь',
+                'description': 'Прочитайте несколько книг',
+                'quest_type': 'read_books',
+                'target_count': 2,
+            },
+            {
+                'title': 'Комментатор',
+                'description': 'Оставьте много комментариев',
+                'quest_type': 'create_comments',
+                'target_count': 5,
+            },
+        ]
+
+        # Select 3 random quests
+        selected_templates = random.sample(quest_templates, 3)
+
+        # Get all available reward templates
+        available_rewards = list(RewardTemplate.objects.all())
+
+        # Create quests
+        created_quests = []
+        for template in selected_templates:
+            # Assign a random reward if available
+            reward_template = random.choice(available_rewards) if available_rewards else None
+
+            quest = Quest.objects.create(
+                title=template['title'],
+                description=template['description'],
+                quest_type=template['quest_type'],
+                target_count=template['target_count'],
+                participation_type='group',
+                period='day',
+                reading_group=reading_group,
+                created_by=user,
+                reward_template=reward_template,
+                start_date=today_start,
+                end_date=today_end,
+                is_active=True
+            )
+            created_quests.append(quest)
+
+        serializer = QuestSerializer(created_quests, many=True)
+        return Response({
+            "message": "Daily quests generated successfully",
+            "quests": serializer.data
+        })
+
+    except ReadingGroup.DoesNotExist:
+        return Response(
+            {"error": "Reading group not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_quest(request):
+    """Create a quest (admin for global, group leader for group)."""
+    user = request.user
+    reading_group_id = request.data.get('reading_group')
+
+    # Check permissions
+    if reading_group_id:
+        try:
+            reading_group = ReadingGroup.objects.get(id=reading_group_id)
+            if reading_group.creator != user:
+                return Response(
+                    {"error": "Only group leaders can create group quests"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except ReadingGroup.DoesNotExist:
+            return Response(
+                {"error": "Reading group not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    elif not user.is_staff:
+        return Response(
+            {"error": "Only admins can create global quests"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    serializer = QuestSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(created_by=user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_quest_progress(request, quest_id):
+    """Get current user's progress on a specific quest."""
+    user = request.user
+
+    try:
+        quest = Quest.objects.get(id=quest_id)
+
+        try:
+            progress = QuestProgress.objects.get(quest=quest, user=user)
+            serializer = QuestProgressSerializer(progress)
+            return Response(serializer.data)
+        except QuestProgress.DoesNotExist:
+            # Return zero progress if not started
+            return Response({
+                "quest": quest_id,
+                "user": user.id,
+                "current_count": 0,
+                "progress_percentage": 0
+            })
+    except Quest.DoesNotExist:
+        return Response(
+            {"error": "Quest not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_my_quests(request):
+    """Get all quests user is participating in with progress."""
+    user = request.user
+    from django.utils import timezone
+
+    # Get user's active quest progress
+    progress_records = QuestProgress.objects.filter(
+        user=user,
+        quest__is_active=True,
+        quest__end_date__gte=timezone.now()
+    ).select_related('quest', 'quest__reward_template', 'quest__reading_group')
+
+    serializer = QuestProgressSerializer(progress_records, many=True)
+    return Response(serializer.data)
+
+
+# Prize Board
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_prize_board(request, slug):
+    """Get prize board for a reading group."""
+    try:
+        reading_group = ReadingGroup.objects.get(slug=slug)
+        user = request.user
+
+        # Check if user is a member (for can_edit flag)
+        is_member = False
+        try:
+            membership = UserToReadingGroupState.objects.get(
+                user=user, reading_group=reading_group
+            )
+            is_member = membership.in_reading_group
+        except UserToReadingGroupState.DoesNotExist:
+            is_member = False
+
+        # Get or create prize board
+        board, created = PrizeBoard.objects.get_or_create(
+            reading_group=reading_group
+        )
+
+        serializer = PrizeBoardSerializer(board)
+        response_data = serializer.data
+        response_data['can_edit'] = is_member
+        return Response(response_data)
+    except ReadingGroup.DoesNotExist:
+        return Response(
+            {"error": "Reading group not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+def update_prize_board_settings(request, slug):
+    """Update prize board settings (size). Only group leader can do this."""
+    try:
+        reading_group = ReadingGroup.objects.get(slug=slug)
+        user = request.user
+
+        if reading_group.creator != user:
+            return Response(
+                {"error": "Only group leaders can update board settings"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        board, created = PrizeBoard.objects.get_or_create(
+            reading_group=reading_group
+        )
+
+        width = request.data.get('width', board.width)
+        height = request.data.get('height', board.height)
+
+        board.width = width
+        board.height = height
+        board.save()
+
+        serializer = PrizeBoardSerializer(board)
+        return Response(serializer.data)
+    except ReadingGroup.DoesNotExist:
+        return Response(
+            {"error": "Reading group not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def place_reward_on_board(request, slug):
+    """Place a user's reward on the prize board."""
+    try:
+        reading_group = ReadingGroup.objects.get(slug=slug)
+        user = request.user
+
+        # Check if user is a member
+        try:
+            membership = UserToReadingGroupState.objects.get(
+                user=user, reading_group=reading_group
+            )
+            if not membership.in_reading_group:
+                return Response(
+                    {"error": "You must be a confirmed member to place rewards"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except UserToReadingGroupState.DoesNotExist:
+            return Response(
+                {"error": "You must be a member to place rewards"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        board, created = PrizeBoard.objects.get_or_create(
+            reading_group=reading_group
+        )
+
+        x = request.data.get('x')
+        y = request.data.get('y')
+        user_reward_id = request.data.get('user_reward')
+
+        if x is None or y is None or user_reward_id is None:
+            return Response(
+                {"error": "x, y, and user_reward are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check coordinates are within board
+        if x >= board.width or y >= board.height or x < 0 or y < 0:
+            return Response(
+                {"error": "Coordinates out of bounds"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check if cell is already occupied
+        if PrizeBoardCell.objects.filter(board=board, x=x, y=y).exists():
+            return Response(
+                {"error": "Cell is already occupied"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check if user owns the reward
+        try:
+            user_reward = UserReward.objects.get(id=user_reward_id, user=user)
+        except UserReward.DoesNotExist:
+            return Response(
+                {"error": "Reward not found or does not belong to you"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Create cell
+        cell = PrizeBoardCell.objects.create(
+            board=board,
+            x=x,
+            y=y,
+            user_reward=user_reward,
+            placed_by=user
+        )
+
+        serializer = PrizeBoardCellSerializer(cell)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    except ReadingGroup.DoesNotExist:
+        return Response(
+            {"error": "Reading group not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def remove_reward_from_board(request, slug, x, y):
+    """Remove a reward from the prize board. Only the placer can remove it."""
+    try:
+        reading_group = ReadingGroup.objects.get(slug=slug)
+        user = request.user
+
+        board = PrizeBoard.objects.get(reading_group=reading_group)
+
+        try:
+            cell = PrizeBoardCell.objects.get(board=board, x=x, y=y)
+
+            # Only the placer can remove their reward
+            if cell.placed_by != user:
+                return Response(
+                    {"error": "You can only remove your own rewards"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            cell.delete()
+            return Response(
+                {"message": "Reward removed successfully"},
+                status=status.HTTP_204_NO_CONTENT
+            )
+        except PrizeBoardCell.DoesNotExist:
+            return Response(
+                {"error": "No reward at this position"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    except ReadingGroup.DoesNotExist:
+        return Response(
+            {"error": "Reading group not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except PrizeBoard.DoesNotExist:
+        return Response(
+            {"error": "Prize board not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+# Reading Progress
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_reading_progress(request, slug):
+    """Get user's reading progress for a book."""
+    user = request.user
+
+    try:
+        book = Book.objects.get(slug=slug)
+
+        try:
+            progress = ReadingProgress.objects.get(user=user, book=book)
+            serializer = ReadingProgressSerializer(progress)
+            return Response(serializer.data)
+        except ReadingProgress.DoesNotExist:
+            # Return default progress if not started
+            return Response({
+                "user": user.id,
+                "book": {"id": book.id, "title": book.title, "slug": book.slug},
+                "current_cfi": "",
+                "progress_percent": 0,
+                "is_completed": False
+            })
+    except Book.DoesNotExist:
+        return Response(
+            {"error": "Book not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(["PUT", "PATCH"])
+@permission_classes([IsAuthenticated])
+def update_reading_progress(request, slug):
+    """Update user's reading progress for a book."""
+    user = request.user
+
+    try:
+        book = Book.objects.get(slug=slug)
+
+        progress, created = ReadingProgress.objects.get_or_create(
+            user=user,
+            book=book
+        )
+
+        serializer = ReadingProgressSerializer(progress, data=request.data, partial=True)
+        if serializer.is_valid():
+            saved_progress = serializer.save()
+
+            # Auto-calculate progress_percent if current_page and total_pages are provided
+            if saved_progress.total_pages > 0:
+                calculated_percent = (saved_progress.current_page / saved_progress.total_pages) * 100
+                saved_progress.progress_percent = min(calculated_percent, 100)
+
+                # Auto-complete if progress >= 95%
+                if saved_progress.progress_percent >= 95 and not saved_progress.is_completed:
+                    saved_progress.is_completed = True
+                    saved_progress.progress_percent = 100
+
+                saved_progress.save()
+
+            return Response(ReadingProgressSerializer(saved_progress).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Book.DoesNotExist:
+        return Response(
+            {"error": "Book not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def complete_book(request, slug):
+    """Mark a book as completed."""
+    user = request.user
+
+    try:
+        book = Book.objects.get(slug=slug)
+
+        progress, created = ReadingProgress.objects.get_or_create(
+            user=user,
+            book=book
+        )
+
+        progress.is_completed = True
+        progress.progress_percent = 100
+        progress.save()
+
+        serializer = ReadingProgressSerializer(progress)
+        return Response(serializer.data)
+    except Book.DoesNotExist:
+        return Response(
+            {"error": "Book not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+# User Stats
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_user_stats(request, username):
+    """Get statistics for a specific user."""
+    try:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.get(username=username)
+
+        stats, created = UserStats.objects.get_or_create(user=user)
+
+        serializer = UserStatsSerializer(stats)
+        return Response(serializer.data)
+    except User.DoesNotExist:
+        return Response(
+            {"error": "User not found"},
+            status=status.HTTP_404_NOT_FOUND
         )

@@ -5,6 +5,14 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "beautifulsoup4>=4.14.3",
     "django>=6.0.1",
+    "django-cors-headers>=4.9.0",
+    "djangorestframework>=3.16.1",
+    "djangorestframework-simplejwt>=5.5.1",
+    "ebooklib>=0.20",
+    "gunicorn>=24.1.1",
+    "pillow>=12.1.0",
     "psycopg2-binary>=2.9.11",
+    "python-decouple>=3.8",
 ]

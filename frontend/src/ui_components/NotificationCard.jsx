@@ -5,6 +5,7 @@ import { deleteNotification, getUserToReadingGroupStates, getNotification, confi
 import { useState } from "react";
 import { set } from "react-hook-form";
 import { decl } from "postcss";
+import { BASE_URL } from "@/api";
 
 
 const NotificationCard = ({ notification }) => {
@@ -78,6 +79,7 @@ const NotificationCard = ({ notification }) => {
   const shouldShowOkButton =
     notification.category === "GroupRequestDeclined" ||
     notification.category === "GroupRequestAccepted" ||
+    notification.category === "QuestCompleted" ||
     notification.category === null;
 
   const shouldShowGroupAcceptDeclineButtons =
@@ -142,6 +144,34 @@ const NotificationCard = ({ notification }) => {
                 ""
               )}{" "}
               был принят.
+            </>
+          ) : notification.category === "QuestCompleted" ? (
+            <>
+              <div className="font-semibold text-green-600 dark:text-green-400 mb-2">
+                🎉 Задание выполнено!
+              </div>
+              {notification.related_quest && (
+                <div className="mb-2">
+                  Задание <span className="font-medium">"{notification.related_quest.title}"</span> было завершено!
+                </div>
+              )}
+              {notification.related_reward && (
+                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-md mt-2">
+                  {notification.related_reward.image && (
+                    <img
+                      src={`${BASE_URL}${notification.related_reward.image}`}
+                      alt={notification.related_reward.name}
+                      className="w-16 h-16 object-cover rounded"
+                    />
+                  )}
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Вы получили награду:</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200">
+                      {notification.related_reward.name}
+                    </p>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             "Новое уведомление"

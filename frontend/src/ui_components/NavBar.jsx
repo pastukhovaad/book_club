@@ -44,6 +44,12 @@ const NavBar = ({
                 >
                   Уведомления
                 </NavLink></li>
+              <li><NavLink
+                  to={`/quests`}
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                >
+                  Задания
+                </NavLink></li>
               <li onClick={logout} className="cursor-pointer">
                 Выйти
               </li>

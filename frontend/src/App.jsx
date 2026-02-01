@@ -14,6 +14,11 @@ import AllReadingGroupsPage from './pages/AllReadingGroupsPage'
 import AllBooksPage from './pages/AllBooksPage'
 import CreateReadingGroupPage from './pages/CreateReadingGroupPage'
 import NotificationsPage from './pages/NotificationsPage'
+import QuestsPage from './pages/QuestsPage'
+import GroupQuestsPage from './pages/GroupQuestsPage'
+import CreateQuestPage from './pages/CreateQuestPage'
+import PrizeBoardPage from './pages/PrizeBoardPage'
+import RewardsPage from './pages/RewardsPage'
 import { useEffect, useState } from 'react'
 import { getUsername } from './services/apiBook'
 import { useQuery } from '@tanstack/react-query'
@@ -101,6 +106,57 @@ const App = () => {
                 username={username}
                 isAuthenticated={isAuthenticated}
               />
+            }
+          />
+          <Route
+            path="quests"
+            element={
+              <ProtectedRoute>
+                <QuestsPage
+                  username={username}
+                  isAuthenticated={isAuthenticated}
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="quests/create"
+            element={
+              <ProtectedRoute>
+                <CreateQuestPage
+                  username={username}
+                  isAuthenticated={isAuthenticated}
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="groups/:slug/quests"
+            element={
+              <GroupQuestsPage
+                username={username}
+                isAuthenticated={isAuthenticated}
+              />
+            }
+          />
+          <Route
+            path="groups/:slug/board"
+            element={
+              <PrizeBoardPage
+                username={username}
+                isAuthenticated={isAuthenticated}
+              />
+            }
+          />
+          <Route
+            path="rewards"
+            element={
+              <ProtectedRoute>
+                <RewardsPage
+                  username={username}
+                  isAuthenticated={isAuthenticated}
+                />
+              </ProtectedRoute>
             }
           />
           <Route path="signup" element={<SignupPage />} />
