@@ -74,6 +74,13 @@ export const useBookComments = (slug, isAuthenticated = true) => {
       if (import.meta.env.DEV) {
         console.log('Comment created successfully:', data)
       }
+      queryClient.setQueryData(
+        ['bookComments', slug, commentType, readingGroupId],
+        (oldData) => {
+          const existing = Array.isArray(oldData) ? oldData : []
+          return [data, ...existing]
+        },
+      )
       queryClient.invalidateQueries({
         queryKey: ['bookComments', slug, commentType, readingGroupId],
       })

@@ -9,6 +9,15 @@ export async function getBooks(page, amount) {
   }
 }
 
+export async function getPublicBooks(page, amount) {
+  try {
+    const response = await api.get(`public_books/${amount}/?page=${page}`)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
 export async function getBook(slug) {
   try {
     const response = await api.get(`books/${slug}`)
@@ -106,6 +115,15 @@ export async function getUserToReadingGroupStates(id) {
 export async function getUserReadingGroups() {
   try {
     const response = await api.get('user_reading_groups/')
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+export async function getUserCreatedGroups() {
+  try {
+    const response = await api.get('user_created_groups/')
     return response.data
   } catch (err) {
     throw new Error(err.message)
@@ -262,6 +280,33 @@ export async function updateProfile(data) {
       )
     }
 
+    throw new Error(err.message)
+  }
+}
+
+export async function getUserBooks(username) {
+  try {
+    const response = await api.get(`users/${username}/books/`)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+export async function getGroupReadingBooks(slug) {
+  try {
+    const response = await api.get(`groups/${slug}/books/reading/`)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+export async function getGroupPostedBooks(slug) {
+  try {
+    const response = await api.get(`groups/${slug}/books/posted/`)
+    return response.data
+  } catch (err) {
     throw new Error(err.message)
   }
 }

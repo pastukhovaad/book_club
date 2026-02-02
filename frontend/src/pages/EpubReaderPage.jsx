@@ -264,9 +264,14 @@ const EpubReaderPage = () => {
             >
               <IoHomeOutline size={24} />
             </Link>
-            <h1 className="text-xl font-semibold text-[#181A2A] dark:text-[#FFFFFF] truncate max-w-md">
-              {book.title}
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-semibold text-[#181A2A] dark:text-[#FFFFFF] truncate max-w-md">
+                {book.title}
+              </h1>
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#E8E8EA] dark:bg-[#242535] text-[#3B3C4A] dark:text-[#BABABF]">
+                EPUB-файл
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">

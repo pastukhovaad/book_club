@@ -1,4 +1,4 @@
-import { getUserInfo, getUserRewards, getUserStats, getUserToReadingGroupStates } from "@/services/apiBook";
+import { getUserInfo, getUserRewards, getUserStats, getUserToReadingGroupStates, getUserBooks } from "@/services/apiBook";
 import BookContainer from "@/ui_components/BookContainer";
 import Hero from "@/ui_components/Hero";
 import Spinner from "@/ui_components/Spinner";
@@ -46,7 +46,14 @@ const ProfilePage = ({ authUsername }) => {
     .filter((state) => state?.in_reading_group && state?.reading_group)
     .map((state) => state.reading_group);
 
-  const books = data?.author_posts;
+  const { data: userBooks } = useQuery({
+    queryKey: ["userBooks", username],
+    queryFn: () => getUserBooks(username),
+    enabled: !!username,
+  });
+
+  const isOwnProfile = authUsername === username;
+  const books = userBooks || [];
 
   if (isPending) {
     return <Spinner />;
@@ -132,7 +139,11 @@ const ProfilePage = ({ authUsername }) => {
         </div>
       )}
 
-      <BookContainer books={books} title={`Книги ${username}`} />
+      <BookContainer
+        books={books}
+        title={`Книги ${username}`}
+        showVisibilityLabels={isOwnProfile}
+      />
 
       {showModal && (
         <Modal toggleModal={toggleModal}>

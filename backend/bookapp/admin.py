@@ -91,7 +91,15 @@ admin.site.register(CustomUser, CustomUserAdmin)
 
 
 class BookAdmin(admin.ModelAdmin):
-    list_display = ("title", "is_draft", "category", "created_at", "description")
+    list_display = (
+        "title",
+        "visibility",
+        "reading_group",
+        "is_draft",
+        "category",
+        "created_at",
+        "description",
+    )
 
 
 admin.site.register(Book, BookAdmin)

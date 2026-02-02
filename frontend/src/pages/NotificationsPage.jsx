@@ -41,7 +41,6 @@ const AllBooksPage = ( { authUsername } ) => {
           Ваши уведомления
         </h2>
       </div>
-      {/* TODO: Make NotificationContainer and NotificationCard */}
       <NotificationContainer isPending={isPending} notifications={notifications} />
       <PagePagination
         increasePageValue={increasePageValue}

@@ -103,6 +103,9 @@ class SimpleAuthorSerializer(serializers.ModelSerializer):
 class BookSerializer(serializers.ModelSerializer):
     author = SimpleAuthorSerializer(read_only=True)
     epub_file = serializers.FileField(required=False, allow_null=True)
+    reading_group = serializers.PrimaryKeyRelatedField(
+        queryset=ReadingGroup.objects.all(), required=False, allow_null=True
+    )
 
     class Meta:
         model = Book
@@ -123,6 +126,8 @@ class BookSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "is_draft",
+            "visibility",
+            "reading_group",
         ]
 
     def to_representation(self, instance):

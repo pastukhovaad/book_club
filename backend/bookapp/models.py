@@ -106,6 +106,11 @@ class CustomUser(AbstractUser):
 
 
 class Book(models.Model):
+    VISIBILITY_CHOICES = (
+        ("public", "Публичная (видимая всем)"),
+        ("group", "Групповая (видимая только членам вашей группы)"),
+        ("personal", "Личная (видимая только вам)"),
+    )
 
     CATEGORY = (
         ("Science Fiction", "Science Fiction"),
@@ -153,6 +158,18 @@ class Book(models.Model):
     is_draft = models.BooleanField(default=True)
     category = models.CharField(max_length=255, choices=CATEGORY, blank=True, null=True)
     featured_image = models.ImageField(upload_to="book_img", blank=True, null=True)
+    visibility = models.CharField(
+        max_length=20,
+        choices=VISIBILITY_CHOICES,
+        default="public",
+    )
+    reading_group = models.ForeignKey(
+        "ReadingGroup",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="books",
+    )
 
     class Meta:
         ordering = ["-published_date"]

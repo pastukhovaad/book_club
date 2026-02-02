@@ -13,8 +13,8 @@ import {
   SelectLabel,
 } from "@/components/ui/select";
 import InputError from "@/ui_components/InputError";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createBook, updateBook } from "@/services/apiBook";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { createBook, updateBook, getUserCreatedGroups } from "@/services/apiBook";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import SmallSpinner from "@/ui_components/SmallSpinner";
@@ -31,13 +31,23 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
 
   const [contentType, setContentType] = useState(book?.content_type || "plaintext");
   const [epubFileName, setEpubFileName] = useState("");
+  const [visibility, setVisibility] = useState(book?.visibility || "public");
+  const [selectedGroupId, setSelectedGroupId] = useState(book?.reading_group || "");
 
   const bookID = book?.id;
 
-  // Register category field for validation (without ref, since Radix Select doesn't support it)
+  // Register required fields for validation (without ref, since Radix Select doesn't support it)
   useEffect(() => {
     register("category", { required: "Категория книги обязательна" });
+    register("visibility", { required: "Тип книги обязателен" });
   }, [register]);
+
+  const { data: userGroups } = useQuery({
+    queryKey: ["userCreatedGroups"],
+    queryFn: getUserCreatedGroups,
+  });
+
+  const creatorGroups = userGroups || [];
 
   const updateMutation = useMutation({
     mutationFn: ({ data, id }) => updateBook(data, id),
@@ -56,18 +66,27 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
   const mutation = useMutation({
     mutationFn: (data) => createBook(data),
     onSuccess: () => {
-      toast.success("New book added successfully");
+      toast.success("Книга создана успешно.");
       queryClient.invalidateQueries({ queryKey: ["books"] });
       navigate("/");
     },
   });
 
   function onSubmit(data) {
+    if (visibility === "group" && !selectedGroupId) {
+      toast.error("Выберите группу для групповой книги");
+      return;
+    }
     const formData = new FormData();
     formData.append("title", data.title);
     formData.append("description", data.description);
     formData.append("category", data.category);
     formData.append("content_type", contentType);
+    formData.append("visibility", visibility);
+
+    if (visibility === "group") {
+      formData.append("reading_group", selectedGroupId);
+    }
 
     // Add content based on content type
     if (contentType === "plaintext") {
@@ -262,6 +281,111 @@ const CreatePostPage = ({ book, isAuthenticated }) => {
           <InputError error={errors.category.message} />
         )}
       </div>
+
+      <div className="w-full">
+            <Label className="dark:text-[97989F]">Тип книги *</Label>
+            <div className="flex flex-col gap-3 mt-2 mb-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  id="visibility_public"
+                  name="visibility"
+                  value="public"
+                  checked={visibility === "public"}
+                  onChange={(e) => {
+                    setVisibility(e.target.value);
+                    setSelectedGroupId("");
+                    setValue("visibility", e.target.value, { shouldValidate: true });
+                  }}
+                  className="w-4 h-4 cursor-pointer"
+                />
+                <Label htmlFor="visibility_public" className="cursor-pointer font-normal">
+                  Публичная (видимая всем)
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  id="visibility_group"
+                  name="visibility"
+                  value="group"
+                  checked={visibility === "group"}
+                  onChange={(e) => {
+                    setVisibility(e.target.value);
+                    setValue("visibility", e.target.value, { shouldValidate: true });
+                  }}
+                  className="w-4 h-4 cursor-pointer"
+                />
+                <Label htmlFor="visibility_group" className="cursor-pointer font-normal">
+                  Групповая (видимая только членам вашей группы)
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  id="visibility_personal"
+                  name="visibility"
+                  value="personal"
+                  checked={visibility === "personal"}
+                  onChange={(e) => {
+                    setVisibility(e.target.value);
+                    setSelectedGroupId("");
+                    setValue("visibility", e.target.value, { shouldValidate: true });
+                  }}
+                  className="w-4 h-4 cursor-pointer"
+                />
+                <Label htmlFor="visibility_personal" className="cursor-pointer font-normal">
+                  Личная (видимая только вам)
+                </Label>
+              </div>
+            </div>
+            {errors?.visibility?.message && (
+              <InputError error={errors.visibility.message} />
+            )}
+          </div>
+          
+          {visibility === "group" && (
+            <div className="w-full">
+              <Label htmlFor="reading_group">Группа *</Label>
+              <Select
+                onValueChange={(value) => {
+                  setSelectedGroupId(value);
+                  setValue("reading_group", value, { shouldValidate: true });
+                }}
+                defaultValue={book?.reading_group ? String(book.reading_group) : ""}
+                disabled={creatorGroups.length === 0}
+              >
+                <SelectTrigger className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full max-sm:w-[300px] max-sm:text-[14px]">
+                  <SelectValue
+                    placeholder={
+                      creatorGroups.length === 0
+                        ? "У вас нет групп, где вы создатель"
+                        : "Выберите группу"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Группы</SelectLabel>
+                    {creatorGroups.length === 0 ? (
+                      <SelectItem value="no-groups" disabled>
+                        У вас нет групп, где вы создатель
+                      </SelectItem>
+                    ) : (
+                      creatorGroups.map((group) => (
+                        <SelectItem key={group.id} value={String(group.id)}>
+                          {group.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              {!selectedGroupId && creatorGroups.length > 0 && (
+                <InputError error="Выберите группу для групповой книги" />
+              )}
+            </div>
+          )}
 
       <div className="w-full">
         <Label htmlFor="featured_image">Featured Image *</Label>

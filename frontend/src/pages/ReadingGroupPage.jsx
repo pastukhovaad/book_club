@@ -3,9 +3,10 @@
 import Badge from "@/ui_components/Badge";
 import GroupCreator from "@/ui_components/GroupCreator";
 import QuestCard from "@/ui_components/QuestCard";
+import BookContainer from "@/ui_components/BookContainer";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { deleteReadingGroup, getReadingGroup, addUserToGroup, removeUserFromGroup, createNotification, getUserToReadingGroupStates, getGroupQuests, generateDailyQuests } from "@/services/apiBook";
+import { deleteReadingGroup, getReadingGroup, addUserToGroup, removeUserFromGroup, createNotification, getUserToReadingGroupStates, getGroupQuests, generateDailyQuests, getGroupReadingBooks, getGroupPostedBooks } from "@/services/apiBook";
 import Spinner from "@/ui_components/Spinner";
 import { BASE_URL } from "@/api";
 import { HiPencilAlt } from "react-icons/hi";
@@ -65,6 +66,20 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
     queryKey: ["groupQuests", slug],
     queryFn: () => getGroupQuests(slug),
     enabled: activeTab === 'quests' && isGroupMember,
+    retry: false,
+  });
+
+  const { data: groupReadingBooks } = useQuery({
+    queryKey: ["groupReadingBooks", slug],
+    queryFn: () => getGroupReadingBooks(slug),
+    enabled: activeTab === 'books' && isGroupMember,
+    retry: false,
+  });
+
+  const { data: groupPostedBooks } = useQuery({
+    queryKey: ["groupPostedBooks", slug],
+    queryFn: () => getGroupPostedBooks(slug),
+    enabled: activeTab === 'books' && isGroupMember,
     retry: false,
   });
 
@@ -274,6 +289,16 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
             >
               Задания
             </button>
+            <button
+              onClick={() => setActiveTab('books')}
+              className={`px-4 py-2 border-b-2 transition-colors ${
+                activeTab === 'books'
+                  ? 'border-[#4B6BFB] text-[#4B6BFB]'
+                  : 'border-transparent text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              Книги
+            </button>
           </div>
         </div>
 
@@ -371,6 +396,34 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
                   )}
                 </div>
               )}
+            </div>
+          )}
+          {activeTab === 'books' && (
+            <div className="flex flex-col gap-8">
+              <div>
+                <h3 className="text-xl font-semibold mb-4 text-[#181A2A] dark:text-white">
+                  Читаемые книги
+                </h3>
+                {groupReadingBooks && groupReadingBooks.length > 0 ? (
+                  <BookContainer books={groupReadingBooks} />
+                ) : (
+                  <p className="text-[#3B3C4A] dark:text-[#BABABF]">
+                    Пока нет читаемых книг в этой группе.
+                  </p>
+                )}
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold mb-4 text-[#181A2A] dark:text-white">
+                  Выложенные книги
+                </h3>
+                {groupPostedBooks && groupPostedBooks.length > 0 ? (
+                  <BookContainer books={groupPostedBooks} />
+                ) : (
+                  <p className="text-[#3B3C4A] dark:text-[#BABABF]">
+                    В этой группе пока нет выложенных книг.
+                  </p>
+                )}
+              </div>
             </div>
           )}
 

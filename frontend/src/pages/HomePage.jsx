@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getBooks } from "@/services/apiBook";
+import { getPublicBooks } from "@/services/apiBook";
 import BookContainer from "@/ui_components/BookContainer";
 import Header from "@/ui_components/Header";
 import PagePagination from "../ui_components/PagePagination";
@@ -11,7 +11,7 @@ const HomePage = () => {
 
   const { isPending, isError, error, data } = useQuery({
     queryKey: ["books", page],
-    queryFn: () => getBooks(page, numOfBooksPerPage),
+    queryFn: () => getPublicBooks(page, numOfBooksPerPage),
     placeholderData: keepPreviousData,
   });
 

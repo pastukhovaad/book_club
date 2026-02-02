@@ -64,10 +64,23 @@ class AnyListPagination(PageNumberPagination):
         self.page_size = amount
 
 
-# Create your views here.
+# REM/CHANGE needs proper book grabbing
 @api_view(["GET"])
 def book_list(request, amount):
-    books = Book.objects.all()
+    user = request.user if request.user.is_authenticated else None
+
+    if user:
+        user_group_ids = UserToReadingGroupState.objects.filter(
+            user=user, in_reading_group=True
+        ).values_list("reading_group_id", flat=True)
+
+        books = Book.objects.filter(
+            models.Q(visibility="public")
+            | models.Q(visibility="personal", author=user)
+            | models.Q(visibility="group", reading_group_id__in=user_group_ids)
+        )
+    else:
+        books = Book.objects.filter(visibility="public")
     paginator = AnyListPagination(amount=amount)
     paginated_books = paginator.paginate_queryset(books, request)
     serializer = BookSerializer(paginated_books, many=True)
@@ -75,6 +88,15 @@ def book_list(request, amount):
     # logger.info(f"Pagination info: {paginator.page_size} items per page requested.")
     # logger.info(f"Pagination info: {paginator.page.number} current page number.")
     # logger.info(f"Books retrieved: {serializer.data}")
+    return paginator.get_paginated_response(serializer.data)
+
+
+@api_view(["GET"])
+def public_book_list(request, amount):
+    books = Book.objects.filter(visibility="public")
+    paginator = AnyListPagination(amount=amount)
+    paginated_books = paginator.paginate_queryset(books, request)
+    serializer = BookSerializer(paginated_books, many=True)
     return paginator.get_paginated_response(serializer.data)
 
 
@@ -88,6 +110,31 @@ def book_list(request, amount):
 @api_view(["GET"])
 def get_book(request, slug):
     book = Book.objects.get(slug=slug)
+
+    if book.visibility == "personal":
+        if not request.user.is_authenticated or book.author != request.user:
+            return Response(
+                {"error": "You do not have access to this book"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+    if book.visibility == "group":
+        if not request.user.is_authenticated:
+            return Response(
+                {"error": "You do not have access to this book"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        is_member = UserToReadingGroupState.objects.filter(
+            user=request.user,
+            reading_group=book.reading_group,
+            in_reading_group=True,
+        ).exists()
+        if not is_member and book.author != request.user:
+            return Response(
+                {"error": "You do not have access to this book"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
     serializer = BookSerializer(book)
     return Response(serializer.data)
 
@@ -199,6 +246,55 @@ def get_reading_group(request, slug):
 
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_group_reading_books(request, slug):
+    reading_group = ReadingGroup.objects.get(slug=slug)
+    user = request.user
+
+    is_member = UserToReadingGroupState.objects.filter(
+        user=user, reading_group=reading_group, in_reading_group=True
+    ).exists()
+    if not is_member and reading_group.creator != user:
+        return Response(
+            {"error": "You must be a member to view group books"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    book_ids = (
+        BookComment.objects.filter(reading_group=reading_group)
+        .values_list("book_id", flat=True)
+        .distinct()
+    )
+    books = Book.objects.filter(id__in=book_ids)
+    serializer = BookSerializer(books, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_group_posted_books(request, slug):
+    reading_group = ReadingGroup.objects.get(slug=slug)
+    user = request.user
+
+    is_member = UserToReadingGroupState.objects.filter(
+        user=user, reading_group=reading_group, in_reading_group=True
+    ).exists()
+    if not is_member and reading_group.creator != user:
+        return Response(
+            {"error": "You must be a member to view group books"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    books = Book.objects.filter(
+        visibility="group",
+        reading_group=reading_group,
+        author=reading_group.creator,
+    )
+    serializer = BookSerializer(books, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
 def get_notification(request, id):
     notification = Notification.objects.get(id=id)
     serializer = NotificationSerializer(notification)
@@ -246,6 +342,15 @@ def get_user_reading_groups(request):
     # Extract the reading groups
     reading_groups = [ug.reading_group for ug in user_groups]
 
+    serializer = ReadingGroupSerializer(reading_groups, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_user_created_groups(request):
+    user = request.user
+    reading_groups = ReadingGroup.objects.filter(creator=user)
     serializer = ReadingGroupSerializer(reading_groups, many=True)
     return Response(serializer.data)
 
@@ -300,6 +405,23 @@ def create_book(request):
     serializer = BookSerializer(data=request.data)
 
     if serializer.is_valid():
+        visibility = serializer.validated_data.get("visibility", "public")
+        reading_group = serializer.validated_data.get("reading_group")
+
+        if visibility == "group" and not reading_group:
+            return Response(
+                {"reading_group": "Групповая книга требует выбора группы"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if visibility == "group" and reading_group and reading_group.creator != user:
+            return Response(
+                {"reading_group": "Вы не являетесь создателем этой группы"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if visibility == "personal":
+            serializer.validated_data["reading_group"] = None
+
         # Save the book first
         book = serializer.save(author=user)
 
@@ -402,6 +524,20 @@ def update_book(request, pk):
     serializer = BookSerializer(book, data=request.data, partial=True)
 
     if serializer.is_valid():
+        visibility = serializer.validated_data.get("visibility", book.visibility)
+        reading_group = serializer.validated_data.get(
+            "reading_group", book.reading_group
+        )
+
+        if visibility == "group" and not reading_group:
+            return Response(
+                {"reading_group": "Групповая книга требует выбора группы"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if visibility == "personal":
+            serializer.validated_data["reading_group"] = None
+
         updated_book = serializer.save()
 
         # If a new EPUB file was uploaded, process it
@@ -565,6 +701,22 @@ def get_userinfo(request, username):
     User = get_user_model()
     user = User.objects.get(username=username)
     serializer = UserInfoSerializer(user)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+def get_user_books(request, username):
+    User = get_user_model()
+    user = User.objects.get(username=username)
+
+    if request.user.is_authenticated and request.user == user:
+        books = Book.objects.filter(author=user).select_related("reading_group")
+    else:
+        books = Book.objects.filter(author=user, visibility="public").select_related(
+            "reading_group"
+        )
+
+    serializer = BookSerializer(books, many=True)
     return Response(serializer.data)
 
 

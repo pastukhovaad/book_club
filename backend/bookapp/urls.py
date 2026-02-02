@@ -7,6 +7,7 @@ urlpatterns = [
     path("create_book/", views.create_book, name="create_book"),
     path("create_notification/", views.create_notification, name="create_notification"),
     path("book_list/<int:amount>/", views.book_list, name="book_list"),
+    path("public_books/<int:amount>/", views.public_book_list, name="public_book_list"),
     # path("group_list", views.reading_group_list, name="group_list"),
     path(
         "group_list/<int:amount>/",
@@ -39,8 +40,19 @@ urlpatterns = [
     path("update_user/", views.update_user_profile, name="update_user"),
     path("get_username", views.get_username, name="get_username"),
     path("get_userinfo/<str:username>", views.get_userinfo, name="get_userinfo"),
+    path("users/<str:username>/books/", views.get_user_books, name="get_user_books"),
     path("get_user/<str:email>", views.get_user, name="get_user"),
     path("groups/<slug:slug>", views.get_reading_group, name="get_reading_group"),
+    path(
+        "groups/<slug:slug>/books/reading/",
+        views.get_group_reading_books,
+        name="get_group_reading_books",
+    ),
+    path(
+        "groups/<slug:slug>/books/posted/",
+        views.get_group_posted_books,
+        name="get_group_posted_books",
+    ),
     path("groups/", views.reading_group_list, name="get_reading_groups"),
     path("books/", views.book_list, name="get_books"),
     path("books/<slug:slug>/page", views.get_book, name="get_book_page"),
@@ -72,6 +84,11 @@ urlpatterns = [
         "user_reading_groups/",
         views.get_user_reading_groups,
         name="get_user_reading_groups",
+    ),
+    path(
+        "user_created_groups/",
+        views.get_user_created_groups,
+        name="get_user_created_groups",
     ),
     path(
         "group/<int:pk>/confirm_user/<int:user_id>/",
