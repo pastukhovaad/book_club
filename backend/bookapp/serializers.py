@@ -1,9 +1,11 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Avg
 from rest_framework import serializers
 
 from .models import (
     Book,
     BookComment,
+    BookReview,
     Notification,
     PrizeBoard,
     PrizeBoardCell,
@@ -106,6 +108,7 @@ class BookSerializer(serializers.ModelSerializer):
     reading_group = serializers.PrimaryKeyRelatedField(
         queryset=ReadingGroup.objects.all(), required=False, allow_null=True
     )
+    average_rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Book
@@ -128,7 +131,14 @@ class BookSerializer(serializers.ModelSerializer):
             "is_draft",
             "visibility",
             "reading_group",
+            "average_rating",
         ]
+
+    def get_average_rating(self, instance):
+        rating = BookReview.objects.filter(book=instance).aggregate(
+            avg=Avg("stars_amount")
+        )
+        return rating["avg"]
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -165,6 +175,33 @@ class BookSerializer(serializers.ModelSerializer):
                 )
 
         return data
+
+
+class BookReviewSerializer(serializers.ModelSerializer):
+    user = SimpleAuthorSerializer(read_only=True)
+    book = serializers.PrimaryKeyRelatedField(read_only=True)
+    stars_amount = serializers.IntegerField(min_value=1, max_value=5)
+    title = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    description = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True, default=""
+    )
+
+    class Meta:
+        model = BookReview
+        fields = [
+            "id",
+            "user",
+            "book",
+            "title",
+            "description",
+            "stars_amount",
+            "creation_date",
+            "likes",
+        ]
+        read_only_fields = ["id", "user", "book", "creation_date", "likes"]
+
+    def validate_description(self, value):
+        return value or ""
 
 
 class UserWithStatusSerializer(serializers.ModelSerializer):

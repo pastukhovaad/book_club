@@ -368,6 +368,18 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
 
           {activeTab === 'quests' && (
             <div>
+              <div className="py-4 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <span>Получение наград</span>
+                <div className="relative group">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs cursor-help">
+                    ?
+                  </span>
+                  <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 rounded-md bg-gray-200 text-gray-700 text-xs px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                    Награду за групповое задание при его выполнении получают все участники группы, которые успели принять участие до его завершения.
+                    <br />После завершения задания награду получить нельзя.
+                  </div>
+                </div>
+              </div>
               {groupQuests && groupQuests.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {groupQuests.filter(item => item?.quest).map((item) => (

@@ -27,6 +27,27 @@ export async function getBook(slug) {
   }
 }
 
+export async function getBookReviews(slug) {
+  try {
+    const response = await api.get(`books/${slug}/reviews/`)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+export async function createBookReview(slug, data) {
+  try {
+    const response = await api.post(`books/${slug}/reviews/create/`, data)
+    return response.data
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.response?.data?.message || 'Failed to create review')
+    }
+    throw new Error(err.message)
+  }
+}
+
 export async function getNotification(id) {
   try {
     const response = await api.get(`get_notification/${id}`)

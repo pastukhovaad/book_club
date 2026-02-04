@@ -51,9 +51,7 @@ const CreateQuestPage = () => {
 
     // Auto-adjust participation type based on group selection
     if (name === "reading_group") {
-      if (value && formData.participation_type === "global") {
-        setFormData(prev => ({ ...prev, participation_type: "group" }));
-      } else if (!value && formData.participation_type === "group") {
+      if (!value && formData.participation_type === "group") {
         setFormData(prev => ({ ...prev, participation_type: "personal" }));
       }
     }
@@ -183,7 +181,6 @@ const CreateQuestPage = () => {
             >
               <option value="personal">Личное</option>
               <option value="group">Групповое</option>
-              <option value="global">Глобальное</option>
             </select>
           </div>
 

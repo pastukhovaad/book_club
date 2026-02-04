@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { FormatDate } from "@/services/formatDate";
+import { FormatDateWithHour } from "@/services/formatDate";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { deleteNotification, getUserToReadingGroupStates, getNotification, confirmUserToGroup, createNotification } from '@/services/apiBook'
 import { useState } from "react";
@@ -188,7 +188,7 @@ const NotificationCard = ({ notification }) => {
 
       {/* Timestamp */}
       <div className="text-xs text-gray-500 dark:text-gray-400">
-        {FormatDate(notification.sent_at)}
+        {FormatDateWithHour(notification.sent_at)}
       </div>
 
       {shouldShowOkButton ? (

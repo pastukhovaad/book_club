@@ -102,7 +102,7 @@ const ReplyItem = ({
           onClick={(e) => e.stopPropagation()}
         >
           <p className="text-xs text-red-800 dark:text-red-300 mb-2">
-            Delete this reply?
+            Удалить этот ответ?
           </p>
           <div className="flex gap-2">
             <button
@@ -110,7 +110,7 @@ const ReplyItem = ({
               disabled={isDeleting}
               className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors disabled:opacity-50"
             >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? 'Удаление...' : 'Удалить'}
             </button>
             <button
               onClick={(e) => {
@@ -119,7 +119,7 @@ const ReplyItem = ({
               }}
               className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
             >
-              Cancel
+              Отмена
             </button>
           </div>
         </div>

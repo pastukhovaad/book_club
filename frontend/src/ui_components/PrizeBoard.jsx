@@ -101,8 +101,8 @@ const PrizeBoard = ({
     );
   };
 
-  const boardTransform = "skewX(-24deg) skewY(12deg) rotateZ(-12deg)";
-  const contentTransform = "skew(24deg) skewY(-12deg) rotateZ(12deg)";
+  const boardTransform = "skewX(-30deg) skewY(12deg) rotateZ(-12deg)";
+  const contentTransform = "skew(30deg) skewY(-12deg) rotateZ(12deg)";
 
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
@@ -149,12 +149,14 @@ const PrizeBoard = ({
 
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="border dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 overflow-x-auto overflow-y-auto flex-1">
-          <div className="relative inline-block" style={{ paddingLeft: 200, paddingBottom: 40, paddingTop: 60 }}>
+          <div className="relative inline-block" style={{ paddingLeft: 240, paddingBottom: 40, paddingTop: 60 }}>
             <div
               className="relative"
               style={{
                 transform: `scale(${zoom}) ${boardTransform}`,
                 transformOrigin: "top left",
+                width: "100%",
+                height: "100%",
               }}
             >
             <div
@@ -190,7 +192,7 @@ const PrizeBoard = ({
                     <div
                       key={`${x}-${y}`}
                       className={`
-                        aspect-square flex items-center justify-center
+                        flex items-center justify-center
                         transition-all cursor-pointer relative overflow-hidden
                         ${cellContent ? "bg-white" : "bg-white"}
                         ${isHovered && canPlace ? "ring-2 ring-blue-400" : ""}
@@ -212,8 +214,8 @@ const PrizeBoard = ({
                           className="absolute left-1/2 top-1/2 pointer-events-none"
                           style={{
                             transform: `translate(-62%, -95%) ${contentTransform}`,
-                            width: "100%",
-                            height: "100%",
+                            width: "120%",
+                            height: "120%",
                           }}
                         >
                           <button
@@ -256,11 +258,12 @@ const PrizeBoard = ({
                     <div key={`overlay-${x}-${y}`} className="relative">
                       {rewardImage && (
                         <div
-                          className="absolute left-1/2 top-1/2"
+                          className="absolute left-1/2 top-2/3"
                           style={{
                             transform: `translate(-62%, -95%) ${contentTransform}`,
-                            width: "100%",
-                            height: "100%",
+                            width: "130%",
+                            height: "120%", 
+                            // TODO: 110 or 120?
                           }}
                         >
                           <img

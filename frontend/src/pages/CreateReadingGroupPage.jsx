@@ -107,7 +107,7 @@ const CreateReadingGroupPage = ({ reading_group, isAuthenticated }) => {
               message: "Название группы должно содержать не менее 3 символов",
             },
           })}
-          placeholder="Give your group a name"
+          placeholder="Дайте название вашей группе"
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-[400px] max-sm:w-[300px] max-sm:text-[14px]"
         />
 

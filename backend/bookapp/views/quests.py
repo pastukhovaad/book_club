@@ -6,27 +6,28 @@ Handles quest creation, daily quest generation, and progress tracking.
 
 import logging
 import random
+
+from django.db import models
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.db import models
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ..models import (
+    CustomUser,
     Quest,
-    QuestProgress,
     QuestCompletion,
+    QuestProgress,
     ReadingGroup,
     RewardTemplate,
     UserToReadingGroupState,
-    CustomUser,
 )
 from ..serializers import (
-    QuestSerializer,
-    QuestProgressSerializer,
     QuestCompletionSerializer,
+    QuestProgressSerializer,
+    QuestSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -190,7 +191,7 @@ def generate_daily_quests(request, slug):
             serializer = QuestSerializer(existing_quests, many=True)
             return Response(
                 {
-                    "message": "Daily quests already exist for today",
+                    "message": "Сегодняшние задания уже созданы",
                     "quests": serializer.data,
                 }
             )
@@ -270,14 +271,14 @@ def generate_daily_quests(request, slug):
         serializer = QuestSerializer(created_quests, many=True)
         return Response(
             {
-                "message": "Daily quests generated successfully",
+                "message": "Сегодняшние задания успешно созданы",
                 "quests": serializer.data,
             }
         )
 
     except ReadingGroup.DoesNotExist:
         return Response(
-            {"error": "Reading group not found"}, status=status.HTTP_404_NOT_FOUND
+            {"error": "Группа для чтения не найдена"}, status=status.HTTP_404_NOT_FOUND
         )
 
 
@@ -312,7 +313,7 @@ def generate_daily_personal_quests(request):
         serializer = QuestSerializer(existing_quests, many=True)
         return Response(
             {
-                "message": "Daily personal quests already exist for today",
+                "message": "Сегодняшние личные задания уже созданы",
                 "quests": serializer.data,
             }
         )
@@ -389,7 +390,7 @@ def generate_daily_personal_quests(request):
     serializer = QuestSerializer(created_quests, many=True)
     return Response(
         {
-            "message": "Daily personal quests generated successfully",
+            "message": "Сегодняшние личные задания успешно созданы",
             "quests": serializer.data,
         }
     )

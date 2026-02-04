@@ -40,13 +40,13 @@ const CommentForm = ({
         <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
           <div>
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-              {isEditing ? 'Edit Comment' : `Add ${commentType === 'personal' ? 'Personal Note' : 'Group Comment'}`}
+              {isEditing ? 'Редактировать комментарий' : `Добавить ${commentType === 'personal' ? 'личный комментарий' : 'групповой комментарий'}`}
             </h3>
             {!isEditing && (
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {commentType === 'personal'
-                  ? 'Visible only to you'
-                  : 'Visible to all confirmed group members'}
+                  ? 'Видимый только вам'
+                  : 'Видимый всем участникам группы'}
               </p>
             )}
           </div>
@@ -65,7 +65,7 @@ const CommentForm = ({
           {selectedText && !isEditing && (
             <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Selected text:
+                Выделенный текст:
               </p>
               <p className="text-sm text-gray-800 dark:text-gray-200 italic">
                 "{selectedText}"
@@ -79,7 +79,7 @@ const CommentForm = ({
               htmlFor="comment"
               className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
-              Your comment
+              Ваш комментарий
             </label>
             <textarea
               id="comment"
@@ -87,7 +87,7 @@ const CommentForm = ({
               onChange={(e) => setCommentText(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 resize-none"
               rows="4"
-              placeholder="Write your comment here..."
+              placeholder="Напишите ваш комментарий здесь..."
               required
               disabled={isSubmitting}
             />
@@ -96,7 +96,7 @@ const CommentForm = ({
           {/* Color Picker */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Highlight color
+              Цвет выделения
             </label>
             <div className="flex gap-2 flex-wrap">
               {colorOptions.map((color) => (
@@ -135,10 +135,10 @@ const CommentForm = ({
               {isSubmitting ? (
                 <>
                   <SmallSpinner />
-                  <span>Saving...</span>
+                  <span>Сохранение...</span>
                 </>
               ) : (
-                <span>{isEditing ? 'Update' : 'Add Comment'}</span>
+                <span>{isEditing ? 'Обновить' : 'Добавить комментарий'}</span>
               )}
             </button>
           </div>

@@ -150,7 +150,7 @@ const CommentCard = ({
           style={{ backgroundColor: comment.highlight_color }}
         />
         <span className="text-xs text-gray-500 dark:text-gray-400">
-          Highlight color
+          Цвет выделения
         </span>
       </div>
 
@@ -161,20 +161,20 @@ const CommentCard = ({
           onClick={(e) => e.stopPropagation()}
         >
           <p className="text-sm text-red-800 dark:text-red-300 mb-2">
-            Delete this comment?
+            Удалить этот комментарий?
           </p>
           <div className="flex gap-2">
             <button
               onClick={handleDelete}
               className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
             >
-              Delete
+              Удалить
             </button>
             <button
               onClick={() => setShowDeleteConfirm(false)}
               className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
             >
-              Cancel
+              Отмена
             </button>
           </div>
         </div>

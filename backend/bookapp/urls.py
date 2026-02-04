@@ -4,7 +4,6 @@ from . import views
 from .auth_views import register_user
 
 urlpatterns = [
-    # Authentication (with rate limiting)
     path("register_user/", register_user, name="register_user"),
     path("create_book/", views.create_book, name="create_book"),
     path("create_notification/", views.create_notification, name="create_notification"),
@@ -105,6 +104,17 @@ urlpatterns = [
         "books/<slug:slug>/comments/create/",
         views.create_book_comment,
         name="create_book_comment",
+    ),
+    # Book Reviews endpoints
+    path(
+        "books/<slug:slug>/reviews/",
+        views.get_book_reviews,
+        name="get_book_reviews",
+    ),
+    path(
+        "books/<slug:slug>/reviews/create/",
+        views.create_book_review,
+        name="create_book_review",
     ),
     path(
         "books/<slug:slug>/comments/<int:comment_id>/",

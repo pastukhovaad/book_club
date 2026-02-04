@@ -67,14 +67,14 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
   return (
     <div className="w-full max-w-md mx-auto">
       <h2 className="text-2xl font-semibold text-[#181A2A] dark:text-[#FFFFFF] mb-6">
-        Edit Reading Group
+        Редактировать группу
       </h2>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
         {/* Name Field */}
         <div className="flex flex-col gap-2">
           <label htmlFor="name" className="font-semibold text-[#181A2A] dark:text-[#FFFFFF]">
-            Title
+            Название
           </label>
           <input
             type="text"
@@ -90,7 +90,7 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
         {/* Description Field */}
         <div className="flex flex-col gap-2">
           <label htmlFor="description" className="font-semibold text-[#181A2A] dark:text-[#FFFFFF]">
-            Description
+            Описание
           </label>
           <textarea
             id="description"
@@ -105,7 +105,7 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
         {/* Image Field */}
         <div className="flex flex-col gap-2">
           <label htmlFor="featured_image" className="font-semibold text-[#181A2A] dark:text-[#FFFFFF]">
-            Featured Image
+            Приложенное изображение
           </label>
           
           {/* Current Image or New Preview */}
@@ -132,7 +132,7 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-[#181A2A] dark:text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#4B6BFB]"
           />
           <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF]">
-            Leave empty to keep current image
+            Оставтьте пустым, чтобы не менять изображение.
           </p>
         </div>
 
@@ -144,7 +144,7 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
             className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-[#181A2A] dark:text-[#FFFFFF] hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             disabled={mutation.isPending}
           >
-            Cancel
+            Отмена
           </button>
           <button
             type="submit"
@@ -152,7 +152,7 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
             className="px-6 py-2 bg-[#4B6BFB] text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
           >
             {mutation.isPending && <SmallSpinner />}
-            {mutation.isPending ? "Saving..." : "Save"}
+            {mutation.isPending ? "Сохранение..." : "Сохранить"}
           </button>
         </div>
       </form>

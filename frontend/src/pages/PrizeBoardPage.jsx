@@ -166,13 +166,13 @@ const PrizeBoardPage = ({ username }) => {
         <div className="flex items-center justify-between mb-6">
           <Link
             to={`/groups/${slug}`}
-            className="text-[#4B6BFB] hover:underline"
+            className="text-[#4B6BFB]"
           >
             ← Назад к группе
           </Link>
         </div>
         <h2 className="text-center text-2xl md:text-3xl font-semibold text-[#181A2A] dark:text-[#FFFFFF] mb-6">
-          Доска призов группы "{boardData?.reading_group?.name}"
+          Доска наград группы "{boardData?.reading_group?.name}"
         </h2>
 
         {placeRewardMutation.isError && (

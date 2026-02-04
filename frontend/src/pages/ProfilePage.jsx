@@ -63,6 +63,18 @@ const ProfilePage = ({ authUsername }) => {
     <>
       <Hero userInfo={data} authUsername={authUsername} toggleModal={toggleModal} />
 
+      <BookContainer
+        books={books}
+        title={`Книги ${username}`}
+        showVisibilityLabels={isOwnProfile}
+      />
+
+      {showModal && (
+        <Modal toggleModal={toggleModal}>
+          <SignupPage userInfo={data} updateForm={true} toggleModal={toggleModal} />
+        </Modal>
+      )}
+
       {/* User Stats Section */}
       {userStats && (
         <div className="max-container padding-y">
@@ -97,7 +109,7 @@ const ProfilePage = ({ authUsername }) => {
       {joinedGroups.length > 0 && (
         <div className="max-container padding-y">
           <h2 className="text-2xl font-semibold mb-6 text-[#181A2A] dark:text-white">
-            Вступил в группы FIXLATER
+            Вступил в группы FIXLATER TODO
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {joinedGroups.map((group) => (
@@ -137,18 +149,6 @@ const ProfilePage = ({ authUsername }) => {
             ))}
           </div>
         </div>
-      )}
-
-      <BookContainer
-        books={books}
-        title={`Книги ${username}`}
-        showVisibilityLabels={isOwnProfile}
-      />
-
-      {showModal && (
-        <Modal toggleModal={toggleModal}>
-          <SignupPage userInfo={data} updateForm={true} toggleModal={toggleModal} />
-        </Modal>
       )}
     </>
   );

@@ -98,6 +98,7 @@ const BookPagesPage = ({ isAuthenticated }) => {
 
   const [showCommentsSidebar, setShowCommentsSidebar] = useState(true)
   const [fontSize, setFontSize] = useState(100)
+  const [fontFamily, setFontFamily] = useState('serif')
   const [showCommentButton, setShowCommentButton] = useState(false)
   const [commentButtonPosition, setCommentButtonPosition] = useState({ x: 0, y: 0 })
   const [selectedTextData, setSelectedTextData] = useState(null)
@@ -414,6 +415,20 @@ const BookPagesPage = ({ isAuthenticated }) => {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Font family selector */}
+            <div className="flex items-center gap-2 border border-[#E8E8EA] dark:border-[#242535] rounded-lg px-3 py-1 bg-[#FFFFFF] dark:bg-[#1F2136]">
+              <select
+                value={fontFamily}
+                onChange={(e) => setFontFamily(e.target.value)}
+                className="text-sm bg-transparent text-[#3B3C4A] dark:text-[#BABABF] outline-none"
+              >
+                <option value="serif">Serif</option>
+                <option value="sans-serif">Sans</option>
+                <option value="monospace">Mono</option>
+                <option value="georgia">Georgia</option>
+                <option value="times">Times</option>
+              </select>
+            </div>
             {/* Font size controls */}
             <div className="flex items-center gap-2 border border-[#E8E8EA] dark:border-[#242535] rounded-lg px-3 py-1 bg-[#FFFFFF] dark:bg-[#1F2136]">
               <button
@@ -443,10 +458,10 @@ const BookPagesPage = ({ isAuthenticated }) => {
                   ? 'bg-[#4B6BFB] text-white hover:bg-[#3554D1]'
                   : 'bg-[#F6F6F7] dark:bg-[#1F2136] text-[#3B3C4A] dark:text-[#BABABF] hover:bg-[#E8E8EA] dark:hover:bg-[#242535]'
               }`}
-              title="Toggle comments"
+              title="Переключить комментарии"
             >
               <BiMessageSquareDetail size={20} />
-              <span className="max-sm:hidden">Comments</span>
+              <span className="max-sm:hidden">Комментарии</span>
               {comments && comments.length > 0 && (
                 <span className="bg-[#FFFFFF] dark:bg-[#181A2A] text-[#4B6BFB] text-xs font-semibold px-2 py-0.5 rounded-full border border-[#E8E8EA] dark:border-[#242535]">
                   {comments.length}
@@ -465,7 +480,7 @@ const BookPagesPage = ({ isAuthenticated }) => {
         </div>
       </div>
 
-      {/* Reader Container */}
+      {/* TODO/FIXLATER some of the fonts dont work */}
       <div className="flex-1 relative flex overflow-hidden">
         <div ref={containerRef} className="flex-1 overflow-hidden min-h-0">
           <div
@@ -477,6 +492,12 @@ const BookPagesPage = ({ isAuthenticated }) => {
               className="whitespace-pre-wrap leading-relaxed text-[#181A2A] dark:text-[#FFFFFF]"
               style={{
                 fontSize: `${fontSize}%`,
+                fontFamily:
+                  fontFamily === 'georgia'
+                    ? 'Georgia, serif'
+                    : fontFamily === 'times'
+                      ? '"Times New Roman", Times, serif'
+                      : fontFamily,
                 columnCount: 2,
                 columnGap: '2.5rem',
                 columnFill: 'auto',

@@ -25,10 +25,14 @@ const QuestCard = ({ quest, userProgress = null, className = "" }) => {
     const labels = {
       personal: "Личное",
       group: "Групповое",
-      global: "Глобальное",
     };
     return labels[type] || type;
   };
+
+  const participationBadgeClass =
+    quest.participation_type === "personal"
+      ? "bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200"
+      : "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
 
   const progressData = userProgress || quest.progress_data;
   const currentCount = progressData?.current_count || 0;
@@ -62,7 +66,7 @@ const QuestCard = ({ quest, userProgress = null, className = "" }) => {
         <span className="text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
           {getQuestTypeLabel(quest.quest_type)}
         </span>
-        <span className="text-xs px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+        <span className={`text-xs px-2 py-1 rounded-full ${participationBadgeClass}`}>
           {getParticipationTypeLabel(quest.participation_type)}
         </span>
       </div>
@@ -86,13 +90,13 @@ const QuestCard = ({ quest, userProgress = null, className = "" }) => {
             ? (
 
               <p className="text-sm px-3 py-2 rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-                {isCompleted ? "Вы участвовали в квесте" : "Вы участвуете в квесте"} и{" "}
-                {progressData.reward_received ? "получили награду" : "пока не получили награду"}
+                {isCompleted ? "Вы участвовали в квесте" : "Вы участвуете в квесте"}
+                {progressData.reward_received ? "и получили награду" : ""}
               </p>
 
             ) : (
               <p className="text-sm px-3 py-2 rounded-full bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-                {isCompleted ? "Вы не участвовали в квесте" : "Вы еще не участвовали в квесте"}
+                {isCompleted ? "Вы не участвовали в квесте" : "Вы еще не участвуете в квесте"}
               </p>
             )}
         </div>

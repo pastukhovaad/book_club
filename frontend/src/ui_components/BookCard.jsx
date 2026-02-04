@@ -7,10 +7,11 @@ import { resolveMediaUrl } from "@/api";
 const BookCard = ({book, showVisibilityLabels = false}) => {
   const visibilityLabel =
     book?.visibility === "group"
-      ? "Групповая"
+      ? "Р“СЂСѓРїРїРѕРІР°СЏ"
       : book?.visibility === "personal"
-        ? "Личная"
+        ? "Р›РёС‡РЅР°СЏ"
         : null;
+  const averageRating = book?.average_rating;
   return (
     <div className="px-3 py-3 rounded-md w-[300px] h-auto flex flex-col gap-4 dark:border-gray-800 border shadow-lg">
       <Link to={`/books/${book.slug}`}>
@@ -22,17 +23,37 @@ const BookCard = ({book, showVisibilityLabels = false}) => {
       </div>
       </Link>
 
-      <div className="flex items-center gap-2">
-        <Badge book={book} />
-        {showVisibilityLabels && visibilityLabel && (
-          <span className="text-xs font-semibold px-2 py-1 rounded-full bg-[#E8E8EA] dark:bg-[#242535] text-[#3B3C4A] dark:text-[#BABABF]">
-            {visibilityLabel}
-          </span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Badge book={book} />
+          {showVisibilityLabels && visibilityLabel && (
+            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-[#E8E8EA] dark:bg-[#242535] text-[#3B3C4A] dark:text-[#BABABF]">
+              {visibilityLabel}
+            </span>
+          )}
+        </div>
+        {averageRating ? (
+          <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
+            <span className="text-yellow-400">в…</span>
+            <span>{Number(averageRating).toFixed(1)}</span>
+          </div>
+        ) : (
+          <div className="text-sm text-gray-600 dark:text-gray-400">РќРµС‚ СЂРµР№С‚РёРЅРіР°</div>
         )}
       </div>
 
       <Link to={`/books/${book.slug}`}>
-        <h3 className="font-semibold  leading-normal text-[#181A2A] mb-0 dark:text-white">
+        <h3
+          className="font-semibold leading-normal text-[#181A2A] mb-0 dark:text-white"
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            minHeight: '3rem',
+          }}
+        >
           {book.title}
         </h3>
       </Link>

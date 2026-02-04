@@ -6,11 +6,13 @@ import InputError from '@/ui_components/InputError'
 import SmallSpinner from '@/ui_components/SmallSpinner'
 import SmallSpinnerText from '@/ui_components/SmallSpinnerText'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { useState } from 'react'
 import { resolveMediaUrl } from '@/api'
+import { useNavigate } from 'react-router-dom'
+
 
 const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
   const queryClient = useQueryClient()
@@ -35,6 +37,8 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
     }
   }
 
+  const navigate = useNavigate()
+
   const updateProfileMutation = useMutation({
     mutationFn: (data) => updateProfile(data),
     onSuccess: () => {
@@ -53,6 +57,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
     onSuccess: () => {
       toast.success('Аккаунт успешно создан!')
       reset()
+      navigate('/signin')
     },
 
     onError: (err) => {
