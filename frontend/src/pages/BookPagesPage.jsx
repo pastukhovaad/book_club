@@ -12,6 +12,7 @@ import CommentButton from '@/ui_components/CommentButton'
 import CommentForm from '@/ui_components/CommentForm'
 import CommentsSidebar from '@/ui_components/CommentsSidebar'
 import useBookComments from '@/hooks/useBookComments'
+import useDynamicPagination from '@/hooks/useDynamicPagination'
 import EpubReaderPage from './EpubReaderPage'
 
 import { IoHomeOutline } from 'react-icons/io5'
@@ -19,17 +20,84 @@ import { AiOutlinePlus, AiOutlineMinus } from 'react-icons/ai'
 import { BiMessageSquareDetail } from 'react-icons/bi'
 import { FiCheckCircle, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
+// Normalize whitespace: collapse multiple spaces/newlines to single space
+const normalizeWhitespace = (str) => str.replace(/\s+/g, ' ').trim()
+
+/**
+ * Find text fragment in content with whitespace normalization fallback.
+ * Returns { start, end } indices in the original content, or null if not found.
+ */
+const findTextInContent = (content, targetText, startFrom = 0) => {
+  if (!content || !targetText) return null
+
+  // Try exact match first
+  const exactIndex = content.indexOf(targetText, startFrom)
+  if (exactIndex !== -1) {
+    return { start: exactIndex, end: exactIndex + targetText.length }
+  }
+
+  // Try with normalized whitespace
+  const normalizedTarget = normalizeWhitespace(targetText)
+  if (!normalizedTarget) return null
+
+  // Build a mapping from normalized positions to original positions
+  const originalPositions = []
+  let inWhitespace = false
+
+  for (let i = startFrom; i < content.length; i++) {
+    const char = content[i]
+    const isWs = /\s/.test(char)
+
+    if (isWs) {
+      if (!inWhitespace) {
+        originalPositions.push(i) // Position of the whitespace sequence (becomes single space)
+        inWhitespace = true
+      }
+    } else {
+      originalPositions.push(i)
+      inWhitespace = false
+    }
+  }
+
+  // Create normalized content starting from startFrom
+  const normalizedContent = normalizeWhitespace(content.slice(startFrom))
+  const normalizedIndex = normalizedContent.indexOf(normalizedTarget)
+
+  if (normalizedIndex === -1) return null
+
+  // Map normalized indices back to original positions
+  const originalStart = originalPositions[normalizedIndex]
+  const normalizedEnd = normalizedIndex + normalizedTarget.length
+  
+  // Find the original end position
+  // We need to find where the last character of the match is in the original content
+  let originalEnd
+  if (normalizedEnd >= originalPositions.length) {
+    originalEnd = content.length
+  } else {
+    originalEnd = originalPositions[normalizedEnd]
+  }
+
+  // Adjust end to include the full last character sequence
+  // (in case the match ends with collapsed whitespace)
+  if (originalEnd > originalStart) {
+    return { start: originalStart, end: originalEnd }
+  }
+
+  return null
+}
+
 const BookPagesPage = ({ isAuthenticated }) => {
   const { slug } = useParams()
   const queryClient = useQueryClient()
   const textRef = useRef(null)
+  const containerRef = useRef(null)
 
   const hasToken = !!localStorage.getItem('access')
   const isAuth = typeof isAuthenticated === 'boolean' ? isAuthenticated : hasToken
 
   const [showCommentsSidebar, setShowCommentsSidebar] = useState(true)
   const [fontSize, setFontSize] = useState(100)
-  const [currentPage, setCurrentPage] = useState(1)
   const [showCommentButton, setShowCommentButton] = useState(false)
   const [commentButtonPosition, setCommentButtonPosition] = useState({ x: 0, y: 0 })
   const [selectedTextData, setSelectedTextData] = useState(null)
@@ -41,6 +109,10 @@ const BookPagesPage = ({ isAuthenticated }) => {
   } = useQuery({
     queryKey: ['book', slug],
     queryFn: () => getBook(slug),
+    staleTime: 1000 * 60 * 5,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
 
   const { data: userData } = useQuery({
@@ -48,6 +120,10 @@ const BookPagesPage = ({ isAuthenticated }) => {
     queryFn: getUsername,
     enabled: isAuth,
     retry: false,
+    staleTime: 1000 * 60 * 5,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
 
   const { data: readingProgressData } = useQuery({
@@ -55,13 +131,21 @@ const BookPagesPage = ({ isAuthenticated }) => {
     queryFn: () => getReadingProgress(slug),
     enabled: isAuth && !!book,
     retry: false,
+    staleTime: 1000 * 60,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
 
   const updateProgressMutation = useMutation({
     mutationFn: (data) => updateReadingProgress(slug, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['readingProgress', slug])
-      queryClient.invalidateQueries(['myQuests'])
+    onSuccess: (responseData) => {
+      // Update the cache directly instead of refetching to avoid navigation resets
+      if (responseData) {
+        queryClient.setQueryData(['readingProgress', slug], responseData)
+      }
+      // Note: Quest progress is only affected when book is marked complete,
+      // not on every page turn, so we don't invalidate quests here
     },
   })
 
@@ -86,48 +170,43 @@ const BookPagesPage = ({ isAuthenticated }) => {
     handleCommentTypeChange,
   } = useBookComments(slug, isAuth)
 
+  // Dynamic pagination hook
+  const {
+    currentPage,
+    totalPages,
+    characterOffset,
+    currentText,
+    goToPage,
+    goToPrevPage,
+    goToNextPage,
+    restorePosition,
+    debouncedRecalculate,
+  } = useDynamicPagination({
+    content: book?.content,
+    containerRef,
+    textRef,
+    fontSize,
+    columnCount: 2,
+    columnGap: 40,
+    initialCharacterOffset: 0,
+  })
+
+  // Restore reading position when progress data is loaded
+  const hasRestoredPosition = useRef(false)
   useEffect(() => {
-    if (readingProgressData?.current_page && readingProgressData.current_page > 1) {
-      setCurrentPage(readingProgressData.current_page)
+    if (hasRestoredPosition.current || !readingProgressData) return
+
+    if (readingProgressData.character_offset > 0) {
+      restorePosition(readingProgressData.character_offset)
+      hasRestoredPosition.current = true
     }
-  }, [readingProgressData])
+  }, [readingProgressData, restorePosition])
 
-  const { totalPages, currentText } = useMemo(() => {
-    if (!book?.content) {
-      return { totalPages: 1, currentText: '' }
-    }
-
-    const linesPerPage = 18
-    const symbolsPerLine = 75
-
-    const wrappedLines = book.content.split('\n').flatMap((paragraph) => {
-      if (!paragraph.trim()) return ['']
-      const words = paragraph.split(' ')
-      const result = []
-      let currentLine = ''
-      words.forEach((word) => {
-        if (currentLine.length + word.length + 1 > symbolsPerLine) {
-          result.push(currentLine)
-          currentLine = word
-        } else {
-          currentLine += (currentLine.length ? ' ' : '') + word
-        }
-      })
-      if (currentLine) result.push(currentLine)
-      return result
-    })
-
-    const pages = Math.max(1, Math.ceil(wrappedLines.length / linesPerPage))
-    const pageLines = wrappedLines.slice(
-      (currentPage - 1) * linesPerPage,
-      currentPage * linesPerPage,
-    )
-
-    return {
-      totalPages: pages,
-      currentText: pageLines.join('\n').replace(/\n{2,}/g, '\n'),
-    }
-  }, [book?.content, currentPage])
+  // Recalculate pagination when sidebar visibility changes
+  useEffect(() => {
+    const timer = setTimeout(debouncedRecalculate, 300)
+    return () => clearTimeout(timer)
+  }, [showCommentsSidebar, debouncedRecalculate])
 
   const highlightedContent = useMemo(() => {
     if (!currentText || !comments || comments.length === 0) return currentText
@@ -153,17 +232,15 @@ const BookPagesPage = ({ isAuthenticated }) => {
       const selected = comment?.selected_text
       if (!selected) return
 
-      let startIndex = 0
-      while (startIndex < currentText.length) {
-        const idx = currentText.indexOf(selected, startIndex)
-        if (idx === -1) break
+      // Use findTextInContent with normalization fallback
+      const match = findTextInContent(currentText, selected, 0)
+      if (match) {
         matches.push({
-          start: idx,
-          end: idx + selected.length,
+          start: match.start,
+          end: match.end,
           color: comment.highlight_color || '#FFFF00',
           id: comment.id,
         })
-        startIndex = idx + selected.length
       }
     })
 
@@ -205,18 +282,23 @@ const BookPagesPage = ({ isAuthenticated }) => {
     return result
   }, [currentText, comments])
 
+  const lastProgressRef = useRef({ charOffset: null })
+
   useEffect(() => {
     if (!isAuth || !book?.content) return
 
+    // Only send when character offset changes
+    if (lastProgressRef.current.charOffset === characterOffset) return
+
     const timer = setTimeout(() => {
       updateProgressMutation.mutate({
-        current_page: currentPage,
-        total_pages: totalPages,
+        character_offset: characterOffset,
       })
-    }, 1000)
+      lastProgressRef.current = { charOffset: characterOffset }
+    }, 2000) // Increased debounce to 2 seconds like EpubReaderPage
 
     return () => clearTimeout(timer)
-  }, [currentPage, totalPages, book?.content, isAuth, updateProgressMutation])
+  }, [characterOffset, book?.content, isAuth, updateProgressMutation])
 
   const clearSelection = useCallback(() => {
     setSelectedTextData(null)
@@ -260,6 +342,18 @@ const BookPagesPage = ({ isAuthenticated }) => {
       handleSubmitComment(formData, selectedTextData, clearSelection)
     },
     [handleSubmitComment, selectedTextData, clearSelection],
+  )
+
+  const handleJumpToText = useCallback(
+    (targetText) => {
+      if (!targetText || !book?.content) return
+
+      const match = findTextInContent(book.content, targetText, 0)
+      if (match) {
+        restorePosition(match.start)
+      }
+    },
+    [book?.content, restorePosition],
   )
 
   if (bookLoading) {
@@ -373,7 +467,7 @@ const BookPagesPage = ({ isAuthenticated }) => {
 
       {/* Reader Container */}
       <div className="flex-1 relative flex overflow-hidden">
-        <div className="flex-1 overflow-hidden min-h-0">
+        <div ref={containerRef} className="flex-1 overflow-hidden min-h-0">
           <div
             className="h-full overflow-y-auto px-6 py-6"
             onMouseUp={handleMouseUp}
@@ -404,7 +498,7 @@ const BookPagesPage = ({ isAuthenticated }) => {
             onClose={() => setShowCommentsSidebar(false)}
             onEdit={handleEditComment}
             onDelete={handleDeleteComment}
-            onJumpTo={() => {}}
+            onJumpTo={handleJumpToText}
             activeCommentId={null}
             commentType={commentType}
             onCommentTypeChange={handleCommentTypeChange}
@@ -419,17 +513,42 @@ const BookPagesPage = ({ isAuthenticated }) => {
         )}
 
         {/* Navigation buttons */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2">
           <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            onClick={goToPrevPage}
             disabled={currentPage === 1}
             className="bg-[#FFFFFF] dark:bg-[#1F2136] border border-[#E8E8EA] dark:border-[#242535] shadow-md rounded-full p-3 hover:bg-[#F6F6F7] dark:hover:bg-[#242535] transition-colors disabled:opacity-50"
             title="Предыдущая страница"
           >
             <FiChevronLeft size={24} className="text-[#3B3C4A] dark:text-[#BABABF]" />
           </button>
+
+          {/* Page input */}
+          <div className="flex items-center gap-1 bg-[#FFFFFF] dark:bg-[#1F2136] border border-[#E8E8EA] dark:border-[#242535] shadow-md rounded-lg px-3 py-2">
+            <input
+              type="number"
+              min={1}
+              max={totalPages}
+              value={currentPage}
+              onChange={(e) => {
+                const value = parseInt(e.target.value, 10)
+                if (!isNaN(value) && value >= 1 && value <= totalPages) {
+                  goToPage(value)
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.target.blur()
+                }
+              }}
+              className="w-12 text-center bg-transparent text-[#181A2A] dark:text-[#FFFFFF] outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <span className="text-[#3B3C4A] dark:text-[#BABABF]">/</span>
+            <span className="text-[#3B3C4A] dark:text-[#BABABF] min-w-[2rem]">{totalPages}</span>
+          </div>
+
           <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            onClick={goToNextPage}
             disabled={currentPage === totalPages}
             className="bg-[#FFFFFF] dark:bg-[#1F2136] border border-[#E8E8EA] dark:border-[#242535] shadow-md rounded-full p-3 hover:bg-[#F6F6F7] dark:hover:bg-[#242535] transition-colors disabled:opacity-50"
             title="Следующая страница"

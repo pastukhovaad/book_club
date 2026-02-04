@@ -5,6 +5,7 @@ This module handles automatic updates to quest progress when users perform
 actions like creating comments, completing books, or placing rewards.
 """
 
+from django.db.models import Sum
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -21,6 +22,7 @@ from .models import (
     UserRewardSummary,
     UserStats,
 )
+# from backend.bookapp import models
 
 
 def update_reward_summary(user, reward_template):
@@ -87,7 +89,21 @@ def update_quest_progress(user, quest_type, reading_group=None):
         progress.current_count += 1
         progress.save()
 
+        # В случае группового квеста нужно посчитать суммарный прогресс всех участников
+        if quest.participation_type == "group" and reading_group:
+            total_group_count = QuestProgress.objects.filter(
+                quest=quest,
+                user__usertoreadinggroupstate__reading_group=reading_group,
+                user__usertoreadinggroupstate__in_reading_group=True,
+            ).aggregate(total_count=Sum("current_count"))["total_count"] or 0
+
+            progress.current_count = total_group_count
+        # save не делаем здесь, чтобы не перезаписывать индивидуальный прогресс
+        # в блоке выше пересчитывается прогресс для группового квеста
+
+
         # Check if quest is completed (reached target)
+       
         if progress.current_count >= quest.target_count and not quest.is_completed:
             # Mark quest as completed to prevent further progress updates
             quest.is_completed = True

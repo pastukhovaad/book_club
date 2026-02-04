@@ -1,4 +1,4 @@
-import { BASE_URL } from "@/api";
+import { resolveMediaUrl } from "@/api";
 
 const RewardCard = ({ reward, showReceivedDate = true, className = "" }) => {
   const formatDate = (dateString) => {
@@ -15,7 +15,7 @@ const RewardCard = ({ reward, showReceivedDate = true, className = "" }) => {
       <div className="w-full h-[180px] border rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800">
         {reward?.reward_template?.image ? (
           <img
-            src={`${BASE_URL}${reward.reward_template.image}`}
+            src={resolveMediaUrl(reward.reward_template.image)}
             alt={reward.reward_template.name || "Reward"}
             className="w-full h-full object-cover rounded-lg"
           />

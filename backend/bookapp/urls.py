@@ -1,9 +1,11 @@
 from django.urls import path
 
 from . import views
+from .auth_views import register_user
 
 urlpatterns = [
-    path("register_user/", views.register_user, name="register_user"),
+    # Authentication (with rate limiting)
+    path("register_user/", register_user, name="register_user"),
     path("create_book/", views.create_book, name="create_book"),
     path("create_notification/", views.create_notification, name="create_notification"),
     path("book_list/<int:amount>/", views.book_list, name="book_list"),

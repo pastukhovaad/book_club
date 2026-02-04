@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { deleteReadingGroup, getReadingGroup, addUserToGroup, removeUserFromGroup, createNotification, getUserToReadingGroupStates, getGroupQuests, generateDailyQuests, getGroupReadingBooks, getGroupPostedBooks } from "@/services/apiBook";
 import Spinner from "@/ui_components/Spinner";
-import { BASE_URL } from "@/api";
+import { resolveMediaUrl } from "@/api";
 import { HiPencilAlt } from "react-icons/hi";
 import { MdDelete } from "react-icons/md";
 import Modal from "@/ui_components/Modal";
@@ -209,7 +209,7 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
                   e.target.src = "/avatar-placeholder.png";
                 }}
                 className="rounded-full w-full h-full object-cover"
-                src={`${BASE_URL}${reading_group.featured_image}`}
+                src={resolveMediaUrl(reading_group.featured_image)}
                 alt={`${reading_group.name} group image`}
               />
             </div>
@@ -326,17 +326,20 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {confirmedMembers.map((member) => (
                       <div key={member.id} className="flex flex-col items-center p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
-                        <div className="w-16 h-16 rounded-full overflow-hidden mb-3">
-                          <img
-                            loading="lazy"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = "/avatar-placeholder.png";
-                            }}
-                            src={member.profile_picture ? `${BASE_URL}${member.profile_picture}` : "/avatar-placeholder.png"}
-                            alt={`${member.username} profile picture`}
-                            className="w-full h-full object-cover"
-                          />
+                        {/* <div className="w-16 h-16 rounded-full overflow-hidden mb-3"> */}
+                        <div className="flex items-center gap-2"> 
+                          {/* User Avatar */}
+                          {member.profile_picture ? (
+                            <img
+                              src={resolveMediaUrl(member.profile_picture)}
+                              alt={member.username}
+                              className="w-8 h-8 rounded-full"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                              {member.username[0].toUpperCase()}
+                            </div>
+                          )}
                         </div>
                         <h3 className="font-semibold text-[#181A2A] dark:text-[#FFFFFF] text-center">
                           {member.first_name && member.last_name

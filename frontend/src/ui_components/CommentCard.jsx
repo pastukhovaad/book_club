@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { BiEdit, BiTrash } from 'react-icons/bi';
 import { BsQuote } from 'react-icons/bs';
 import { IoChevronDown, IoChevronUp, IoChatbubbleOutline } from 'react-icons/io5';
-import { BASE_URL } from "@/api";
+import { resolveMediaUrl } from "@/api";
 import useCommentReplies from '@/hooks/useCommentReplies';
 import CommentReplies from './CommentReplies';
 
@@ -62,7 +62,7 @@ const CommentCard = ({
   return (
     <div
       className={`border dark:border-gray-700 rounded-lg p-4 mb-3 transition-all hover:shadow-md ${
-        comment.cfi_range ? 'cursor-pointer' : 'cursor-default'
+        comment.cfi_range || comment.selected_text ? 'cursor-pointer' : 'cursor-default'
       } ${
         isActive
           ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
@@ -71,6 +71,8 @@ const CommentCard = ({
       onClick={() => {
         if (comment.cfi_range) {
           onJumpTo(comment.cfi_range);
+        } else if (comment.selected_text) {
+          onJumpTo(comment.selected_text);
         }
       }}
     >
@@ -80,7 +82,7 @@ const CommentCard = ({
           {/* User Avatar */}
           {comment.user.profile_picture ? (
             <img
-              src={`${BASE_URL}${comment.user.profile_picture}`}
+              src={resolveMediaUrl(comment.user.profile_picture)}
               alt={comment.user.username}
               className="w-8 h-8 rounded-full"
             />

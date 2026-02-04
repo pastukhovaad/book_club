@@ -7,6 +7,13 @@ export const useEpubReader = () => {
   const [rendition, setRendition] = useState(null);
   const [tocFromEpub, setTocFromEpub] = useState([]);
 
+  // Log location changes for debugging
+  useEffect(() => {
+    if (import.meta.env.DEV && location) {
+      console.log('useEpubReader: location changed to:', location);
+    }
+  }, [location]);
+
   const normalizeHref = useCallback((href) => {
     if (!href) return href;
 

@@ -2,21 +2,21 @@ import Badge from "./Badge";
 import CardFooter from "./CardFooter";
 import thumbnail from "../images/design_vii.jpg";
 import { Link } from "react-router-dom";
-import { BASE_URL } from "@/api";
+import { resolveMediaUrl } from "@/api";
 
 const BookCard = ({book, showVisibilityLabels = false}) => {
   const visibilityLabel =
     book?.visibility === "group"
-      ? "Р“СЂСѓРїРїРѕРІР°СЏ"
+      ? "Групповая"
       : book?.visibility === "personal"
-        ? "Р›РёС‡РЅР°СЏ"
+        ? "Личная"
         : null;
   return (
     <div className="px-3 py-3 rounded-md w-[300px] h-auto flex flex-col gap-4 dark:border-gray-800 border shadow-lg">
       <Link to={`/books/${book.slug}`}>
       <div className="w-full h-[200px] border rounded-md overflow-hidden">
         <img
-          src={`${BASE_URL}${book.featured_image}`}
+          src={resolveMediaUrl(book.featured_image)}
           className="w-full h-full object-cover rounded-lg"
         />
       </div>

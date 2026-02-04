@@ -35,10 +35,10 @@ const ResponsiveNavBar = ({isAuthenticated, username, logout}) => {
 
           <li className="font-semibold">
             <NavLink
-              to="/create"
+              to="/create_book"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
-              Create Post
+              Создать книгу
             </NavLink>
           </li>
 

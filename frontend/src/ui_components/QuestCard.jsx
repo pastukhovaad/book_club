@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import ProgressBar from "./ProgressBar";
-import { BASE_URL } from "@/api";
+import { resolveMediaUrl } from "@/api";
 
 const QuestCard = ({ quest, userProgress = null, className = "" }) => {
   const formatDate = (dateString) => {
@@ -81,17 +81,20 @@ const QuestCard = ({ quest, userProgress = null, className = "" }) => {
 
       {quest.participation_type === "group" && progressData && (
         <div className="flex gap-2 flex-wrap">
-        {progressData.participated 
-          ? (
-          <p className="text-sm px-3 py-2 rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-            Вы участвовали в квесте и{" "}
-            {progressData.reward_received ? "получили награду" : "не получили награду"}
-          </p>
-        ) : (
-          <p className="text-sm px-3 py-2 rounded-full bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-            Вы не участвовали в квесте и не получили награду
-          </p>
-        )}
+
+          {progressData.participated
+            ? (
+
+              <p className="text-sm px-3 py-2 rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                {isCompleted ? "Вы участвовали в квесте" : "Вы участвуете в квесте"} и{" "}
+                {progressData.reward_received ? "получили награду" : "пока не получили награду"}
+              </p>
+
+            ) : (
+              <p className="text-sm px-3 py-2 rounded-full bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+                {isCompleted ? "Вы не участвовали в квесте" : "Вы еще не участвовали в квесте"}
+              </p>
+            )}
         </div>
       )}
 
@@ -110,7 +113,7 @@ const QuestCard = ({ quest, userProgress = null, className = "" }) => {
       {quest.reward_template && (
         <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-600/20 rounded-md">
           <img
-            src={`${BASE_URL}${quest.reward_template.image}`}
+            src={resolveMediaUrl(quest.reward_template.image)}
             alt={quest.reward_template.name}
             className="w-20 h-20 object-cover rounded"
           />

@@ -1,5 +1,5 @@
 {
-  "name": "yt_devfolio_app",
+  "name": "book_club_app",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -15,9 +15,11 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-switch": "^1.1.1",
     "@tanstack/react-query": "^5.60.5",
+    "@types/dompurify": "^3.0.5",
     "axios": "^1.7.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "dompurify": "^3.3.1",
     "epubjs": "^0.3.93",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.456.0",

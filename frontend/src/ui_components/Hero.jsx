@@ -1,29 +1,30 @@
-import pic from '../images/pic.jpg'
 import { FaInstagram } from 'react-icons/fa'
 import { FaFacebookF } from 'react-icons/fa'
 import { BsTwitterX } from 'react-icons/bs'
 import { FaYoutube } from 'react-icons/fa'
 import { HiPencilAlt } from 'react-icons/hi'
-import { BASE_URL } from '@/api'
+import { resolveMediaUrl } from '@/api'
 
 const Hero = ({ userInfo, authUsername, toggleModal }) => {
   return (
     <div className="padding-x py-9 max-container flex flex-col items-center justify-center gap-4 bg-[#F6F6F7] dark:bg-[#242535] rounded-md">
       <div className="flex gap-4">
-        <div className="w-[90px] h-[90px] rounded-full overflow-hidden">
-          <img
-            src={
-              userInfo?.profile_picture
-                ? `${BASE_URL}${userInfo.profile_picture}`
-                : pic
-            }
-            alt={`${userInfo?.first_name} ${userInfo?.last_name}`}
-            onError={(e) => {
-              e.target.src = pic
-            }}
-            className="w-[90px] h-[90px] rounded-full object-cover"
-          />
+
+        <div className="flex items-center gap-2">
+
+          {/* User Avatar */}
+          {userInfo.profile_picture ? (
+            <img
+              src={resolveMediaUrl(userInfo.profile_picture)}
+              className="w-[90px] h-[90px] rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-[90px] h-[90px] rounded-full object-cover bg-blue-600 flex items-center justify-center text-white font-semibold text-4xl">
+              {userInfo.username[0].toUpperCase()}
+            </div>
+          )}
         </div>
+
 
         <span>
           <p className="text-[18px] text-[#181A2A] dark:text-white">

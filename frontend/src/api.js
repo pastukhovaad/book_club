@@ -3,6 +3,14 @@ import { jwtDecode } from "jwt-decode"
 
 
 export const BASE_URL = import.meta.env.VITE_BASE_URL
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || BASE_URL
+
+export const resolveMediaUrl = (path) => {
+    if (!path) return path
+    if (/^https?:\/\//i.test(path)) return path
+    if (!API_BASE_URL) return path
+    return `${API_BASE_URL}${path}`
+}
 
 const api = axios.create({
     baseURL: BASE_URL

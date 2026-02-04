@@ -1,4 +1,4 @@
-// THIS DETAILS THE SHOWING OF POSTS (.../posts/book-name)
+// THIS DETAILS THE SHOWING OF BOOKS (.../books/book-name)
 
 import Badge from '@/ui_components/Badge'
 import BookWriter from '@/ui_components/BookWriter'
@@ -6,11 +6,11 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { deleteBook, getBook } from '@/services/apiBook'
 import Spinner from '@/ui_components/Spinner'
-import { BASE_URL } from '@/api'
+import { resolveMediaUrl } from '@/api'
 import { HiPencilAlt } from 'react-icons/hi'
 import { MdDelete } from 'react-icons/md'
 import Modal from '@/ui_components/Modal'
-import CreatePostPage from './CreatePostPage'
+import CreateBookPage from './CreateBookPage'
 import { useState } from 'react'
 import { toast } from 'react-toastify'
 import { Link } from 'react-router-dom'
@@ -100,7 +100,7 @@ const DetailPage = ({ username, isAuthenticated }) => {
         <div className="w-full h-[350px] my-9 overflow-hidden rounded-sm">
           <img
             className="w-full h-full object-cover rounded-sm"
-            src={`${BASE_URL}${book.featured_image}`}
+            src={resolveMediaUrl(book.featured_image)}
           />
         </div>
         <p className="text-[16px] leading-[2rem] text-justify text-[#3B3C4A] dark:text-[#BABABF]">
@@ -111,7 +111,7 @@ const DetailPage = ({ username, isAuthenticated }) => {
 
       {showModal && (
         <Modal toggleModal={toggleModal}>
-          <CreatePostPage book={book} />
+          <CreateBookPage book={book} />
         </Modal>
       )}
     </>

@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateReadingGroup } from "@/services/apiBook";
 import { toast } from "react-toastify";
 import SmallSpinner from "./SmallSpinner";
-import { BASE_URL } from "@/api";
+import { resolveMediaUrl } from "@/api";
 
 const EditReadingGroupForm = ({ reading_group, onClose }) => {
   const [formData, setFormData] = useState({
@@ -112,7 +112,7 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
           {imagePreview || reading_group.featured_image ? (
             <div className="w-full h-40 rounded-lg overflow-hidden mb-2">
               <img
-                src={imagePreview || `${BASE_URL}${reading_group.featured_image}`}
+                src={imagePreview || resolveMediaUrl(reading_group.featured_image)}
                 alt="Preview"
                 className="w-full h-full object-cover"
               />

@@ -5,7 +5,7 @@ import { deleteNotification, getUserToReadingGroupStates, getNotification, confi
 import { useState } from "react";
 import { set } from "react-hook-form";
 import { decl } from "postcss";
-import { BASE_URL } from "@/api";
+import { resolveMediaUrl } from "@/api";
 
 
 const NotificationCard = ({ notification }) => {
@@ -159,7 +159,7 @@ const NotificationCard = ({ notification }) => {
                 <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-md mt-2">
                   {notification.related_reward.image && (
                     <img
-                      src={`${BASE_URL}${notification.related_reward.image}`}
+                      src={resolveMediaUrl(notification.related_reward.image)}
                       alt={notification.related_reward.name}
                       className="w-16 h-16 object-cover rounded"
                     />

@@ -5,7 +5,7 @@ import HomePage from './pages/HomePage'
 import DetailPage from './pages/DetailPage'
 import ReadingGroupPage from './pages/ReadingGroupPage'
 import SignupPage from './pages/SignupPage'
-import CreatePostPage from './pages/CreatePostPage'
+import CreateBookPage from './pages/CreateBookPage'
 import LoginPage from './pages/LoginPage'
 import ProtectedRoute from './ui_components/ProtectedRoute'
 import ProfilePage from './pages/ProfilePage'
@@ -31,6 +31,10 @@ const App = () => {
   const { data } = useQuery({
     queryKey: ['username'],
     queryFn: getUsername,
+    staleTime: 1000 * 60 * 5,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
 
   useEffect(
@@ -75,10 +79,12 @@ const App = () => {
           <Route
             path="groups/:slug"
             element={
-              <ReadingGroupPage
-                username={username}
-                isAuthenticated={isAuthenticated}
-              />
+              <ProtectedRoute>
+                <ReadingGroupPage
+                  username={username}
+                  isAuthenticated={isAuthenticated}
+                />
+              </ProtectedRoute>
             }
           />
           <Route
@@ -133,10 +139,12 @@ const App = () => {
           <Route
             path="groups/:slug/quests"
             element={
-              <GroupQuestsPage
-                username={username}
-                isAuthenticated={isAuthenticated}
-              />
+              <ProtectedRoute>
+                <GroupQuestsPage
+                  username={username}
+                  isAuthenticated={isAuthenticated}
+                />
+              </ProtectedRoute>
             }
           />
           <Route
@@ -155,7 +163,7 @@ const App = () => {
             path="create_book"
             element={
               <ProtectedRoute>
-                <CreatePostPage isAuthenticated={isAuthenticated} />
+                <CreateBookPage isAuthenticated={isAuthenticated} />
               </ProtectedRoute>
             }
           />
@@ -193,10 +201,12 @@ const App = () => {
         <Route
           path="/groups/:slug/board"
           element={
-            <PrizeBoardPage
-              username={username}
-              isAuthenticated={isAuthenticated}
-            />
+            <ProtectedRoute>
+              <PrizeBoardPage
+                username={username}
+                isAuthenticated={isAuthenticated}
+              />
+            </ProtectedRoute>
           }
         />
       </Routes>

@@ -22,12 +22,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default="django-insecure-+xfdqmroulmm-cn(cmbt3)oqu36i3z$mc&fp5$ug9@b)rr8lk+")
+# No default provided - must be set in environment variables
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+# Default is False for security - explicitly enable for development
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ["*"]
+# SECURITY WARNING: Configure allowed hosts for production
+# Default to localhost for development, override with comma-separated list in production
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+
+# Validate SECRET_KEY in production
+if not DEBUG:
+    if not SECRET_KEY or SECRET_KEY.startswith('django-insecure'):
+        raise ValueError(
+            "SECRET_KEY must be set to a secure value in production. "
+            "Generate a new key with: python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'"
+        )
 
 
 # Application definition
@@ -39,6 +51,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "storages",
     "bookapp",
     "rest_framework",
     "corsheaders",
@@ -46,6 +59,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "bookapp.middleware.SecurityHeadersMiddleware",  # Custom XSS protection headers
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -135,7 +149,41 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "static"
-MEDIA_URL = "img/"
+
+# MinIO / S3 media storage
+AWS_S3_ENDPOINT_URL = config("AWS_S3_ENDPOINT_URL", default="http://localhost:9000")
+AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default="minioadmin")
+AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="minioadmin")
+AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME", default="book-club-media")
+AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="us-east-1")
+AWS_S3_ADDRESSING_STYLE = config("AWS_S3_ADDRESSING_STYLE", default="path")
+AWS_S3_USE_SSL = config("AWS_S3_USE_SSL", default=False, cast=bool)
+AWS_S3_VERIFY = config("AWS_S3_VERIFY", default=True, cast=bool)
+AWS_DEFAULT_ACL = None
+AWS_S3_OBJECT_PARAMETERS = {
+    "CacheControl": "max-age=86400",
+}
+
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "endpoint_url": AWS_S3_ENDPOINT_URL,
+            "access_key": AWS_ACCESS_KEY_ID,
+            "secret_key": AWS_SECRET_ACCESS_KEY,
+            "region_name": AWS_S3_REGION_NAME,
+            "use_ssl": AWS_S3_USE_SSL,
+            "verify": AWS_S3_VERIFY,
+            "addressing_style": AWS_S3_ADDRESSING_STYLE,
+            "bucket_name": AWS_STORAGE_BUCKET_NAME,
+        },
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+MEDIA_URL = f"{AWS_S3_ENDPOINT_URL.rstrip('/')}/{AWS_STORAGE_BUCKET_NAME}/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # EPUB File Upload Configuration
@@ -163,6 +211,15 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
 }
 
+# Cache configuration for rate limiting
+# In production, use Redis or Memcached for better performance
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'rate-limit-cache',
+    }
+}
+
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
@@ -170,6 +227,34 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5175",
     "http://localhost:3000",
 ]
+
+# XSS Protection Settings (applies to both development and production)
+# Prevent clickjacking attacks
+X_FRAME_OPTIONS = 'DENY'
+
+# Referrer policy - don't send full URL in referrer
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
+# Additional XSS protection for development
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# Additional security settings for production
+if not DEBUG:
+    # HTTPS/SSL settings
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+    # Update CORS for production
+    cors_origins = config('CORS_ALLOWED_ORIGINS', default='')
+    if cors_origins:
+        CORS_ALLOWED_ORIGINS = cors_origins.split(',')
 
 # Logging configuration
 LOG_FILE_PATH = config('LOG_FILE_PATH', default='bookapp/app.log')

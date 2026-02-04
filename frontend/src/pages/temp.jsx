@@ -10,7 +10,7 @@ import Spinner from '@/ui_components/Spinner'
 // import { HiPencilAlt } from "react-icons/hi";
 // import { MdDelete } from "react-icons/md";
 // import Modal from "@/ui_components/Modal";
-// import CreatePostPage from "./CreatePostPage";
+// import CreateBookPage from "./CreateBookPage";
 import { useState } from 'react'
 // import { toast } from "react-toastify";
 import { Link } from 'react-router-dom'
@@ -189,8 +189,8 @@ const BookPagesPage = ({ username, isAuthenticated }) => {
         </button>
       </div>
 
-      {/* {showModal && <Modal toggleModal={toggleModal}> 
-        <CreatePostPage book={book} />
+      {/* {showModal && <Modal toggleModal={toggleModal}>
+        <CreateBookPage book={book} />
       </Modal>} */}
     </>
   )

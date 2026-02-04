@@ -10,7 +10,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { useState } from 'react'
-import { BASE_URL } from '@/api'
+import { resolveMediaUrl } from '@/api'
 
 const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
   const queryClient = useQueryClient()
@@ -212,7 +212,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
           {!imagePreview && userInfo?.profile_picture && (
             <div className="mb-3">
               <img
-                src={`${BASE_URL}${userInfo.profile_picture}`}
+                src={resolveMediaUrl(userInfo.profile_picture)}
                 alt="Current profile"
                 className="h-40 w-40 rounded-lg object-cover border-2 border-[#141624] dark:border-[#3B3C4A]"
               />

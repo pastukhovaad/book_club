@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BiEdit, BiTrash } from 'react-icons/bi';
-import { BASE_URL } from "@/api";
+import { resolveMediaUrl } from "@/api";
 import ReplyForm from './ReplyForm';
 
 const ReplyItem = ({
@@ -44,7 +44,7 @@ const ReplyItem = ({
           {/* User Avatar */}
           {reply.user.profile_picture ? (
             <img
-              src={`${BASE_URL}${reply.user.profile_picture}`}
+              src={resolveMediaUrl(reply.user.profile_picture)}
               alt={reply.user.username}
               className="w-6 h-6 rounded-full"
             />

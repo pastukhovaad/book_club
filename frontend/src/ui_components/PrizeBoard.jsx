@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { BASE_URL } from "@/api";
+import { resolveMediaUrl } from "@/api";
 
 const PrizeBoard = ({
   board,
@@ -264,7 +264,7 @@ const PrizeBoard = ({
                           }}
                         >
                           <img
-                            src={`${BASE_URL}${rewardImage}`}
+                            src={resolveMediaUrl(rewardImage)}
                             alt={rewardName || "Reward"}
                             className="w-full h-full object-contain"
                           />
@@ -321,7 +321,7 @@ const PrizeBoard = ({
                     >
                       <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700">
                         <img
-                          src={`${BASE_URL}${entry.template.image}`}
+                          src={resolveMediaUrl(entry.template.image)}
                           alt={entry.template.name}
                           className="w-full h-full object-cover"
                         />

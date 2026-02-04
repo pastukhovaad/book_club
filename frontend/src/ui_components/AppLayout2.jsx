@@ -4,30 +4,17 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 // import Footer from "./Footer";  Make Footer2 and use it if a Footer is needed
 import NavBar2 from "./NavBar2";
+import { useTheme } from "@/context/ThemeContext";
 
 const AppLayout2 = ({ isAuthenticated, username, setIsAuthenticated, setUsername }) => {
-  useEffect(function () {
-    if (localStorage.getItem("dark") === null) {
-      localStorage.setItem("dark", "false");
-    }
-  }, []);
-
-  const [darkMode, setDarkMode] = useState(
-    localStorage.getItem("dark") === "true"
-  );
-
-  const handleDarkMode = () => {
-    const newDarkMode = !darkMode;
-    setDarkMode(newDarkMode);
-    localStorage.setItem("dark", newDarkMode ? "true" : "false");
-  };
+  const { darkMode, toggleDarkMode } = useTheme();
 
   return (
-    <div className={darkMode ? "dark" : ""}>
+    <div>
       <main className="w-full bg-[#ffffff] dark:bg-[#181A2A]">
         <NavBar2
           darkMode={darkMode}
-          handleDarkMode={handleDarkMode}
+          handleDarkMode={toggleDarkMode}
           isAuthenticated={isAuthenticated}
           username={username}
           setIsAuthenticated={setIsAuthenticated}
