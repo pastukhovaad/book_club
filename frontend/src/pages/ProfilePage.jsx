@@ -5,12 +5,13 @@ import Spinner from "@/ui_components/Spinner";
 import Modal from "@/ui_components/Modal";
 import RewardCard from "@/ui_components/RewardCard";
 import { useQuery } from "@tanstack/react-query";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import SignupPage from "./SignupPage";
 import { useState } from "react";
 
 const ProfilePage = ({ authUsername }) => {
   const [showModal, setShowModal] = useState(false);
+  const navigate = useNavigate();
 
   const toggleModal = () => {
     setShowModal(curr => !curr)
@@ -81,7 +82,7 @@ const ProfilePage = ({ authUsername }) => {
           <h2 className="text-2xl font-semibold mb-6 text-[#181A2A] dark:text-white">
             Статистика
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800">
               <div className="text-3xl font-bold text-[#4B6BFB]">{userStats.total_quests_completed}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Заданий выполнено</div>
@@ -101,6 +102,12 @@ const ProfilePage = ({ authUsername }) => {
             <div className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800">
               <div className="text-3xl font-bold text-yellow-600">{userStats.total_rewards_received}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Наград получено</div>
+            </div>
+            <div className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800">
+              <div className="text-3xl font-bold text-rose-600">
+                {userStats.favorite_genre || "—"}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Любимый жанр</div>
             </div>
           </div>
         </div>
@@ -139,9 +146,17 @@ const ProfilePage = ({ authUsername }) => {
             <h2 className="text-2xl font-semibold text-[#181A2A] dark:text-white">
               Награды
             </h2>
-            <Link to={`/rewards?user=${username}`} className="text-[#4B6BFB] hover:underline">
-              Посмотреть все
-            </Link>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate(`/profile/${username}/board`)}
+                className="bg-[#4B6BFB] text-white py-2 px-4 rounded-md hover:bg-[#3a5ae0] transition-colors"
+              >
+                Открыть доску наград
+              </button>
+              <Link to={`/rewards?user=${username}`} className="text-[#4B6BFB] hover:underline">
+                Посмотреть все
+              </Link>
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {userRewards.slice(0, 4).map((reward) => (

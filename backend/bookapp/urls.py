@@ -74,6 +74,11 @@ urlpatterns = [
         views.remove_user_from_group,
         name="remove_user_from_group",
     ),
+    path(
+        "group/<int:pk>/kick_user/<int:user_id>/",
+        views.kick_user_from_group,
+        name="kick_user_from_group",
+    ),
     path("notifications/", views.notification_list, name="notification_list"),
     path("get_notification/<int:id>/", views.get_notification, name="get_notification"),
     path(
@@ -216,6 +221,22 @@ urlpatterns = [
         views.remove_reward_from_board,
         name="remove_reward_from_board",
     ),
+    # Gamification - User Prize Board
+    path(
+        "users/<str:username>/board/",
+        views.get_user_prize_board,
+        name="get_user_prize_board",
+    ),
+    path(
+        "users/<str:username>/board/place/",
+        views.place_reward_on_user_board,
+        name="place_reward_on_user_board",
+    ),
+    path(
+        "users/<str:username>/board/remove/<int:x>/<int:y>/",
+        views.remove_reward_from_user_board,
+        name="remove_reward_from_user_board",
+    ),
     # Gamification - Reading Progress
     path(
         "books/<slug:slug>/progress/",
@@ -226,6 +247,11 @@ urlpatterns = [
         "books/<slug:slug>/progress/update/",
         views.update_reading_progress,
         name="update_reading_progress",
+    ),
+    path(
+        "books/reading/recent/<int:amount>/",
+        views.get_recent_reading_books,
+        name="get_recent_reading_books",
     ),
     path("books/<slug:slug>/complete/", views.complete_book, name="complete_book"),
     # Gamification - User Stats

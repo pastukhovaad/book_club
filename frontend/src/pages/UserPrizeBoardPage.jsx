@@ -1,23 +1,22 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getPrizeBoard, placeRewardOnBoard, removeRewardFromBoard, getMyRewards, getMyRewardPlacements } from "@/services/apiBook";
+import { getUserPrizeBoard, placeRewardOnUserBoard, removeRewardFromUserBoard, getMyRewards, getMyRewardPlacements } from "@/services/apiBook";
 import PrizeBoard from "@/ui_components/PrizeBoard";
 import Spinner from "@/ui_components/Spinner";
 
 
-const PrizeBoardPage = ({ username }) => {
-  const { slug } = useParams();
+const UserPrizeBoardPage = ({ username: authUsername }) => {
+  const { username } = useParams();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  // Fetch prize board
   const { isPending: boardPending, isError: boardError, error: boardErrorMsg, data: boardData } = useQuery({
-    queryKey: ["prizeBoard", slug],
-    queryFn: () => getPrizeBoard(slug),
+    queryKey: ["userPrizeBoard", username],
+    queryFn: () => getUserPrizeBoard(username),
   });
 
-  const canEditBoard = !!boardData?.can_edit || username === boardData?.reading_group?.creator?.username;
+  const canEditBoard = !!boardData?.can_edit || authUsername === username;
 
-  // Fetch user's rewards
   const { data: userRewards } = useQuery({
     queryKey: ["myRewards"],
     queryFn: getMyRewards,
@@ -30,16 +29,13 @@ const PrizeBoardPage = ({ username }) => {
     enabled: canEditBoard,
   });
 
-  const navigate = useNavigate();
-
-  // Place reward mutation
   const placeRewardMutation = useMutation({
-    mutationFn: ({ rewardId, x, y }) => placeRewardOnBoard(slug, { user_reward: rewardId, x, y }),
+    mutationFn: ({ rewardId, x, y }) => placeRewardOnUserBoard(username, { user_reward: rewardId, x, y }),
     onMutate: async ({ rewardId, x, y }) => {
-      await queryClient.cancelQueries(["prizeBoard", slug]);
+      await queryClient.cancelQueries(["userPrizeBoard", username]);
       await queryClient.cancelQueries(["myRewardPlacements"]);
 
-      const previousBoard = queryClient.getQueryData(["prizeBoard", slug]);
+      const previousBoard = queryClient.getQueryData(["userPrizeBoard", username]);
       const previousPlacements = queryClient.getQueryData(["myRewardPlacements"]);
       const reward = userRewards?.find((item) => item.id === rewardId);
 
@@ -50,11 +46,11 @@ const PrizeBoardPage = ({ username }) => {
           y,
           user_reward: reward,
           placed_by: {
-            username: username || "you",
+            username: authUsername || "you",
           },
         };
 
-        queryClient.setQueryData(["prizeBoard", slug], {
+        queryClient.setQueryData(["userPrizeBoard", username], {
           ...previousBoard,
           cells: [
             ...(previousBoard.cells || []).filter(
@@ -76,34 +72,33 @@ const PrizeBoardPage = ({ username }) => {
     },
     onError: (_err, _variables, context) => {
       if (context?.previousBoard) {
-        queryClient.setQueryData(["prizeBoard", slug], context.previousBoard);
+        queryClient.setQueryData(["userPrizeBoard", username], context.previousBoard);
       }
       if (context?.previousPlacements) {
         queryClient.setQueryData(["myRewardPlacements"], context.previousPlacements);
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["prizeBoard", slug]);
+      queryClient.invalidateQueries(["userPrizeBoard", username]);
       queryClient.invalidateQueries(["myRewards"]);
       queryClient.invalidateQueries(["myRewardPlacements"]);
     },
   });
 
-  // Remove reward mutation
   const removeRewardMutation = useMutation({
-    mutationFn: ({ x, y }) => removeRewardFromBoard(slug, x, y),
+    mutationFn: ({ x, y }) => removeRewardFromUserBoard(username, x, y),
     onMutate: async ({ x, y }) => {
-      await queryClient.cancelQueries(["prizeBoard", slug]);
+      await queryClient.cancelQueries(["userPrizeBoard", username]);
       await queryClient.cancelQueries(["myRewardPlacements"]);
 
-      const previousBoard = queryClient.getQueryData(["prizeBoard", slug]);
+      const previousBoard = queryClient.getQueryData(["userPrizeBoard", username]);
       const previousPlacements = queryClient.getQueryData(["myRewardPlacements"]);
       const removedRewardId = previousBoard?.cells?.find(
         (cell) => cell.x === x && cell.y === y
       )?.user_reward?.id;
 
       if (previousBoard) {
-        queryClient.setQueryData(["prizeBoard", slug], {
+        queryClient.setQueryData(["userPrizeBoard", username], {
           ...previousBoard,
           cells: (previousBoard.cells || []).filter(
             (cell) => !(cell.x === x && cell.y === y)
@@ -124,14 +119,14 @@ const PrizeBoardPage = ({ username }) => {
     },
     onError: (_err, _variables, context) => {
       if (context?.previousBoard) {
-        queryClient.setQueryData(["prizeBoard", slug], context.previousBoard);
+        queryClient.setQueryData(["userPrizeBoard", username], context.previousBoard);
       }
       if (context?.previousPlacements) {
         queryClient.setQueryData(["myRewardPlacements"], context.previousPlacements);
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["prizeBoard", slug]);
+      queryClient.invalidateQueries(["userPrizeBoard", username]);
       queryClient.invalidateQueries(["myRewards"]);
       queryClient.invalidateQueries(["myRewardPlacements"]);
     },
@@ -157,7 +152,7 @@ const PrizeBoardPage = ({ username }) => {
     return (
       <div className="padding-y max-container">
         <div className="text-red-500 text-center">
-          Ошибка загрузки доски призов: {boardErrorMsg.message}
+          Ошибка загрузки доски наград: {boardErrorMsg.message}
         </div>
       </div>
     );
@@ -167,16 +162,16 @@ const PrizeBoardPage = ({ username }) => {
     <div className="min-h-screen bg-[#FFFFFF] dark:bg-[#181A2A]">
       <div className="max-w-6xl mx-auto px-6 py-10">
         <div className="mb-8">
-                <button
-                  onClick={() => navigate(`/groups/${slug}/`)}
-                  className="bg-[#4B6BFB] text-white py-3 px-6 rounded-md hover:bg-[#3a5ae0] transition-colors"
-                >
-                  Назад к группе
-                </button>
-              </div>
+          <button
+            onClick={() => navigate(`/profile/${username}`)}
+            className="bg-[#4B6BFB] text-white py-3 px-6 rounded-md hover:bg-[#3a5ae0] transition-colors"
+          >
+            Назад к профилю
+          </button>
+        </div>
 
         <h2 className="text-center text-2xl md:text-3xl font-semibold text-[#181A2A] dark:text-[#FFFFFF] mb-6">
-          Доска наград группы {boardData?.reading_group?.name}
+          Доска наград {username}
         </h2>
 
         {placeRewardMutation.isError && (
@@ -200,7 +195,7 @@ const PrizeBoardPage = ({ username }) => {
             onPlaceReward={handlePlaceReward}
             onRemoveReward={handleRemoveReward}
             canEdit={canEditBoard}
-            currentUsername={username}
+            currentUsername={authUsername}
             isGroupMember={canEditBoard}
           />
         )}
@@ -209,4 +204,4 @@ const PrizeBoardPage = ({ username }) => {
   );
 };
 
-export default PrizeBoardPage;
+export default UserPrizeBoardPage;

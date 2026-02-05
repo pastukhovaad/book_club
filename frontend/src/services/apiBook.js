@@ -27,6 +27,15 @@ export async function getBook(slug) {
   }
 }
 
+export async function getRecentReadingBooks(page, amount) {
+  try {
+    const response = await api.get(`books/reading/recent/${amount}/?page=${page}`)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
 export async function getBookReviews(slug) {
   try {
     const response = await api.get(`books/${slug}/reviews/`)
@@ -362,6 +371,21 @@ export async function removeUserFromGroup(id) {
   }
 }
 
+export async function kickUserFromGroup(groupId, userId) {
+  try {
+    const response = await api.put(`group/${groupId}/kick_user/${userId}/`)
+    return response.data
+  } catch (err) {
+    if (err.response) {
+      throw new Error(
+        err.response?.data?.message || 'Failed to kick user from group',
+      )
+    }
+
+    throw new Error(err.message)
+  }
+}
+
 export async function confirmUserToGroup(groupId, userId) {
   try {
     const response = await api.put(`group/${groupId}/confirm_user/${userId}/`)
@@ -674,6 +698,41 @@ export async function placeRewardOnBoard(slug, data) {
 export async function removeRewardFromBoard(slug, x, y) {
   try {
     const response = await api.delete(`groups/${slug}/board/remove/${x}/${y}/`)
+    return response.data
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.response?.data?.error || 'Failed to remove reward')
+    }
+    throw new Error(err.message)
+  }
+}
+
+// User Prize Board
+
+export async function getUserPrizeBoard(username) {
+  try {
+    const response = await api.get(`users/${username}/board/`)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+export async function placeRewardOnUserBoard(username, data) {
+  try {
+    const response = await api.post(`users/${username}/board/place/`, data)
+    return response.data
+  } catch (err) {
+    if (err.response) {
+      throw new Error(err.response?.data?.error || 'Failed to place reward')
+    }
+    throw new Error(err.message)
+  }
+}
+
+export async function removeRewardFromUserBoard(username, x, y) {
+  try {
+    const response = await api.delete(`users/${username}/board/remove/${x}/${y}/`)
     return response.data
   } catch (err) {
     if (err.response) {

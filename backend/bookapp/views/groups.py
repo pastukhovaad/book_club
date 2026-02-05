@@ -5,17 +5,24 @@ Handles reading group CRUD operations, membership management, and group book lis
 """
 
 import logging
+
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..models import ReadingGroup, UserToReadingGroupState, CustomUser, Book, BookComment
+from ..models import (
+    Book,
+    BookComment,
+    CustomUser,
+    ReadingGroup,
+    UserToReadingGroupState,
+)
 from ..serializers import (
+    BookSerializer,
     ReadingGroupSerializer,
     UserToReadingGroupStateSerializer,
-    BookSerializer,
 )
 from .utils import AnyListPagination
 
@@ -50,7 +57,9 @@ def get_group_reading_books(request, slug):
         .distinct()
     )
     # Optimize: select_related for author and reading_group
-    books = Book.objects.filter(id__in=book_ids).select_related('author', 'reading_group')
+    books = Book.objects.filter(id__in=book_ids).select_related(
+        "author", "reading_group"
+    )
     serializer = BookSerializer(books, many=True)
     return Response(serializer.data)
 
@@ -82,10 +91,14 @@ def get_group_posted_books(request, slug):
 @api_view(["GET"])
 def reading_group_list(request, amount):
     # Optimize: select_related for creator, prefetch_related for users
-    reading_groups = ReadingGroup.objects.select_related('creator').prefetch_related(
-        'user',  # Prefetch the many-to-many relationship
-        'user__usertoreadinggroupstate_set'  # Prefetch the through table for status
-    ).all()
+    reading_groups = (
+        ReadingGroup.objects.select_related("creator")
+        .prefetch_related(
+            "user",  # Prefetch the many-to-many relationship
+            "user__usertoreadinggroupstate_set",  # Prefetch the through table for status
+        )
+        .all()
+    )
     paginator = AnyListPagination(amount=amount)
     paginated_reading_groups = paginator.paginate_queryset(reading_groups, request)
     serializer = ReadingGroupSerializer(paginated_reading_groups, many=True)
@@ -194,6 +207,51 @@ def remove_user_from_group(request, pk):
     user = request.user
     reading_group = get_object_or_404(ReadingGroup, id=pk)
     reading_group.user.remove(user)
+    serializer = ReadingGroupSerializer(reading_group)
+    return Response(serializer.data)
+
+
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+def kick_user_from_group(request, pk, user_id):
+    """Remove a user from the group by the group creator."""
+    reading_group = get_object_or_404(ReadingGroup, id=pk)
+
+    # Check if the requester is the group creator
+    if reading_group.creator != request.user:
+        return Response(
+            {"error": "Only the group creator can remove members"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    # Get the user to be removed
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    user_to_remove = get_object_or_404(User, id=user_id)
+
+    # Check if user is in the group
+    if user_to_remove not in reading_group.user.all():
+        return Response(
+            {"error": "User is not a member of this group"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Cannot kick yourself (creator)
+    if user_to_remove == request.user:
+        return Response(
+            {"error": "You cannot remove yourself from your own group"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Remove user from the group
+    reading_group.user.remove(user_to_remove)
+
+    # Also remove the UserToReadingGroupState record
+    UserToReadingGroupState.objects.filter(
+        reading_group=reading_group, user=user_to_remove
+    ).delete()
+
     serializer = ReadingGroupSerializer(reading_group)
     return Response(serializer.data)
 

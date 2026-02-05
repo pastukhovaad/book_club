@@ -5,14 +5,16 @@ Handles user reading progress for books, including progress updates and completi
 """
 
 import logging
+
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..models import ReadingProgress, Book, CustomUser
-from ..serializers import ReadingProgressSerializer
+from ..models import Book, CustomUser, ReadingProgress
+from ..serializers import BookSerializer, ReadingProgressSerializer
+from .utils import AnyListPagination
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +66,6 @@ def update_reading_progress(request, slug):
         )
         if serializer.is_valid():
 
-        
             saved_progress = serializer.save()
 
             # Calculate progress_percent based on book content type
@@ -125,3 +126,21 @@ def complete_book(request, slug):
         return Response(serializer.data)
     except Book.DoesNotExist:
         return Response({"error": "Book not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_recent_reading_books(request, amount):
+    """Get recently read books for the authenticated user."""
+    progress_qs = (
+        ReadingProgress.objects.filter(user=request.user)
+        .select_related("book", "book__author", "book__reading_group")
+        .order_by("-last_read_at")
+    )
+
+    paginator = AnyListPagination(amount=amount)
+    paginated_progress = paginator.paginate_queryset(progress_qs, request)
+
+    books = [progress.book for progress in paginated_progress]
+    serializer = BookSerializer(books, many=True)
+    return paginator.get_paginated_response(serializer.data)

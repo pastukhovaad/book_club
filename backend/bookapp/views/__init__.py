@@ -9,8 +9,11 @@ with urls.py, allowing existing imports like `from . import views` to continue w
 # Import prize board views
 from .boards import (
     get_prize_board,
+    get_user_prize_board,
     place_reward_on_board,
+    place_reward_on_user_board,
     remove_reward_from_board,
+    remove_reward_from_user_board,
     update_prize_board_settings,
 )
 
@@ -50,6 +53,7 @@ from .groups import (
     get_reading_group,
     get_user_created_groups,
     get_user_reading_groups,
+    kick_user_from_group,
     reading_group_list,
     remove_user_from_group,
     update_reading_group,
@@ -79,6 +83,7 @@ from .quests import (
 from .reading_progress import (
     complete_book,
     get_reading_progress,
+    get_recent_reading_books,
     update_reading_progress,
 )
 
@@ -146,6 +151,7 @@ __all__ = [
     "add_user_to_group",
     "confirm_user_to_group",
     "remove_user_from_group",
+    "kick_user_from_group",
     "get_user_reading_groups",
     "get_user_created_groups",
     "user_to_reading_group_state_list",
@@ -180,11 +186,15 @@ __all__ = [
     "get_my_quests",
     # Prize Board
     "get_prize_board",
+    "get_user_prize_board",
     "update_prize_board_settings",
     "place_reward_on_board",
+    "place_reward_on_user_board",
     "remove_reward_from_board",
+    "remove_reward_from_user_board",
     # Reading Progress
     "get_reading_progress",
     "update_reading_progress",
+    "get_recent_reading_books",
     "complete_book",
 ]

@@ -11,6 +11,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from django.contrib.auth import get_user_model
+
 from ..models import (
     PrizeBoard,
     PrizeBoardCell,
@@ -195,4 +197,125 @@ def remove_reward_from_board(request, slug, x, y):
     except PrizeBoard.DoesNotExist:
         return Response(
             {"error": "Prize board not found"}, status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_user_prize_board(request, username):
+    """Get prize board for a user."""
+    User = get_user_model()
+    try:
+        board_user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return Response(
+            {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+        )
+
+    board, created = PrizeBoard.objects.get_or_create(
+        user=board_user, defaults={"board_type": "user"}
+    )
+
+    serializer = PrizeBoardSerializer(board)
+    response_data = serializer.data
+    response_data["can_edit"] = request.user == board_user
+    return Response(response_data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def place_reward_on_user_board(request, username):
+    """Place a user's reward on their personal prize board."""
+    User = get_user_model()
+    try:
+        board_user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return Response(
+            {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+        )
+
+    if request.user != board_user:
+        return Response(
+            {"error": "You can only place rewards on your own board"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    board, created = PrizeBoard.objects.get_or_create(
+        user=board_user, defaults={"board_type": "user"}
+    )
+
+    x = request.data.get("x")
+    y = request.data.get("y")
+    user_reward_id = request.data.get("user_reward")
+
+    if x is None or y is None or user_reward_id is None:
+        return Response(
+            {"error": "x, y, and user_reward are required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if x >= board.width or y >= board.height or x < 0 or y < 0:
+        return Response(
+            {"error": "Coordinates out of bounds"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if PrizeBoardCell.objects.filter(board=board, x=x, y=y).exists():
+        return Response(
+            {"error": "Cell is already occupied"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        user_reward = UserReward.objects.get(id=user_reward_id, user=request.user)
+    except UserReward.DoesNotExist:
+        return Response(
+            {"error": "Reward not found or does not belong to you"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    cell = PrizeBoardCell.objects.create(
+        board=board, x=x, y=y, user_reward=user_reward, placed_by=request.user
+    )
+
+    serializer = PrizeBoardCellSerializer(cell)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def remove_reward_from_user_board(request, username, x, y):
+    """Remove a reward from a user's personal prize board."""
+    User = get_user_model()
+    try:
+        board_user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return Response(
+            {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+        )
+
+    if request.user != board_user:
+        return Response(
+            {"error": "You can only remove rewards from your own board"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    try:
+        board = PrizeBoard.objects.get(user=board_user)
+    except PrizeBoard.DoesNotExist:
+        return Response(
+            {"error": "Prize board not found"}, status=status.HTTP_404_NOT_FOUND
+        )
+
+    try:
+        cell = PrizeBoardCell.objects.get(board=board, x=x, y=y)
+        cell.delete()
+        return Response(
+            {"message": "Reward removed successfully"},
+            status=status.HTTP_204_NO_CONTENT,
+        )
+    except PrizeBoardCell.DoesNotExist:
+        return Response(
+            {"error": "No reward at this position"},
+            status=status.HTTP_404_NOT_FOUND,
         )

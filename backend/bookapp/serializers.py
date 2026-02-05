@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Avg
+from django.db.models import Avg, Count
 from rest_framework import serializers
 
 from .models import (
@@ -43,20 +43,12 @@ class UpdateUserProfileSerializer(serializers.ModelSerializer):
             "bio",
             "job_title",
             "profile_picture",
-            "facebook",
-            "youtube",
-            "instagram",
-            "twitter",
         ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Сделаем поля необязательными
         self.fields["profile_picture"].required = False
-        self.fields["facebook"].required = False
-        self.fields["youtube"].required = False
-        self.fields["instagram"].required = False
-        self.fields["twitter"].required = False
 
     def update(self, instance, validated_data):
         # Если profile_picture не в initial_data, не обновляем его
@@ -657,6 +649,7 @@ class PrizeBoardSerializer(serializers.ModelSerializer):
     """Serializer for prize boards."""
 
     reading_group = ReadingGroupSerializer(read_only=True)
+    user = SimpleAuthorSerializer(read_only=True)
     cells = serializers.SerializerMethodField()
 
     class Meta:
@@ -664,6 +657,8 @@ class PrizeBoardSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "reading_group",
+            "user",
+            "board_type",
             "width",
             "height",
             "cells",
@@ -735,6 +730,7 @@ class UserStatsSerializer(serializers.ModelSerializer):
     """Serializer for user statistics."""
 
     user = SimpleAuthorSerializer(read_only=True)
+    favorite_genre = serializers.SerializerMethodField()
 
     class Meta:
         model = UserStats
@@ -746,5 +742,19 @@ class UserStatsSerializer(serializers.ModelSerializer):
             "total_comments_created",
             "total_replies_created",
             "total_rewards_received",
+            "favorite_genre",
         ]
         read_only_fields = ["id", "user"]
+
+    def get_favorite_genre(self, instance):
+        user = instance.user
+        top = (
+            ReadingProgress.objects.filter(user=user, is_completed=True)
+            .exclude(book__category__isnull=True)
+            .exclude(book__category="")
+            .values("book__category")
+            .annotate(total=Count("book__category"))
+            .order_by("-total")
+            .first()
+        )
+        return top["book__category"] if top else None

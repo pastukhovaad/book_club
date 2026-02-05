@@ -85,16 +85,6 @@ const QuestsPage = () => {
       {/* Filter buttons */}
       <div className="flex gap-3 mb-6 flex-wrap">
         <button
-          onClick={() => setFilter('personal')}
-          className={`px-4 py-2 rounded-md transition-colors ${
-            filter === 'personal'
-              ? 'bg-[#4B6BFB] text-white'
-              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-          }`}
-        >
-          Личные ({personalQuests.length})
-        </button>
-        <button
           onClick={() => setFilter('all')}
           className={`px-4 py-2 rounded-md transition-colors ${
             filter === 'all'
@@ -103,6 +93,16 @@ const QuestsPage = () => {
           }`}
         >
           Все ({quests.length})
+        </button>
+        <button
+          onClick={() => setFilter('personal')}
+          className={`px-4 py-2 rounded-md transition-colors ${
+            filter === 'personal'
+              ? 'bg-[#4B6BFB] text-white'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+          }`}
+        >
+          Личные ({personalQuests.length})
         </button>
         <button
           onClick={() => setFilter('group')}

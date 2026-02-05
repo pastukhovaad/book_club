@@ -38,7 +38,7 @@ const BookCard = ({book, showVisibilityLabels = false}) => {
             <span>{Number(averageRating).toFixed(1)}</span>
           </div>
         ) : (
-          <div className="text-sm text-gray-600 dark:text-gray-400">Нет рейтинга</div>
+          <div className="text-sm text-gray-400 dark:text-gray-400">Нет отзывов</div>
         )}
       </div>
 

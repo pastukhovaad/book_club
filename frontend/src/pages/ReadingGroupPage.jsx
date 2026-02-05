@@ -6,7 +6,8 @@ import QuestCard from "@/ui_components/QuestCard";
 import BookContainer from "@/ui_components/BookContainer";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { deleteReadingGroup, getReadingGroup, addUserToGroup, removeUserFromGroup, createNotification, getUserToReadingGroupStates, getGroupQuests, generateDailyQuests, getGroupReadingBooks, getGroupPostedBooks } from "@/services/apiBook";
+import { deleteReadingGroup, getReadingGroup, addUserToGroup, removeUserFromGroup, kickUserFromGroup, createNotification, getUserToReadingGroupStates, getGroupQuests, generateDailyQuests, getGroupReadingBooks, getGroupPostedBooks } from "@/services/apiBook";
+import { MdPersonRemove } from "react-icons/md";
 import Spinner from "@/ui_components/Spinner";
 import { resolveMediaUrl } from "@/api";
 import { HiPencilAlt } from "react-icons/hi";
@@ -146,6 +147,32 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
     }
   });
 
+  // Mutation for kicking a user (by creator)
+  const kickUserMutation = useMutation({
+    mutationFn: ({ userId }) => kickUserFromGroup(reading_groupID, userId),
+    onSuccess: (data, variables) => {
+      // Send notification to the kicked user
+      const formData = new FormData();
+      formData.append("directed_to_id", variables.userId);
+      formData.append("related_group_id", reading_group.id);
+      formData.append("category", "GroupKick");
+      
+      createNotification(formData)
+        .then(() => {
+          toast.success("Пользователь удалён из группы и уведомлён.");
+        })
+        .catch(() => {
+          toast.success("Пользователь удалён из группы.");
+        });
+      
+      queryClient.invalidateQueries({ queryKey: ["groups", slug] });
+      queryClient.invalidateQueries({ queryKey: ["userToReadingGroupState", reading_groupID] });
+    },
+    onError: (err) => {
+      toast.error(err.message || "Не удалось удалить пользователя");
+    }
+  });
+
 
 
   function onJoinRequest() {
@@ -156,6 +183,14 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
 
   function handleLeaveGroup() {
     leaveMutation.mutate(reading_groupID);
+  }
+
+  function handleKickUser(userId, username) {
+    const popUp = window.confirm(`Вы уверены, что хотите удалить пользователя @${username} из группы?`);
+    if (!popUp) {
+      return;
+    }
+    kickUserMutation.mutate({ userId });
   }
 
   // Filter users to only show confirmed members (in_reading_group = true)
@@ -325,7 +360,18 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
                 {confirmedMembers.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {confirmedMembers.map((member) => (
-                      <div key={member.id} className="flex flex-col items-center p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+                      <div key={member.id} className="relative flex flex-col items-center p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+                        {/* Kick button for creator */}
+                        {isCreator && member.username !== username && (
+                          <button
+                            onClick={() => handleKickUser(member.id, member.username)}
+                            disabled={kickUserMutation.isPending}
+                            className="absolute top-2 right-2 p-1.5 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 transition-colors disabled:opacity-50"
+                            title="Удалить из группы"
+                          >
+                            <MdPersonRemove className="text-lg" />
+                          </button>
+                        )}
                         {/* <div className="w-16 h-16 rounded-full overflow-hidden mb-3"> */}
                         <div className="flex items-center gap-2"> 
                           {/* User Avatar */}

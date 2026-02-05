@@ -3,6 +3,8 @@ import { FaHamburger } from "react-icons/fa";
 import ResponsiveNavBar from "./ResponsiveNavBar";
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import { IoHomeOutline } from 'react-icons/io5'
+
 
 const NavBar = ({
   darkMode,
@@ -26,8 +28,9 @@ const NavBar = ({
   return (
     <>
       <nav className="max-container padding-x py-6 flex justify-between items-center  gap-6 sticky top-0 z-10 bg-[#FFFFFF] dark:bg-[#141624]">
-        <Link to="/" className="text-[#141624] text-2xl dark:text-[#FFFFFF]">
-          Book sharing
+        <Link to="/" className="flex items-center justify-end gap-3 text-[#3B3C4A] text-2xl dark:text-[#FFFFFF]">
+          <IoHomeOutline size={24} />
+          <p>На главную</p>
         </Link>
         <ul className="flex items-center  justify-end gap-9 text-[#3B3C4A] lg:flex-1 max-md:hidden dark:text-[#FFFFFF]">
           {isAuthenticated ? (

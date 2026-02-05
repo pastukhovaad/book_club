@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
@@ -94,12 +95,6 @@ class CustomUser(AbstractUser):
     profile_picture = models.ImageField(upload_to="profile_img", blank=True, null=True)
     profile_picture_url = models.URLField(blank=True, null=True)
     job_title = models.CharField(max_length=50, blank=True, null=True)
-
-    facebook = models.URLField(max_length=255, blank=True, null=True)
-    youtube = models.URLField(max_length=255, blank=True, null=True)
-    instagram = models.URLField(max_length=255, blank=True, null=True)
-    twitter = models.URLField(max_length=255, blank=True, null=True)
-    linkedin = models.URLField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return self.username
@@ -282,6 +277,7 @@ class Notification(models.Model):
         ("GroupJoinRequest", "GroupJoinRequest"),
         ("GroupRequestDeclined", "GroupRequestDeclined"),
         ("GroupRequestAccepted", "GroupRequestAccepted"),
+        ("GroupKick", "GroupKick"),
         ("QuestCompleted", "QuestCompleted"),
     )
 
@@ -679,13 +675,34 @@ class QuestCompletion(models.Model):
 
 
 class PrizeBoard(models.Model):
-    """Grid board for displaying rewards within a reading group."""
+    """Grid board for displaying rewards within a reading group or for a user."""
+
+    BOARD_TYPE_CHOICES = [
+        ("group", "Группа"),
+        ("user", "Пользователь"),
+    ]
 
     reading_group = models.OneToOneField(
         ReadingGroup,
         on_delete=models.CASCADE,
         related_name="prize_board",
         verbose_name="Группа чтения",
+        null=True,
+        blank=True,
+    )
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="prize_board",
+        verbose_name="Пользователь",
+        null=True,
+        blank=True,
+    )
+    board_type = models.CharField(
+        max_length=10,
+        choices=BOARD_TYPE_CHOICES,
+        default="group",
+        verbose_name="Тип доски",
     )
     width = models.PositiveIntegerField(
         default=5, verbose_name="Ширина", help_text="Количество колонок"
@@ -699,8 +716,22 @@ class PrizeBoard(models.Model):
         verbose_name = "Поле для призов"
         verbose_name_plural = "Поля для призов"
 
+    def clean(self):
+        if self.board_type == "group" and not self.reading_group:
+            raise ValidationError(
+                "Для группового типа необходимо указать группу чтения."
+            )
+        if self.board_type == "user" and not self.user:
+            raise ValidationError(
+                "Для пользовательского типа необходимо указать пользователя."
+            )
+
     def __str__(self):
-        return f"Поле призов {self.reading_group.name} ({self.width}x{self.height})"
+        if self.board_type == "user" and self.user:
+            return f"Поле призов {self.user.username} ({self.width}x{self.height})"
+        if self.reading_group:
+            return f"Поле призов {self.reading_group.name} ({self.width}x{self.height})"
+        return f"Поле призов #{self.pk} ({self.width}x{self.height})"
 
 
 class PrizeBoardCell(models.Model):
@@ -734,7 +765,7 @@ class PrizeBoardCell(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.board.reading_group.name} ({self.x}, {self.y}) - {self.user_reward.reward_template.name}"
+        return f"{self.board} ({self.x}, {self.y}) - {self.user_reward.reward_template.name}"
 
 
 class ReadingProgress(models.Model):
@@ -758,10 +789,13 @@ class ReadingProgress(models.Model):
         verbose_name="Текущая позиция",
         help_text="EPUB CFI - текущая позиция в книге",
     )
-    character_offset = models.IntegerField(
-        default=0,
-        verbose_name="Позиция символа",
-        help_text="Индекс первого символа на текущей странице (для TXT)",
+    current_page = models.IntegerField(
+        default=1,
+        verbose_name="Текущая страница",
+        help_text="Номер текущей страницы для обычных книг",
+    )
+    total_pages = models.IntegerField(
+        default=1, verbose_name="Всего страниц", help_text="Общее количество страниц"
     )
     progress_percent = models.FloatField(
         default=0, verbose_name="Прогресс (%)", help_text="Процент прочитанного (0-100)"

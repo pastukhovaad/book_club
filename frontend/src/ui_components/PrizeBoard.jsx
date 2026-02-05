@@ -106,10 +106,10 @@ const PrizeBoard = ({
 
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+      <div className="flex items-center justify-end">
+        {/* <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
           Доска фигурок
-        </h3>
+        </h3> */}
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -328,6 +328,9 @@ const PrizeBoard = ({
                           alt={entry.template.name}
                           className="w-full h-full object-cover"
                         />
+                      </div>
+                      <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 text-center">
+                        {entry.template.name}
                       </div>
                       <div className="text-xs text-gray-600 dark:text-gray-400">
                         Осталось: {entry.remainingCount}

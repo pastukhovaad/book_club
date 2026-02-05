@@ -47,10 +47,6 @@ class CustomUserAdmin(UserAdmin):
                     "bio",
                     "profile_picture",
                     "job_title",
-                    "facebook",
-                    "twitter",
-                    "instagram",
-                    "linkedin",
                 )
             },
         ),
@@ -77,10 +73,6 @@ class CustomUserAdmin(UserAdmin):
                     "bio",
                     "profile_picture",
                     "job_title",
-                    "facebook",
-                    "twitter",
-                    "instagram",
-                    "linkedin",
                 )
             },
         ),
@@ -212,9 +204,9 @@ admin.site.register(QuestCompletion, QuestCompletionAdmin)
 
 
 class PrizeBoardAdmin(admin.ModelAdmin):
-    list_display = ("reading_group", "width", "height", "created_at")
-    list_filter = ("created_at",)
-    search_fields = ("reading_group__name",)
+    list_display = ("board_type", "reading_group", "user", "width", "height", "created_at")
+    list_filter = ("board_type", "created_at")
+    search_fields = ("reading_group__name", "user__username")
 
 
 admin.site.register(PrizeBoard, PrizeBoardAdmin)

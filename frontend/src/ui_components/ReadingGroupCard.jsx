@@ -6,6 +6,7 @@ import { resolveMediaUrl } from "@/api";
 
 const ReadingGroupCard = ({reading_group}) => {
   const navigate = useNavigate();
+  const membersCount = reading_group?.user?.length || 0;
 
   const handleCardClick = (e) => {
     const token = localStorage.getItem("access");
@@ -33,6 +34,10 @@ const ReadingGroupCard = ({reading_group}) => {
           {reading_group.name}
         </h3>
       </Link>
+
+      <div className="text-sm text-gray-600 dark:text-gray-400">
+        Участников: {membersCount}
+      </div>
 
       <ReadingGroupCardFooter reading_group={reading_group} />
     </div>

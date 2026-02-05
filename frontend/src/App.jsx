@@ -18,6 +18,7 @@ import QuestsPage from './pages/QuestsPage'
 import GroupQuestsPage from './pages/GroupQuestsPage'
 import CreateQuestPage from './pages/CreateQuestPage'
 import PrizeBoardPage from './pages/PrizeBoardPage'
+import UserPrizeBoardPage from './pages/UserPrizeBoardPage'
 import RewardsPage from './pages/RewardsPage'
 import { useEffect, useState } from 'react'
 import { getUsername } from './services/apiBook'
@@ -66,6 +67,17 @@ const App = () => {
           <Route
             path="profile/:username"
             element={<ProfilePage authUsername={username} />}
+          />
+          <Route
+            path="profile/:username/board"
+            element={
+              <ProtectedRoute>
+                <UserPrizeBoardPage
+                  username={username}
+                  isAuthenticated={isAuthenticated}
+                />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="books/:slug"
@@ -176,6 +188,17 @@ const App = () => {
             }
           />
           <Route
+            path="groups/:slug/board"
+            element={
+              <ProtectedRoute>
+                <PrizeBoardPage
+                  username={username}
+                  isAuthenticated={isAuthenticated}
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="signin"
             element={
               <LoginPage
@@ -198,17 +221,6 @@ const App = () => {
         >
           <Route index element={<BookPagesPage />} />
         </Route>
-        <Route
-          path="/groups/:slug/board"
-          element={
-            <ProtectedRoute>
-              <PrizeBoardPage
-                username={username}
-                isAuthenticated={isAuthenticated}
-              />
-            </ProtectedRoute>
-          }
-        />
       </Routes>
     </BrowserRouter>
   )
