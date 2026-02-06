@@ -26,6 +26,7 @@ from .books import (
     get_book_chapter,
     get_book_chapters_list,
     public_book_list,
+    search_books_by_hashtag,
     update_book,
 )
 
@@ -140,6 +141,7 @@ __all__ = [
     "create_book",
     "update_book",
     "delete_book",
+    "search_books_by_hashtag",
     # Groups
     "get_reading_group",
     "reading_group_list",

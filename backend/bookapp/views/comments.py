@@ -5,6 +5,7 @@ Handles comment CRUD operations, reply management, and comment access control.
 """
 
 import logging
+from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -78,7 +79,9 @@ def get_book_comments(request, slug):
                 book=book,
                 reading_group=reading_group,
                 parent_comment__isnull=True,  # Only root comments
-            ).select_related("user", "book", "reading_group")
+            ).select_related("user", "book", "reading_group").annotate(
+                replies_count=Count("replies")
+            )
         else:
             # Get personal comments (only for current user, exclude replies)
             comments = BookComment.objects.filter(
@@ -86,7 +89,9 @@ def get_book_comments(request, slug):
                 user=user,
                 reading_group__isnull=True,
                 parent_comment__isnull=True,  # Only root comments
-            ).select_related("user", "book")
+            ).select_related("user", "book").annotate(
+                replies_count=Count("replies")
+            )
 
         serializer = BookCommentSerializer(comments, many=True)
 
@@ -127,6 +132,13 @@ def create_book_comment(request, slug):
             # Save with the current user
             comment = serializer.save(user=user)
 
+            # Reload comment with replies_count annotation
+            comment = BookComment.objects.select_related(
+                "user", "book", "reading_group"
+            ).annotate(
+                replies_count=Count("replies")
+            ).get(id=comment.id)
+
             # Return full comment data
             response_serializer = BookCommentSerializer(comment)
 
@@ -149,6 +161,8 @@ def get_book_comment(request, slug, comment_id):
         book = Book.objects.get(slug=slug)
         comment = BookComment.objects.select_related(
             "user", "book", "reading_group"
+        ).annotate(
+            replies_count=Count("replies")
         ).get(id=comment_id, book=book)
 
         user = request.user
@@ -212,7 +226,15 @@ def update_book_comment(request, slug, comment_id):
 
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+
+            # Reload comment with replies_count annotation
+            comment = BookComment.objects.select_related(
+                "user", "book", "reading_group"
+            ).annotate(
+                replies_count=Count("replies")
+            ).get(id=comment_id)
+
+            return Response(BookCommentSerializer(comment).data)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

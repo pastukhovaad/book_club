@@ -18,9 +18,18 @@ export async function getPublicBooks(page, amount) {
   }
 }
 
-export async function getBook(slug) {
+export async function getBook(slug, info_only = false) {
   try {
-    const response = await api.get(`books/${slug}`)
+    const response = await api.get(`books/${slug}?info_only=${info_only}`)
+    return response.data
+  } catch (err) {
+    throw new Error(err.message)
+  }
+}
+
+export async function searchBooksByHashtag(tag, page, amount) {
+  try {
+    const response = await api.get(`books/by_hashtag/?tag=${encodeURIComponent(tag)}&page=${page}&amount=${amount}`)
     return response.data
   } catch (err) {
     throw new Error(err.message)

@@ -4,7 +4,7 @@ import Badge from '@/ui_components/Badge'
 import BookWriter from '@/ui_components/BookWriter'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { createBookReview, deleteBook, getBook, getBookReviews } from '@/services/apiBook'
+import { createBookReview, deleteBook, getBook, getBookReviews, getReadingProgress } from '@/services/apiBook'
 import Spinner from '@/ui_components/Spinner'
 import { resolveMediaUrl } from '@/api'
 import { HiPencilAlt } from 'react-icons/hi'
@@ -28,7 +28,7 @@ const DetailPage = ({ username, isAuthenticated }) => {
   function toggleModal() {
     setShowModal((curr) => !curr)
   }
-
+  const infoOnly = true
   const {
     isPending,
     isError,
@@ -36,7 +36,7 @@ const DetailPage = ({ username, isAuthenticated }) => {
     data: book,
   } = useQuery({
     queryKey: ['books', slug],
-    queryFn: () => getBook(slug),
+    queryFn: () => getBook(slug,infoOnly),
   })
 
   const {
@@ -45,6 +45,12 @@ const DetailPage = ({ username, isAuthenticated }) => {
   } = useQuery({
     queryKey: ['bookReviews', slug],
     queryFn: () => getBookReviews(slug),
+  })
+
+  const { data: readingProgress } = useQuery({
+    queryKey: ['readingProgress', slug],
+    queryFn: () => getReadingProgress(slug),
+    enabled: isAuthenticated,
   })
 
   const bookID = book?.id
@@ -73,6 +79,7 @@ const DetailPage = ({ username, isAuthenticated }) => {
       setReviewTitle('')
       setReviewDescription('')
       setReviewStars(5)
+      setShowReviewForm(false)
       queryClient.invalidateQueries({ queryKey: ['bookReviews', slug] })
     },
     onError: (err) => {
@@ -105,55 +112,120 @@ const DetailPage = ({ username, isAuthenticated }) => {
   return (
     <>
       <div className="padding-dx max-container py-9">
-        <Badge book={book} />
-
-        <div className="flex justify-between items-center gap-4">
+        <div className="flex flex-wrap justify-between items-center gap-4">
           <h2 className="py-6 leading-normal text-2xl md:text-3xl text-[#181A2A] tracking-wide font-semibold dark:text-[#FFFFFF]">
             {book.title}
           </h2>
 
-          <Link
-            to={`/books/${slug}/page`}
-            className="bg-[#4B6BFB] text-white py-3 px-6 rounded-md flex gap-2"
-          >
-            Читать книгу
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              to={`/books/${slug}/page`}
+              className="bg-[#4B6BFB] text-white py-3 px-6 rounded-md flex gap-2"
+            >
+              Читать книгу
+            </Link>
+            {isAuthenticated && (
+              <span className="text-sm text-[#3B3C4A] dark:text-[#BABABF]">
+                {readingProgress?.is_completed
+                  ? 'Прочитано'
+                  : `Прогресс: ${Math.round(readingProgress?.progress_percent ?? 0)}%`}
+              </span>
+            )}
 
-          {isAuthenticated && username === book.author.username && (
-            <span className="flex justify-between items-center gap-2">
-              <HiPencilAlt
-                onClick={toggleModal}
-                className="dark:text-white text-3xl cursor-pointer"
-              />
-
-              <MdDelete
-                onClick={handleDeleteBook}
-                className="dark:text-white text-3xl cursor-pointer"
-              />
-            </span>
-          )}
+            {isAuthenticated && username === book.author.username && (
+              <span className="flex items-center gap-2">
+                <HiPencilAlt
+                  onClick={toggleModal}
+                  className="dark:text-white text-3xl cursor-pointer"
+                />
+                <MdDelete
+                  onClick={handleDeleteBook}
+                  className="dark:text-white text-3xl cursor-pointer"
+                />
+              </span>
+            )}
+          </div>
         </div>
 
         <BookWriter book={book} />
 
-        <div className="w-full h-[350px] my-9 overflow-hidden rounded-sm">
-          <img
-            className="w-full h-full object-cover rounded-sm"
-            src={resolveMediaUrl(book.featured_image)}
-          />
+        <div className="flex flex-col md:flex-row gap-8 my-9">
+          <div className="w-full md:w-[280px] flex-shrink-0">
+            <div className="aspect-[2/3] overflow-hidden rounded-sm">
+              <img
+                className="w-full h-full object-cover rounded-sm"
+                src={resolveMediaUrl(book.featured_image)}
+                alt={book.title}
+              />
+            </div>
+          </div>
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <Badge book={book} />
+              {book.hashtags?.map((h) => (
+                <Link
+                  key={h.id}
+                  to={`/books?tag=${h.name}`}
+                  className="text-sm px-3 py-1 rounded-full bg-[#4B6BFB]/10 text-[#4B6BFB] hover:bg-[#4B6BFB]/20 transition-colors"
+                >
+                  #{h.name}
+                </Link>
+              ))}
+            </div>
+            {book.book_author && (
+              <p className="text-[15px] text-[#3B3C4A] dark:text-[#BABABF] mb-4">
+                <span className="font-semibold">Автор:</span> {book.book_author}
+              </p>
+            )}
+            <h3 className="text-xl font-semibold text-[#181A2A] dark:text-white mb-2">
+              О книге
+            </h3>
+            <p className="text-[16px] leading-[2rem] text-justify text-[#3B3C4A] dark:text-[#BABABF]">
+              {book.description || "У этой книги нет описания."}
+            </p>
+          </div>
         </div>
-        <p className="text-[16px] leading-[2rem] text-justify text-[#3B3C4A] dark:text-[#BABABF]">
-          {book.description || "У этой книги нет описания."}
-          {/* Logical or */}
-        </p>
 
         <div className="mt-10">
           <h3 className="text-xl font-semibold text-[#181A2A] dark:text-white">
             Отзывы
           </h3>
+          {book.average_rating ? (
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-0.5 text-xl">
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <span
+                    key={value}
+                    className={
+                      value <= Math.round(Number(book.average_rating))
+                        ? 'text-yellow-400'
+                        : 'text-gray-300 dark:text-gray-600'
+                    }
+                  >
+                    ★
+                  </span>
+                ))}
+              </div>
+              <span className="text-sm text-gray-600 dark:text-gray-300">
+                {Number(book.average_rating).toFixed(1)} / 5
+              </span>
+              <span className="text-sm text-gray-400 dark:text-gray-500">
+                ({reviews.length})
+              </span>
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-gray-400 dark:text-gray-500">
+              Нет оценок
+            </p>
+          )}
 
           {isAuthenticated ? (
             <div className="mt-4">
+              {reviews.some((r) => r.user?.username === username) ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Вы уже оставили отзыв на эту книгу.
+                </p>
+              ) : (
               <button
                 type="button"
                 onClick={() => setShowReviewForm((prev) => !prev)}
@@ -161,6 +233,7 @@ const DetailPage = ({ username, isAuthenticated }) => {
               >
                 Оставить отзыв
               </button>
+              )}
 
               {showReviewForm && (
                 <form

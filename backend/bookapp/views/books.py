@@ -13,8 +13,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..models import Book, ReadingGroup, UserToReadingGroupState, ReadingProgress, BookComment
-from ..serializers import BookSerializer
+from ..models import Book, Hashtag, UserToReadingGroupState
+from ..serializers import BookSerializer, BookSerializerInfo
 from ..validators import validate_epub_file_complete
 from ..epub_handler import EPUBHandler, parse_epub_file
 from .utils import local_epub_path, AnyListPagination
@@ -40,11 +40,7 @@ def book_list(request, amount):
         books = Book.objects.filter(visibility="public").select_related('author', 'reading_group')
     paginator = AnyListPagination(amount=amount)
     paginated_books = paginator.paginate_queryset(books, request)
-    serializer = BookSerializer(paginated_books, many=True)
-    # logger.info(f"requested URL: {request.build_absolute_uri()}")
-    # logger.info(f"Pagination info: {paginator.page_size} items per page requested.")
-    # logger.info(f"Pagination info: {paginator.page.number} current page number.")
-    # logger.info(f"Books retrieved: {serializer.data}")
+    serializer = BookSerializerInfo(paginated_books, many=True)
     return paginator.get_paginated_response(serializer.data)
 
 
@@ -54,15 +50,8 @@ def public_book_list(request, amount):
     books = Book.objects.filter(visibility="public").select_related('author', 'reading_group')
     paginator = AnyListPagination(amount=amount)
     paginated_books = paginator.paginate_queryset(books, request)
-    serializer = BookSerializer(paginated_books, many=True)
+    serializer = BookSerializerInfo(paginated_books, many=True)
     return paginator.get_paginated_response(serializer.data)
-
-
-# @api_view(['GET'])
-# def book_list(request):
-#     books = Book.objects.all()
-#     serializer = BookSerializer(books, many=True)
-#     return Response(serializer.data)
 
 
 @api_view(["GET"])
@@ -92,8 +81,11 @@ def get_book(request, slug):
                 {"error": "You do not have access to this book"},
                 status=status.HTTP_403_FORBIDDEN,
             )
+    if request.query_params.get("info_only", "false").lower() == "true":
+            serializer = BookSerializerInfo(book)
+    else:
+            serializer = BookSerializer(book)
 
-    serializer = BookSerializer(book)
     return Response(serializer.data)
 
 
@@ -250,6 +242,11 @@ def create_book(request):
                         logger.warning(
                             f"Invalid EPUB file uploaded by user {user.username}: {error_message}"
                         )
+                        # Delete uploaded files from S3/MinIO before deleting the book record
+                        if book.epub_file:
+                            book.epub_file.delete(save=False)
+                        if book.featured_image:
+                            book.featured_image.delete(save=False)
                         book.delete()
                         return Response(
                             {"error": f"Invalid EPUB file: {error_message}"},
@@ -276,15 +273,30 @@ def create_book(request):
 
             except Exception as e:
                 logger.error(f"Error processing EPUB file: {e}")
-                # Delete the book if EPUB processing fails
+                # Delete uploaded files from S3/MinIO before deleting the book record
+                if book.epub_file:
+                    book.epub_file.delete(save=False)
+                if book.featured_image:
+                    book.featured_image.delete(save=False)
                 book.delete()
                 return Response(
                     {"error": f"Failed to process EPUB file: {str(e)}"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        return Response(serializer.data)
+        # Handle hashtags
+        hashtag_names = request.data.getlist("hashtags")
+        if hashtag_names:
+            hashtag_objs = []
+            for name in hashtag_names:
+                name = name.strip().lstrip("#").lower()
+                if name:
+                    obj, _ = Hashtag.objects.get_or_create(name=name)
+                    hashtag_objs.append(obj)
+            book.hashtags.set(hashtag_objs)
 
+        return Response(BookSerializer(book).data)
+    logging.error(f"Book creation failed with errors: {serializer.errors} for user: {user.username}")
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -316,7 +328,17 @@ def update_book(request, pk):
         if visibility == "personal":
             serializer.validated_data["reading_group"] = None
 
+        # Save old files for deletion if they are being replaced
+        old_epub_file = book.epub_file if "epub_file" in request.FILES and book.epub_file else None
+        old_featured_image = book.featured_image if "featured_image" in request.FILES and book.featured_image else None
+
         updated_book = serializer.save()
+
+        # Delete old files from S3/MinIO after successful update
+        if old_epub_file:
+            old_epub_file.delete(save=False)
+        if old_featured_image:
+            old_featured_image.delete(save=False)
 
         # If a new EPUB file was uploaded, process it
         if "epub_file" in request.FILES:
@@ -360,7 +382,20 @@ def update_book(request, pk):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        return Response(serializer.data)
+        # Handle hashtags
+        hashtag_names = request.data.getlist("hashtags")
+        if hashtag_names:
+            hashtag_objs = []
+            for name in hashtag_names:
+                name = name.strip().lstrip("#").lower()
+                if name:
+                    obj, _ = Hashtag.objects.get_or_create(name=name)
+                    hashtag_objs.append(obj)
+            updated_book.hashtags.set(hashtag_objs)
+        elif "hashtags" in request.data:
+            updated_book.hashtags.clear()
+
+        return Response(BookSerializer(updated_book).data)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -375,7 +410,48 @@ def delete_book(request, pk):
             {"error": "You are not the author of this book"},
             status=status.HTTP_403_FORBIDDEN,
         )
+
+    # Delete files from S3/MinIO before deleting the book
+    if book.epub_file:
+        book.epub_file.delete(save=False)
+    if book.featured_image:
+        book.featured_image.delete(save=False)
+
     book.delete()
     return Response(
         {"message": "Book deleted successfully"}, status=status.HTTP_204_NO_CONTENT
     )
+
+
+@api_view(["GET"])
+def search_books_by_hashtag(request):
+    tag_name = request.query_params.get("tag", "").strip().lstrip("#").lower()
+    if not tag_name:
+        return Response(
+            {"error": "Parameter 'tag' is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    user = request.user if request.user.is_authenticated else None
+    books = Book.objects.filter(hashtags__name=tag_name)
+
+    if user:
+        user_group_ids = UserToReadingGroupState.objects.filter(
+            user=user, in_reading_group=True
+        ).values_list("reading_group_id", flat=True)
+
+        books = books.filter(
+            models.Q(visibility="public")
+            | models.Q(visibility="personal", author=user)
+            | models.Q(visibility="group", reading_group_id__in=user_group_ids)
+        )
+    else:
+        books = books.filter(visibility="public")
+
+    books = books.select_related("author", "reading_group").prefetch_related("hashtags").distinct()
+
+    amount = int(request.query_params.get("amount", 9))
+    paginator = AnyListPagination(amount=amount)
+    paginated_books = paginator.paginate_queryset(books, request)
+    serializer = BookSerializerInfo(paginated_books, many=True)
+    return paginator.get_paginated_response(serializer.data)

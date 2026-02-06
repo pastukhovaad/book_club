@@ -6,6 +6,7 @@ from .models import (
     Book,
     BookComment,
     CustomUser,
+    Hashtag,
     Notification,
     PrizeBoard,
     PrizeBoardCell,
@@ -95,6 +96,14 @@ class BookAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Book, BookAdmin)
+
+
+class HashtagAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+    search_fields = ("name",)
+
+
+admin.site.register(Hashtag, HashtagAdmin)
 
 
 class ReadingGroupAdmin(admin.ModelAdmin):

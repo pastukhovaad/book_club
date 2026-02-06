@@ -36,7 +36,7 @@ const ReadingGroupCard = ({reading_group}) => {
       </Link>
 
       <div className="text-sm text-gray-600 dark:text-gray-400">
-        Участников: {membersCount}
+        Участники: {membersCount}
       </div>
 
       <ReadingGroupCardFooter reading_group={reading_group} />

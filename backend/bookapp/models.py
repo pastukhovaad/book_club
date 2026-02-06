@@ -87,17 +87,45 @@ def transliterate(text):
     return "".join(CYRILLIC_TO_LATIN.get(char, char) for char in text)
 
 
-# Create your models here.
+import os
+import uuid
+
+
+def unique_file_name(upload_path):
+# Generate a unique file name using UUID
+    def generate_unique_filename(instance, filename):
+
+        ext = os.path.splitext(filename)[1]  
+        unique_filename = f"{uuid.uuid4()}{ext}"
+        return os.path.join(upload_path, unique_filename)
+
+    return generate_unique_filename
 
 
 class CustomUser(AbstractUser):
     bio = models.TextField(blank=True, null=True)
-    profile_picture = models.ImageField(upload_to="profile_img", blank=True, null=True)
+    profile_picture = models.ImageField(upload_to=unique_file_name("profile_img/"), blank=True, null=True)
     profile_picture_url = models.URLField(blank=True, null=True)
     job_title = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         return self.username
+
+
+class Hashtag(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        verbose_name = "Хештег"
+        verbose_name_plural = "Хештеги"
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"#{self.name}"
+
+    def save(self, *args, **kwargs):
+        self.name = self.name.strip().lstrip("#").lower()
+        super().save(*args, **kwargs)
 
 
 class Book(models.Model):
@@ -108,15 +136,23 @@ class Book(models.Model):
     )
 
     CATEGORY = (
-        ("Science Fiction", "Science Fiction"),
-        ("Fantasy", "Fantasy"),
-        ("Detective Fiction", "Detective Fiction"),
-        ("Thriller", "Thriller"),
-        ("Romance", "Romance"),
-        ("Horror", "Horror"),
-        ("Historical Fiction", "Historical Fiction"),
-        ("Adventure", "Adventure"),
+        ("classic", "Классика"),
+        ("fantasy", "Фэнтези"),
+        ("detective_fiction", "Детектив"),
+        ("thriller", "Триллер"),
+        ("romance", "Романтика"),
+        ("horror", "Ужасы"),
+        ("adventure", "Приключения"),
+        ("science_fiction", "Научная фантастика"),
+        ("biography", "Биография"),
+        ("self_help", "Саморазвитие"),
+        ("poetry", "Поэзия"),
+        ("children", "Детская литература"),
+        ("non_fiction", "Документальная литература"),
+        ("business", "Бизнес и экономика"),
+        ("other", "Другое"),
     )
+
 
     CONTENT_TYPE = (
         ("plaintext", "Plain Text"),
@@ -124,6 +160,7 @@ class Book(models.Model):
     )
 
     title = models.CharField(max_length=255)
+    book_author = models.CharField(max_length=255, blank=True, default="", verbose_name="Автор книги")
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     description = models.TextField(blank=True, null=True)
     content = models.TextField(blank=True, null=True)
@@ -131,7 +168,7 @@ class Book(models.Model):
         max_length=20, choices=CONTENT_TYPE, default="plaintext"
     )
     epub_file = models.FileField(
-        upload_to="epub_files/",
+        upload_to=unique_file_name("epub_files/"),
         blank=True,
         null=True,
         validators=[
@@ -152,7 +189,7 @@ class Book(models.Model):
     published_date = models.DateTimeField(blank=True, null=True)
     is_draft = models.BooleanField(default=True)
     category = models.CharField(max_length=255, choices=CATEGORY, blank=True, null=True)
-    featured_image = models.ImageField(upload_to="book_img", blank=True, null=True)
+    featured_image = models.ImageField(upload_to=unique_file_name("book_img/"), blank=True, null=True)
     visibility = models.CharField(
         max_length=20,
         choices=VISIBILITY_CHOICES,
@@ -162,6 +199,11 @@ class Book(models.Model):
         "ReadingGroup",
         on_delete=models.SET_NULL,
         null=True,
+        blank=True,
+        related_name="books",
+    )
+    hashtags = models.ManyToManyField(
+        "Hashtag",
         blank=True,
         related_name="books",
     )
@@ -200,6 +242,7 @@ class Book(models.Model):
         if not self.is_draft and self.published_date is None:
             self.published_date = timezone.now()
 
+        
         super().save(*args, **kwargs)
 
 
@@ -220,7 +263,7 @@ class ReadingGroup(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     featured_image = models.ImageField(
-        upload_to="reading_group_img", blank=True, null=True
+        upload_to=unique_file_name("reading_group_img/"), blank=True, null=True
     )
     description = models.TextField(blank=True, null=True)
 
@@ -403,11 +446,6 @@ class BookComment(models.Model):
         """Check if this comment is a reply to another comment."""
         return self.parent_comment is not None
 
-    @property
-    def replies_count(self):
-        """Get the number of replies to this comment."""
-        return self.replies.count()
-
 
 class BookReview(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
@@ -442,7 +480,7 @@ class RewardTemplate(models.Model):
     """Template for rewards that can be earned by completing quests."""
 
     name = models.CharField(max_length=200, verbose_name="Название")
-    image = models.ImageField(upload_to="rewards/", verbose_name="Изображение")
+    image = models.ImageField(upload_to=unique_file_name("rewards/"), verbose_name="Изображение")
 
     class Meta:
         verbose_name = "Шаблон приза"
@@ -789,14 +827,13 @@ class ReadingProgress(models.Model):
         verbose_name="Текущая позиция",
         help_text="EPUB CFI - текущая позиция в книге",
     )
-    current_page = models.IntegerField(
-        default=1,
-        verbose_name="Текущая страница",
-        help_text="Номер текущей страницы для обычных книг",
+
+    character_offset = models.IntegerField(
+        default=0,
+        verbose_name="Позиция символа",
+        help_text="Индекс первого символа на текущей странице (для TXT)",
     )
-    total_pages = models.IntegerField(
-        default=1, verbose_name="Всего страниц", help_text="Общее количество страниц"
-    )
+
     progress_percent = models.FloatField(
         default=0, verbose_name="Прогресс (%)", help_text="Процент прочитанного (0-100)"
     )

@@ -13,11 +13,11 @@ from rest_framework.response import Response
 
 from ..models import CustomUser, UserStats, Book
 from ..serializers import (
+    BookSerializerInfo,
     UserInfoSerializer,
     SimpleAuthorSerializer,
     UserStatsSerializer,
     UpdateUserProfileSerializer,
-    BookSerializer,
 )
 
 
@@ -69,7 +69,7 @@ def get_user_books(request, username):
             "author", "reading_group"
         )
 
-    serializer = BookSerializer(books, many=True)
+    serializer = BookSerializerInfo(books, many=True)
     return Response(serializer.data)
 
 

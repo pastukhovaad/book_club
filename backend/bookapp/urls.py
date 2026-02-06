@@ -7,6 +7,7 @@ urlpatterns = [
     path("register_user/", register_user, name="register_user"),
     path("create_book/", views.create_book, name="create_book"),
     path("create_notification/", views.create_notification, name="create_notification"),
+    path("books/by_hashtag/", views.search_books_by_hashtag, name="search_books_by_hashtag"),
     path("book_list/<int:amount>/", views.book_list, name="book_list"),
     path("public_books/<int:amount>/", views.public_book_list, name="public_book_list"),
     # path("group_list", views.reading_group_list, name="group_list"),

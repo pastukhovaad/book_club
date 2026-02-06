@@ -13,7 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ..models import Book, CustomUser, ReadingProgress
-from ..serializers import BookSerializer, ReadingProgressSerializer
+from ..serializers import BookSerializerInfo, ReadingProgressSerializer
 from .utils import AnyListPagination
 
 logger = logging.getLogger(__name__)
@@ -142,5 +142,5 @@ def get_recent_reading_books(request, amount):
     paginated_progress = paginator.paginate_queryset(progress_qs, request)
 
     books = [progress.book for progress in paginated_progress]
-    serializer = BookSerializer(books, many=True)
+    serializer = BookSerializerInfo(books, many=True)
     return paginator.get_paginated_response(serializer.data)

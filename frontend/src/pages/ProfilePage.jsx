@@ -104,7 +104,7 @@ const ProfilePage = ({ authUsername }) => {
               <div className="text-sm text-gray-600 dark:text-gray-400">Наград получено</div>
             </div>
             <div className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800">
-              <div className="text-3xl font-bold text-rose-600">
+              <div className="text-l font-bold text-blue-800">
                 {userStats.favorite_genre || "—"}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Любимый жанр</div>
@@ -116,7 +116,7 @@ const ProfilePage = ({ authUsername }) => {
       {joinedGroups.length > 0 && (
         <div className="max-container padding-y">
           <h2 className="text-2xl font-semibold mb-6 text-[#181A2A] dark:text-white">
-            Вступил в группы FIXLATER TODO
+            Вступил в группы
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {joinedGroups.map((group) => (

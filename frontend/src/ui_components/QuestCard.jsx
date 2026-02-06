@@ -91,7 +91,7 @@ const QuestCard = ({ quest, userProgress = null, className = "" }) => {
 
               <p className="text-sm px-3 py-2 rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
                 {isCompleted ? "Вы участвовали в квесте" : "Вы участвуете в квесте"}
-                {progressData.reward_received ? "и получили награду" : ""}
+                {progressData.reward_received ? " и получили награду" : ""}
               </p>
 
             ) : (
