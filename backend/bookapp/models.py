@@ -446,6 +446,11 @@ class BookComment(models.Model):
         """Check if this comment is a reply to another comment."""
         return self.parent_comment is not None
 
+    @property
+    def replies_count(self):
+        """Get the number of replies to this comment."""
+        return self.replies.count()
+
 
 class BookReview(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)

@@ -7,7 +7,6 @@ actions like creating comments, completing books, or placing rewards.
 
 from django.db.models import Sum
 from django.db.models.signals import post_delete, post_save, pre_save
-from django.db import transaction
 from django.dispatch import receiver
 from django.utils import timezone
 
@@ -104,72 +103,68 @@ def update_quest_progress(user, quest_type, reading_group=None):
 
 
         # Check if quest is completed (reached target)
+       
+        if progress.current_count >= quest.target_count and not quest.is_completed:
+            # Mark quest as completed to prevent further progress updates
+            quest.is_completed = True
+            quest.save()
 
-            if progress.current_count >= quest.target_count and not quest.is_completed:
+            # Get all users who contributed to this quest (have progress > 0)
+            contributing_progresses = QuestProgress.objects.filter(
+                quest=quest, current_count__gt=0
+            ).select_related("user")
 
-            # Mark quest as completed to prevent further progress updates        
-                with transaction.atomic():
-                    quest_check = Quest.objects.select_for_update().get(id=quest.id)
-                    if not quest_check.is_completed:
-                        quest_check.is_completed = True
-                        quest_check.save()
+            # Award rewards and create notifications for ALL contributors
+            for contributor_progress in contributing_progresses:
+                contributor = contributor_progress.user
 
-                        # Get all users who contributed to this quest (have progress > 0)
-                        contributing_progresses = QuestProgress.objects.filter(
-                            quest=quest, current_count__gt=0
-                        ).select_related("user")
+                # Create completion record if it doesn't exist
+                completion, completion_created = QuestCompletion.objects.get_or_create(
+                    quest=quest,
+                    user=contributor,
+                    defaults={
+                        "reading_group": (
+                            reading_group
+                            if quest.participation_type == "group"
+                            else None
+                        )
+                    },
+                )
 
-                        # Award rewards and create notifications for ALL contributors
-                        for contributor_progress in contributing_progresses:
-                            contributor = contributor_progress.user
+                # Award the reward if one is configured and not already awarded
+                if quest.reward_template:
+                    # Check if reward was already given to this user for this quest
+                    if not UserReward.objects.filter(
+                        user=contributor,
+                        reward_template=quest.reward_template,
+                        quest_completed=completion,
+                    ).exists():
+                        UserReward.objects.create(
+                            user=contributor,
+                            reward_template=quest.reward_template,
+                            quest_completed=completion,
+                        )
 
-                            # Create completion record if it doesn't exist
-                            completion, completion_created = QuestCompletion.objects.get_or_create(
-                                quest=quest,
-                                user=contributor,
-                                defaults={
-                                    "reading_group": (
-                                        reading_group
-                                        if quest.participation_type == "group"
-                                        else None
-                                    )
-                                },
-                            )
+                        # Update user stats
+                        stats, _ = UserStats.objects.get_or_create(user=contributor)
+                        stats.total_rewards_received += 1
+                        stats.save()
 
-                            # Award the reward if one is configured and not already awarded
-                            if quest.reward_template:
-                                # Check if reward was already given to this user for this quest
-                                if not UserReward.objects.filter(
-                                    user=contributor,
-                                    reward_template=quest.reward_template,
-                                    quest_completed=completion,
-                                ).exists():
-                                    UserReward.objects.create(
-                                        user=contributor,
-                                        reward_template=quest.reward_template,
-                                        quest_completed=completion,
-                                    )
+                # Update quest completion stats (only if completion was just created)
+                if completion_created:
+                    stats, _ = UserStats.objects.get_or_create(user=contributor)
+                    stats.total_quests_completed += 1
+                    stats.save()
 
-                                    # Update user stats
-                                    stats, _ = UserStats.objects.get_or_create(user=contributor)
-                                    stats.total_rewards_received += 1
-                                    stats.save()
-
-                            # Update quest completion stats (only if completion was just created)
-                            if completion_created:
-                                stats, _ = UserStats.objects.get_or_create(user=contributor)
-                                stats.total_quests_completed += 1
-                                stats.save()
-
-                            # Create notification for quest completion (without using extra_text)
-                            Notification.objects.create(
-                                directed_to=contributor,
-                                related_to=contributor,
-                                related_group=reading_group,
-                                related_quest=quest,
-                                related_reward=quest.reward_template,
-                                category="QuestCompleted",
-                            )
+                # Create notification for quest completion (without using extra_text)
+                Notification.objects.create(
+                    directed_to=contributor,
+                    related_to=contributor,
+                    related_group=reading_group,
+                    related_quest=quest,
+                    related_reward=quest.reward_template,
+                    category="QuestCompleted",
+                )
 
 
 @receiver(post_save, sender=BookComment)

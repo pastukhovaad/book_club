@@ -73,6 +73,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         username = validated_data["username"]
         first_name = validated_data["first_name"]
         last_name = validated_data["last_name"]
+        first_name = validated_data["first_name"]
         password = validated_data["password"]
 
         user = get_user_model()
@@ -416,6 +417,7 @@ class UserToReadingGroupStateSerializer(serializers.ModelSerializer):
 
 
 class BookCommentSerializer(serializers.ModelSerializer):
+    """Serializer for book comments with user and book info."""
 
     user = SimpleAuthorSerializer(read_only=True)
     book_slug = serializers.CharField(source="book.slug", read_only=True)
@@ -426,7 +428,6 @@ class BookCommentSerializer(serializers.ModelSerializer):
     reading_group_name = serializers.CharField(
         source="reading_group.name", read_only=True, allow_null=True
     )
-    # Must be annotated in queryset: .annotate(replies_count=Count("replies"))
     replies_count = serializers.IntegerField(read_only=True)
     is_reply = serializers.BooleanField(read_only=True)
 
