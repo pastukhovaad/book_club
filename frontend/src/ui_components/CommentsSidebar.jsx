@@ -15,6 +15,7 @@ const CommentsSidebar = ({
   onDelete,
   onJumpTo,
   activeCommentId,
+  onClearActiveComment,
   commentType,
   onCommentTypeChange,
   readingGroupId,
@@ -24,11 +25,21 @@ const CommentsSidebar = ({
   selectedGroup,
   bookSlug,
   isAuthenticated = true,
+  showCommentForm,
+  selectedText,
+  onSubmitComment,
+  onCancelComment,
+  editingComment,
+  isSubmitting,
+  formError,
 }) => {
   const [showGroupDropdown, setShowGroupDropdown] = useState(false)
+  const [commentText, setCommentText] = useState('')
+  const [highlightColor, setHighlightColor] = useState('#FFFF00')
   const dropdownRef = useRef(null)
+  const commentsListRef = useRef(null)
+  const commentRefs = useRef({})
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -39,9 +50,64 @@ const CommentsSidebar = ({
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  useEffect(() => {
+    if (editingComment) {
+      setCommentText(editingComment.comment_text || '')
+      setHighlightColor(editingComment.highlight_color || '#FFFF00')
+    } else {
+      setCommentText('')
+      setHighlightColor('#FFFF00')
+    }
+  }, [editingComment, showCommentForm])
+
+  useEffect(() => {
+    if (activeCommentId && commentRefs.current[activeCommentId]) {
+      const commentElement = commentRefs.current[activeCommentId]
+      const container = commentsListRef.current
+
+      if (commentElement && container) {
+        const containerRect = container.getBoundingClientRect()
+        const commentRect = commentElement.getBoundingClientRect()
+
+        const scrollOffset = commentRect.top - containerRect.top + container.scrollTop - 20
+
+        container.scrollTo({
+          top: scrollOffset,
+          behavior: 'smooth'
+        })
+      }
+
+      const timer = setTimeout(() => {
+        if (onClearActiveComment) {
+          onClearActiveComment()
+        }
+      }, 3000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [activeCommentId, onClearActiveComment])
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!commentText.trim()) return
+
+    onSubmitComment({
+      comment_text: commentText,
+      highlight_color: highlightColor,
+    })
+  }
+
+  const colorOptions = [
+    { value: '#FFFF00', label: 'Yellow' },
+    { value: '#FFB6C1', label: 'Pink' },
+    { value: '#90EE90', label: 'Green' },
+    { value: '#87CEEB', label: 'Blue' },
+    { value: '#FFD700', label: 'Gold' },
+    { value: '#FFA07A', label: 'Orange' },
+  ]
   return (
     <div className="w-96 bg-white dark:bg-[#141624] border-l dark:border-gray-700 flex flex-col h-full">
-      {/* Header */}
       <div className="sticky top-0 bg-white dark:bg-[#141624] border-b dark:border-gray-700 px-4 py-3 z-10">
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
@@ -63,7 +129,6 @@ const CommentsSidebar = ({
           </button>
         </div>
 
-        {/* Comment Type Toggle (only for authenticated users) */}
         {isAuthenticated ? (
           <div className="flex gap-2">
             <button
@@ -83,10 +148,8 @@ const CommentsSidebar = ({
               <button
                 onClick={() => {
                   if (commentType === 'group' && readingGroupId) {
-                    // If already in group mode, toggle dropdown
                     setShowGroupDropdown(!showGroupDropdown)
                   } else {
-                    // If in personal mode, show dropdown to select a group
                     setShowGroupDropdown(!showGroupDropdown)
                   }
                 }}
@@ -101,7 +164,6 @@ const CommentsSidebar = ({
                 <IoChevronDown size={14} />
               </button>
 
-              {/* Group Dropdown */}
               {showGroupDropdown && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
                   {userGroupsLoading ? (
@@ -143,72 +205,167 @@ const CommentsSidebar = ({
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {/* Loading State */}
+      {showCommentForm && (
+        <div className="px-4 py-4 bg-white dark:bg-[#141624] border-b dark:border-gray-700">
+          <div className="bg-white dark:bg-[#1F2136] rounded-lg border border-gray-300 dark:border-gray-600">
+            <div className="px-4 py-3 border-b dark:border-gray-700">
+              <h3 className="text-md font-semibold text-gray-800 dark:text-white">
+                {editingComment ? 'Редактировать комментарий' : `Добавить ${commentType === 'personal' ? 'личный комментарий' : 'групповой комментарий'}`}
+              </h3>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-4">
+              {formError && (
+                <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg">
+                  <p className="text-xs text-red-800 dark:text-red-300">
+                    {formError}
+                  </p>
+                </div>
+              )}
+
+              {selectedText && !editingComment && (
+                <div className="mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                    Выделенный текст:
+                  </p>
+                  <p className="text-xs text-gray-800 dark:text-gray-200 italic line-clamp-3">
+                    "{selectedText}"
+                  </p>
+                </div>
+              )}
+
+              <div className="mb-3">
+                <label
+                  htmlFor="comment"
+                  className="block text-s font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  Ваш комментарий
+                </label>
+                <textarea
+                  id="comment"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 resize-none text-sm"
+                  rows="3"
+                  placeholder="Напишите ваш комментарий здесь..."
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Цвет выделения
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {colorOptions.map((color) => (
+                    <button
+                      key={color.value}
+                      type="button"
+                      onClick={() => setHighlightColor(color.value)}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${
+                        highlightColor === color.value
+                          ? 'border-blue-600 scale-110'
+                          : 'border-gray-300 dark:border-gray-600 hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: color.value }}
+                      title={color.label}
+                      disabled={isSubmitting}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={onCancelComment}
+                  className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  disabled={isSubmitting}
+                >
+                  Отмена
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  disabled={isSubmitting || !commentText.trim()}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <SmallSpinner />
+                      <span>Сохранение...</span>
+                    </>
+                  ) : (
+                    <span>{editingComment ? 'Обновить' : 'Добавить'}</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 overflow-y-auto p-4" ref={commentsListRef}>
         {isLoading && (
           <div className="flex justify-center items-center h-32">
             <SmallSpinner />
           </div>
         )}
 
-        {/* Error State */}
         {error && !isLoading && (
           <div className="text-center py-8">
             <p className="text-red-500 dark:text-red-400 mb-2">
-              Failed to load comments
+              Не удалось загрузить комментарии.
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">{error}</p>
           </div>
         )}
 
-        {/* Empty State */}
-        {!isLoading && !error && comments && comments.length === 0 && (
+        {!isLoading && !error && comments && comments.length === 0 && !showCommentForm && (
           <div className="text-center py-12">
             <BiMessageSquareDetail
               size={48}
               className="mx-auto text-gray-300 dark:text-gray-600 mb-3"
             />
             <p className="text-gray-500 dark:text-gray-400 mb-1">
-              No{' '}
-              {commentType === 'personal' ? 'personal notes' : 'group comments'}{' '}
-              yet
+              Ещё нет {' '}
+              {commentType === 'personal' ? 'личных заметок' : 'групповых комментариев'}{''}
+              .
             </p>
             <p className="text-sm text-gray-400 dark:text-gray-500">
               {commentType === 'personal'
-                ? 'Выберите текст и оставьте комментарий для себя'
-                : 'Выберите текст и оставьте комментарий, чтобы начать обсуждение'}
+                ? 'Выберите текст и оставьте комментарий для.'
+                : 'Выберите текст и оставьте комментарий, чтобы начать обсуждение.'}
             </p>
           </div>
         )}
 
-        {/* Comments List */}
         {!isLoading && !error && comments && comments.length > 0 && (
           <div>
             {comments.map((comment) => (
-              <CommentCard
-                key={comment.id}
-                comment={comment}
-                currentUser={currentUser}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onJumpTo={onJumpTo}
-                isActive={activeCommentId === comment.id}
-                isGroupComment={commentType === 'group'}
-                bookSlug={bookSlug}
-              />
+              <div key={comment.id} ref={(el) => commentRefs.current[comment.id] = el}>
+                <CommentCard
+                  comment={comment}
+                  currentUser={currentUser}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onJumpTo={onJumpTo}
+                  isActive={activeCommentId === comment.id}
+                  isGroupComment={commentType === 'group'}
+                  bookSlug={bookSlug}
+                />
+              </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Footer Info */}
       {!isLoading && !error && comments && comments.length > 0 && (
         <div className="border-t dark:border-gray-700 px-4 py-2 bg-gray-50 dark:bg-[#0F1117]">
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
             {commentType === 'personal'
-              ? 'Ваши личные комментарии - видны только вам'
-              : 'Комментарии группы - видны всем участникам выбранной группы'}
+              ? 'Ваши личные комментарии - видны только вам.'
+              : 'Комментарии группы - видны всем участникам выбранной группы.'}
           </p>
         </div>
       )}

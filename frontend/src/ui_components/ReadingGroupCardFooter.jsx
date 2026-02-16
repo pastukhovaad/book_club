@@ -7,12 +7,11 @@ const ReadingGroupCardFooter = ({ reading_group }) => {
     <Link to={`/profile/${reading_group.creator.username}`}>
       <div className="flex items-center gap=4 ">
         <span className="flex items-center gap-2">
-          <div className="w-[40px] h-[40px] rounded-full overflow-hidden">
-            {/* User Avatar */}
+          <div className="w-[32px] h-[32px] rounded-full overflow-hidden">
             {reading_group.creator.profile_picture ? (
               <img
                 src={resolveMediaUrl(reading_group.creator.profile_picture)}
-                className="w-8 h-8 rounded-full"
+                className="rounded-full"
               />
             ) : (
               <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm">

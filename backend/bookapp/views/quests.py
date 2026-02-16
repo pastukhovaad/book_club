@@ -1,9 +1,3 @@
-"""
-Quest management views.
-
-Handles quest creation, daily quest generation, and progress tracking.
-"""
-
 import logging
 import random
 
@@ -20,6 +14,7 @@ from ..models import (
     Quest,
     QuestCompletion,
     QuestProgress,
+    QuestTemplate,
     ReadingGroup,
     RewardTemplate,
     UserToReadingGroupState,
@@ -28,6 +23,7 @@ from ..serializers import (
     QuestCompletionSerializer,
     QuestProgressSerializer,
     QuestSerializer,
+    QuestTemplateSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -36,19 +32,16 @@ logger = logging.getLogger(__name__)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_quests(request):
-    """Get all active global quests and user's group quests."""
     user = request.user
     from django.utils import timezone
 
-    # Get user's groups
     user_groups = UserToReadingGroupState.objects.filter(
         user=user, in_reading_group=True
     ).values_list("reading_group_id", flat=True)
 
-    # Get active quests
     quests = (
         Quest.objects.filter(
-            is_active=True, start_date__lte=timezone.now(), end_date__gte=timezone.now()
+            start_date__lte=timezone.now(), end_date__gte=timezone.now()
         )
         .filter(
             models.Q(reading_group_id__in=user_groups)
@@ -72,14 +65,12 @@ def get_quests(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_group_quests(request, slug):
-    """Get quests for a specific group with user's progress."""
     try:
         from django.utils import timezone
 
         reading_group = get_object_or_404(ReadingGroup, slug=slug)
         user = request.user
 
-        # Check if user is a member
         try:
             membership = UserToReadingGroupState.objects.get(
                 user=user, reading_group=reading_group
@@ -97,28 +88,37 @@ def get_group_quests(request, slug):
 
         quests = Quest.objects.filter(
             reading_group=reading_group,
-            is_active=True,
             start_date__lte=timezone.now(),
             end_date__gte=timezone.now(),
         ).select_related("created_by", "reward_template")
 
-        # Get progress for each quest
+        quest_ids = [q.id for q in quests]
+
+        total_counts = dict(
+            QuestProgress.objects.filter(quest_id__in=quest_ids)
+            .values("quest_id")
+            .annotate(total=models.Sum("current_count"))
+            .values_list("quest_id", "total")
+        )
+
+        user_progress_map = {
+            p.quest_id: p
+            for p in QuestProgress.objects.filter(quest_id__in=quest_ids, user=user)
+        }
+
+        completed_quest_ids = set(
+            QuestCompletion.objects.filter(
+                quest_id__in=quest_ids, user=user
+            ).values_list("quest_id", flat=True)
+        )
+
         result = []
         for quest in quests:
             if quest.participation_type == "group":
-                total_count = (
-                    QuestProgress.objects.filter(quest=quest)
-                    .aggregate(total=models.Sum("current_count"))
-                    .get("total")
-                    or 0
-                )
-                user_progress = QuestProgress.objects.filter(
-                    quest=quest, user=user
-                ).first()
+                total_count = total_counts.get(quest.id, 0) or 0
+                user_progress = user_progress_map.get(quest.id)
                 participated = bool(user_progress and user_progress.current_count > 0)
-                reward_received = QuestCompletion.objects.filter(
-                    quest=quest, user=user
-                ).exists()
+                reward_received = quest.id in completed_quest_ids
                 progress_percentage = (
                     min(100, (total_count / quest.target_count) * 100)
                     if quest.target_count > 0
@@ -131,9 +131,11 @@ def get_group_quests(request, slug):
                     "reward_received": reward_received,
                 }
             else:
-                progress, created = QuestProgress.objects.get_or_create(
-                    user=user, quest=quest, defaults={"current_count": 0}
-                )
+                progress = user_progress_map.get(quest.id)
+                if not progress:
+                    progress, created = QuestProgress.objects.get_or_create(
+                        user=user, quest=quest, defaults={"current_count": 0}
+                    )
                 progress_data = QuestProgressSerializer(progress).data
             result.append(
                 {
@@ -149,15 +151,65 @@ def get_group_quests(request, slug):
         )
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_quest_templates(request):
+    templates = QuestTemplate.objects.all()
+    serializer = QuestTemplateSerializer(templates, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_quest_template(request):
+    if not request.user.is_superuser:
+        return Response(
+            {"error": "Only superusers can manage quest templates"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    serializer = QuestTemplateSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+def update_quest_template(request, template_id):
+    if not request.user.is_superuser:
+        return Response(
+            {"error": "Only superusers can manage quest templates"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    template = get_object_or_404(QuestTemplate, id=template_id)
+    serializer = QuestTemplateSerializer(template, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_quest_template(request, template_id):
+    if not request.user.is_superuser:
+        return Response(
+            {"error": "Only superusers can manage quest templates"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    template = get_object_or_404(QuestTemplate, id=template_id)
+    template.delete()
+    return Response({"message": "Шаблон задания удалён"}, status=status.HTTP_200_OK)
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def generate_daily_quests(request, slug):
-    """Generate 3 random daily quests for a reading group."""
     try:
         reading_group = ReadingGroup.objects.get(slug=slug)
         user = request.user
 
-        # Check if user is a member
         try:
             membership = UserToReadingGroupState.objects.get(
                 user=user, reading_group=reading_group
@@ -173,7 +225,6 @@ def generate_daily_quests(request, slug):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Check if there are already active quests for today
         today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
         today_end = timezone.now().replace(
             hour=23, minute=59, second=59, microsecond=999999
@@ -181,13 +232,11 @@ def generate_daily_quests(request, slug):
 
         existing_quests = Quest.objects.filter(
             reading_group=reading_group,
-            is_active=True,
             start_date__gte=today_start,
             end_date__lte=today_end,
         )
 
         if existing_quests.exists():
-            # Return existing quests
             serializer = QuestSerializer(existing_quests, many=True)
             return Response(
                 {
@@ -196,58 +245,25 @@ def generate_daily_quests(request, slug):
                 }
             )
 
-        # Quest templates
-        import random
+        db_templates = list(
+            QuestTemplate.objects.filter(is_active=True, quest_scope="group").values(
+                "title", "description", "quest_type", "target_count"
+            )
+        )
 
-        quest_templates = [
-            {
-                "title": "Читательский марафон",
-                "description": "Прочитайте книгу сегодня",
-                "quest_type": "read_books",
-                "target_count": 1,
-            },
-            {
-                "title": "Активный читатель",
-                "description": "Оставьте комментарии к книгам",
-                "quest_type": "create_comments",
-                "target_count": 3,
-            },
-            {
-                "title": "Обсуждение",
-                "description": "Ответьте на комментарии других читателей",
-                "quest_type": "reply_comments",
-                "target_count": 2,
-            },
-            {
-                "title": "Щедрость",
-                "description": "Разместите призы на доске",
-                "quest_type": "place_rewards",
-                "target_count": 1,
-            },
-            {
-                "title": "Книжный червь",
-                "description": "Прочитайте несколько книг",
-                "quest_type": "read_books",
-                "target_count": 2,
-            },
-            {
-                "title": "Комментатор",
-                "description": "Оставьте много комментариев",
-                "quest_type": "create_comments",
-                "target_count": 5,
-            },
-        ]
+        if not db_templates:
+            return Response(
+                {"error": "Нет доступных групповых заданий для генерации."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
-        # Select 3 random quests
-        selected_templates = random.sample(quest_templates, 3)
+        sample_size = min(3, len(db_templates))
+        selected_templates = random.sample(db_templates, sample_size)
 
-        # Get all available reward templates
         available_rewards = list(RewardTemplate.objects.all())
 
-        # Create quests
         created_quests = []
         for template in selected_templates:
-            # Assign a random reward if available
             reward_template = (
                 random.choice(available_rewards) if available_rewards else None
             )
@@ -264,7 +280,6 @@ def generate_daily_quests(request, slug):
                 reward_template=reward_template,
                 start_date=today_start,
                 end_date=today_end,
-                is_active=True,
             )
             created_quests.append(quest)
 
@@ -285,7 +300,6 @@ def generate_daily_quests(request, slug):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def generate_daily_personal_quests(request):
-    """Generate 3 random daily personal quests (global personal)."""
     from django.utils import timezone
 
     user = request.user
@@ -300,7 +314,6 @@ def generate_daily_personal_quests(request):
         participation_type="personal",
         period="day",
         created_by=user,
-        is_active=True,
         start_date__gte=today_start,
         end_date__lte=today_end,
     )
@@ -318,48 +331,20 @@ def generate_daily_personal_quests(request):
             }
         )
 
-    quest_templates = [
-        {
-            "title": "Читательский марафон",
-            "description": "Прочитайте книгу сегодня",
-            "quest_type": "read_books",
-            "target_count": 1,
-        },
-        {
-            "title": "Активный читатель",
-            "description": "Оставьте комментарии к книгам",
-            "quest_type": "create_comments",
-            "target_count": 3,
-        },
-        {
-            "title": "Обсуждение",
-            "description": "Ответьте на комментарии других читателей",
-            "quest_type": "reply_comments",
-            "target_count": 2,
-        },
-        {
-            "title": "Щедрость",
-            "description": "Разместите призы на доске",
-            "quest_type": "place_rewards",
-            "target_count": 1,
-        },
-        {
-            "title": "Книжный червь",
-            "description": "Прочитайте несколько книг",
-            "quest_type": "read_books",
-            "target_count": 2,
-        },
-        {
-            "title": "Комментатор",
-            "description": "Оставьте много комментариев",
-            "quest_type": "create_comments",
-            "target_count": 5,
-        },
-    ]
+    db_templates = list(
+        QuestTemplate.objects.filter(is_active=True, quest_scope="personal").values(
+            "title", "description", "quest_type", "target_count"
+        )
+    )
 
-    import random
+    if not db_templates:
+        return Response(
+            {"error": "Нет доступных личных заданий для генерации."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
-    selected_templates = random.sample(quest_templates, 3)
+    sample_size = min(3, len(db_templates))
+    selected_templates = random.sample(db_templates, sample_size)
     available_rewards = list(RewardTemplate.objects.all())
 
     created_quests = []
@@ -380,7 +365,6 @@ def generate_daily_personal_quests(request):
             reward_template=reward_template,
             start_date=today_start,
             end_date=today_end,
-            is_active=True,
         )
         QuestProgress.objects.get_or_create(
             user=user, quest=quest, defaults={"current_count": 0}
@@ -399,11 +383,9 @@ def generate_daily_personal_quests(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_quest(request):
-    """Create a quest (admin for global, group leader for group)."""
     user = request.user
     reading_group_id = request.data.get("reading_group")
 
-    # Check permissions
     if reading_group_id:
         try:
             reading_group = ReadingGroup.objects.get(id=reading_group_id)
@@ -432,7 +414,6 @@ def create_quest(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_quest_progress(request, quest_id):
-    """Get current user's progress on a specific quest."""
     user = request.user
 
     try:
@@ -443,7 +424,6 @@ def get_quest_progress(request, quest_id):
             serializer = QuestProgressSerializer(progress)
             return Response(serializer.data)
         except QuestProgress.DoesNotExist:
-            # Return zero progress if not started
             return Response(
                 {
                     "quest": quest_id,
@@ -459,17 +439,13 @@ def get_quest_progress(request, quest_id):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_my_quests(request):
-    """Get all quests user is participating in with progress."""
     user = request.user
-    from django.utils import timezone
-
     now = timezone.now()
 
     personal_quests = Quest.objects.filter(
         participation_type="personal",
         reading_group__isnull=True,
         created_by=user,
-        is_active=True,
         start_date__lte=now,
         end_date__gte=now,
     )
@@ -485,7 +461,6 @@ def get_my_quests(request):
 
     quests = (
         Quest.objects.filter(
-            is_active=True,
             start_date__lte=now,
             end_date__gte=now,
         )
@@ -500,24 +475,33 @@ def get_my_quests(request):
         .select_related("created_by", "reward_template", "reading_group")
     )
 
+    quest_ids = [q.id for q in quests]
+
     progress_map = {
-        p.quest_id: p for p in QuestProgress.objects.filter(user=user, quest__in=quests)
+        p.quest_id: p
+        for p in QuestProgress.objects.filter(user=user, quest_id__in=quest_ids)
     }
+
+    total_counts = dict(
+        QuestProgress.objects.filter(quest_id__in=quest_ids)
+        .values("quest_id")
+        .annotate(total=models.Sum("current_count"))
+        .values_list("quest_id", "total")
+    )
+
+    completed_quest_ids = set(
+        QuestCompletion.objects.filter(quest_id__in=quest_ids, user=user).values_list(
+            "quest_id", flat=True
+        )
+    )
 
     result = []
     for quest in quests:
         if quest.participation_type == "group":
-            total_count = (
-                QuestProgress.objects.filter(quest=quest)
-                .aggregate(total=models.Sum("current_count"))
-                .get("total")
-                or 0
-            )
+            total_count = total_counts.get(quest.id, 0) or 0
             user_progress = progress_map.get(quest.id)
             participated = bool(user_progress and user_progress.current_count > 0)
-            reward_received = QuestCompletion.objects.filter(
-                quest=quest, user=user
-            ).exists()
+            reward_received = quest.id in completed_quest_ids
             progress_percentage = (
                 min(100, (total_count / quest.target_count) * 100)
                 if quest.target_count > 0

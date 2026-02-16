@@ -1,0 +1,324 @@
+from datetime import timedelta
+from pathlib import Path
+
+from decouple import config
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+# Quick-start development settings - unsuitable for production
+# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
+
+# SECURITY WARNING: keep the secret key used in production secret!
+# No default provided - must be set in environment variables
+SECRET_KEY = config("SECRET_KEY")
+
+# SECURITY WARNING: don't run with debug turned on in production!
+# Default is False for security - explicitly enable for development
+DEBUG = config("DEBUG", default=False, cast=bool)
+
+
+def parse_csv(value):
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+# SECURITY WARNING: Configure allowed hosts for production
+# Default to localhost for development, override with comma-separated list in production
+ALLOWED_HOSTS = parse_csv(config("ALLOWED_HOSTS", default="localhost,127.0.0.1"))
+
+# Validate SECRET_KEY in production
+if not DEBUG:
+    if not SECRET_KEY or SECRET_KEY.startswith("django-insecure"):
+        raise ValueError(
+            "SECRET_KEY must be set to a secure value in production. "
+            "Generate a new key with: python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'"
+        )
+
+
+# Application definition
+
+INSTALLED_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "storages",
+    "bookapp",
+    "rest_framework",
+    "corsheaders",
+]
+
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "bookapp.middleware.SecurityHeadersMiddleware",  # Custom XSS protection headers
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
+ROOT_URLCONF = "book_api.urls"
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = "book_api.wsgi.application"
+
+
+# Database
+# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+
+# DATABASES = {
+#    "default": {
+#        "ENGINE": "django.db.backends.sqlite3",
+#        "NAME": BASE_DIR / "db.sqlite3",
+#    }
+# }
+
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": config("DB_NAME"),
+        "USER": config("DB_USER"),
+        "PASSWORD": config("DB_PASSWORD"),
+        "HOST": config("DB_HOST"),
+        "PORT": config("DB_PORT"),
+    }
+}
+
+
+# Password validation
+# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+]
+
+
+# Internationalization
+# https://docs.djangoproject.com/en/5.1/topics/i18n/
+
+LANGUAGE_CODE = "en-us"
+
+TIME_ZONE = "UTC"
+
+USE_I18N = True
+
+USE_TZ = True
+
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.1/howto/static-files/
+
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "static"
+
+# MinIO / S3 media storage
+AWS_S3_ENDPOINT_URL = config("AWS_S3_ENDPOINT_URL", default="http://localhost:9000")
+AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default="minioadmin")
+AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="minioadmin")
+AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME", default="book-club-media")
+AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="us-east-1")
+AWS_S3_ADDRESSING_STYLE = config("AWS_S3_ADDRESSING_STYLE", default="path")
+AWS_S3_USE_SSL = config(
+    "AWS_S3_USE_SSL",
+    default=AWS_S3_ENDPOINT_URL.startswith("https"),
+    cast=bool,
+)
+AWS_S3_VERIFY = config("AWS_S3_VERIFY", default=True, cast=bool)
+# If your bucket is private (default for MinIO), unsigned URLs will return 403 in the browser.
+# In production we default to presigned URLs unless explicitly disabled.
+AWS_QUERYSTRING_AUTH = config("AWS_QUERYSTRING_AUTH", default=not DEBUG, cast=bool)
+AWS_QUERYSTRING_EXPIRE = config(
+    "AWS_QUERYSTRING_EXPIRE",
+    default=86400 if not DEBUG else 3600,
+    cast=int,
+)
+AWS_S3_FILE_OVERWRITE = config("AWS_S3_FILE_OVERWRITE", default=False, cast=bool)
+AWS_DEFAULT_ACL = None
+AWS_S3_OBJECT_PARAMETERS = {
+    "CacheControl": "max-age=86400",
+}
+
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "endpoint_url": AWS_S3_ENDPOINT_URL,
+            "access_key": AWS_ACCESS_KEY_ID,
+            "secret_key": AWS_SECRET_ACCESS_KEY,
+            "region_name": AWS_S3_REGION_NAME,
+            "use_ssl": AWS_S3_USE_SSL,
+            "verify": AWS_S3_VERIFY,
+            "addressing_style": AWS_S3_ADDRESSING_STYLE,
+            "bucket_name": AWS_STORAGE_BUCKET_NAME,
+            "querystring_auth": AWS_QUERYSTRING_AUTH,
+            "querystring_expire": AWS_QUERYSTRING_EXPIRE,
+            "file_overwrite": AWS_S3_FILE_OVERWRITE,
+        },
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+# With S3/MinIO storage enabled, FileField/ImageField URLs are provided by the storage backend.
+# Keep MEDIA_URL relative so local dev/static helpers don't break when DEBUG=True.
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# EPUB File Upload Configuration
+MAX_EPUB_FILE_SIZE = 50 * 1024 * 1024  # 50MB in bytes
+ALLOWED_EPUB_EXTENSIONS = [".epub"]
+EPUB_UPLOAD_DIR = "epub_files/"
+
+# File Upload Size Limits
+DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+AUTH_USER_MODEL = "bookapp.CustomUser"
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    )
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+}
+
+# Cache configuration for rate limiting
+# In production, use Redis or Memcached for better performance
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "rate-limit-cache",
+    }
+}
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:3000",
+]
+
+cors_from_env = parse_csv(config("CORS_ALLOWED_ORIGINS", default=""))
+if cors_from_env:
+    CORS_ALLOWED_ORIGINS = cors_from_env
+
+CSRF_TRUSTED_ORIGINS = parse_csv(config("CSRF_TRUSTED_ORIGINS", default=""))
+
+CORS_ALLOW_CREDENTIALS = config("CORS_ALLOW_CREDENTIALS", default=False, cast=bool)
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+
+# XSS Protection Settings (applies to both development and production)
+# Prevent clickjacking attacks
+X_FRAME_OPTIONS = "DENY"
+
+# Referrer policy - don't send full URL in referrer
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+
+# Additional XSS protection for development
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# Additional security settings for production
+if not DEBUG:
+    # HTTPS/SSL settings
+    SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
+    SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=True, cast=bool)
+    CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=True, cast=bool)
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_SECONDS = config(
+        "SECURE_HSTS_SECONDS", default=31536000, cast=int
+    )  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = config(
+        "SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True, cast=bool
+    )
+    SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=True, cast=bool)
+
+# Logging configuration
+LOG_FILE_PATH = config("LOG_FILE_PATH", default="bookapp/app.log")
+LOG_LEVEL = config("LOG_LEVEL", default="INFO")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "file": {
+            "level": LOG_LEVEL,
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / LOG_FILE_PATH,
+            "formatter": "verbose",
+        },
+        "console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["file", "console"],
+        "level": LOG_LEVEL,
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["file", "console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "bookapp": {
+            "handlers": ["file", "console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+    },
+}

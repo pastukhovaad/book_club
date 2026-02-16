@@ -10,11 +10,11 @@ const Footer = () => {
       <div className="flex max-lg:gap-9 lg:gap-4 flex-wrap max-md:justify-center justify-between">
         <div className="w-[300px] flex flex-col gap-6 max-md:items-center">
           <h1 className="text-[#141624] text-2xl dark:text-[#FFFFFF] ">
-            Book sharing
+            Book club
           </h1>
 
           <p className="text-[14px] text-[#696A75] leading-[1.5]  max-md:text-center dark:text-[#97989F]">
-            Book Sharing is a project for writing and reading books togeather.
+            Book Club is a project for writing and reading books together.
 
           </p>
         </div>

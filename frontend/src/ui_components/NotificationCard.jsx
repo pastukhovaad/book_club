@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { FormatDateWithHour } from "@/services/formatDate";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { deleteNotification, getUserToReadingGroupStates, getNotification, confirmUserToGroup, createNotification } from '@/services/apiBook'
+import { deleteNotification, getUserToReadingGroupStates, getNotification, confirmUserToGroup, createNotification } from '@/services'
 import { useState } from "react";
 import { set } from "react-hook-form";
 import { decl } from "postcss";
@@ -80,6 +80,7 @@ const NotificationCard = ({ notification }) => {
     notification.category === "GroupRequestDeclined" ||
     notification.category === "GroupRequestAccepted" ||
     notification.category === "QuestCompleted" ||
+    notification.category === "GroupKick" ||
     notification.category === null;
 
   const shouldShowGroupAcceptDeclineButtons =
@@ -91,7 +92,6 @@ const NotificationCard = ({ notification }) => {
 
   return (
     <div className="px-4 py-4 rounded-md w-[900px] h-auto flex flex-col gap-3 dark:border-gray-800 border shadow-lg hover:shadow-md transition-shadow">
-      {/* Notification Text */}
       <div className="flex flex-col gap-2">
         <p className="text-sm text-[#181A2A] dark:text-gray-200">
           {notification.category === "GroupJoinRequest" ? (
@@ -173,7 +173,21 @@ const NotificationCard = ({ notification }) => {
                 </div>
               )}
             </>
-          ) : (
+          ) : notification.category === "GroupKick" ? (
+            <>
+              Вы были удалены из группы{" "}
+              {notification.related_group ? (
+                <Link
+                  to={`/groups/${notification.related_group.slug}`}
+                  className="underline hover:text-blue-600 dark:hover:text-blue-400"
+                >
+                  {notification.related_group.name}
+                </Link>
+              ) : (
+                ""
+              )}
+            </>
+          ) :(
             "Новое уведомление"
           )}
         </p>
@@ -185,8 +199,6 @@ const NotificationCard = ({ notification }) => {
             )}
         </div>
       </div>
-
-      {/* Timestamp */}
       <div className="text-xs text-gray-500 dark:text-gray-400">
         {FormatDateWithHour(notification.sent_at)}
       </div>

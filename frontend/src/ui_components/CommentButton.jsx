@@ -12,7 +12,7 @@ const CommentButton = ({ position, onClick, visible }) => {
         top: `${position.y}px`,
         transform: 'translate(-50%, -100%)',
       }}
-      title="Add comment"
+      title="Добавить комментарий"
     >
       <BiMessageSquareAdd size={20} />
     </button>

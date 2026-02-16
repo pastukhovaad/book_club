@@ -53,7 +53,6 @@ const QuestCard = ({ quest, userProgress = null, className = "" }) => {
             <span className="text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
               Завершено
             </span>
-            <span className="text-green-600 dark:text-green-400 text-2xl">✓</span>
           </div>
         )}
       </div>

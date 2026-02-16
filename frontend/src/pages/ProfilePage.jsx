@@ -1,4 +1,4 @@
-import { getUserInfo, getUserRewards, getUserStats, getUserToReadingGroupStates, getUserBooks } from "@/services/apiBook";
+import { getUserInfo, getUserRewards, getUserStats, getUserBooks } from "@/services";
 import BookContainer from "@/ui_components/BookContainer";
 import Hero from "@/ui_components/Hero";
 import Spinner from "@/ui_components/Spinner";
@@ -8,10 +8,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import SignupPage from "./SignupPage";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
-const ProfilePage = ({ authUsername }) => {
+const ProfilePage = () => {
   const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
+  const { username: authUsername } = useAuth();
 
   const toggleModal = () => {
     setShowModal(curr => !curr)
@@ -37,15 +39,7 @@ const ProfilePage = ({ authUsername }) => {
     enabled: !!username,
   });
 
-  const { data: userGroupStates } = useQuery({
-    queryKey: ["userGroupStates", data?.id],
-    queryFn: () => getUserToReadingGroupStates(data.id),
-    enabled: !!data?.id,
-  });
-
-  const joinedGroups = (userGroupStates || [])
-    .filter((state) => state?.in_reading_group && state?.reading_group)
-    .map((state) => state.reading_group);
+  const joinedGroups = data?.reading_groups || [];
 
   const { data: userBooks } = useQuery({
     queryKey: ["userBooks", username],
@@ -55,6 +49,9 @@ const ProfilePage = ({ authUsername }) => {
 
   const isOwnProfile = authUsername === username;
   const books = userBooks || [];
+
+  const noneText = books.length === 0 ? isOwnProfile ? "Вы ещё не выкладывали книг."
+    : "Пользователь ещё не выкладывал книг." : "";
 
   if (isPending) {
     return <Spinner />;
@@ -68,6 +65,7 @@ const ProfilePage = ({ authUsername }) => {
         books={books}
         title={`Книги ${username}`}
         showVisibilityLabels={isOwnProfile}
+        noneText={noneText}
       />
 
       {showModal && (
@@ -76,8 +74,7 @@ const ProfilePage = ({ authUsername }) => {
         </Modal>
       )}
 
-      {/* User Stats Section */}
-      {userStats && (
+      {userStats ? (
         <div className="max-container padding-y">
           <h2 className="text-2xl font-semibold mb-6 text-[#181A2A] dark:text-white">
             Статистика
@@ -105,19 +102,24 @@ const ProfilePage = ({ authUsername }) => {
             </div>
             <div className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800">
               <div className="text-l font-bold text-blue-800">
-                {userStats.favorite_genre || "—"}
+                {userStats.favorite_genre || "–"}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Любимый жанр</div>
             </div>
           </div>
         </div>
+      ) : (
+        <p className="flex justify-center text-[#3B3C4A] dark:text-[#BABABF]">
+          Ошибка при загрузке статистики пользователя.
+        </p>
       )}
 
-      {joinedGroups.length > 0 && (
-        <div className="max-container padding-y">
-          <h2 className="text-2xl font-semibold mb-6 text-[#181A2A] dark:text-white">
-            Вступил в группы
-          </h2>
+      <div className="max-container padding-y">
+        <h2 className="text-2xl font-semibold mb-6 text-[#181A2A] dark:text-white">
+          Вступил в группы
+        </h2>
+      {joinedGroups.length > 0 ? (
+        <div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {joinedGroups.map((group) => (
               <Link
@@ -137,34 +139,55 @@ const ProfilePage = ({ authUsername }) => {
             ))}
           </div>
         </div>
+      ) : username === authUsername ? (
+        <p className="flex justify-center text-[#3B3C4A] dark:text-[#BABABF]">
+          Вы ещё не вступали в группы.
+        </p>
+      ) : (
+        <p className="flex justify-center text-[#3B3C4A] dark:text-[#BABABF]">
+          Пользователь ещё не вступал в группы.
+        </p>
       )}
+      </div>
 
-      {/* User Rewards Section */}
-      {userRewards && userRewards.length > 0 && (
-        <div className="max-container padding-y">
+      <div className="max-container padding-y">
+        <div>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold text-[#181A2A] dark:text-white">
               Награды
             </h2>
+
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate(`/profile/${username}/board`)}
                 className="bg-[#4B6BFB] text-white py-2 px-4 rounded-md hover:bg-[#3a5ae0] transition-colors"
               >
-                Открыть доску наград
+                Открыть доску наград пользователя
               </button>
               <Link to={`/rewards?user=${username}`} className="text-[#4B6BFB] hover:underline">
-                Посмотреть все
+                Посмотреть все награды
               </Link>
             </div>
           </div>
+          {userRewards && userRewards.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {userRewards.slice(0, 4).map((reward) => (
               <RewardCard key={reward.id} reward={reward} />
             ))}
           </div>
+          ) : username === authUsername ? (
+            <p className="flex justify-center text-[#3B3C4A] dark:text-[#BABABF]">
+              Вы ещё не получали наград.
+            </p>
+          ) : (
+            <p className="flex justify-center text-[#3B3C4A] dark:text-[#BABABF]">
+              Пользователь ещё не получал наград.
+            </p>
+          )}
         </div>
-      )}
+      </div>
+
+
     </>
   );
 };

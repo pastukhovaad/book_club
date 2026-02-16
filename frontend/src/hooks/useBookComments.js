@@ -8,7 +8,7 @@ import {
   updateBookComment,
   deleteBookComment,
   getUserReadingGroups,
-} from '@/services/apiBook'
+} from '@/services'
 
 export const useBookComments = (slug, isAuthenticated = true) => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -18,10 +18,10 @@ export const useBookComments = (slug, isAuthenticated = true) => {
   const [selectedGroup, setSelectedGroup] = useState(null)
   const [editingComment, setEditingComment] = useState(null)
   const [showCommentForm, setShowCommentForm] = useState(false)
+  const [formError, setFormError] = useState(null)
 
   const readingGroupId = searchParams.get('reading_group_id')
 
-  // Fetch user's reading groups (only if authenticated)
   const { data: userGroups, isLoading: userGroupsLoading } = useQuery({
     queryKey: ['userReadingGroups'],
     queryFn: getUserReadingGroups,
@@ -32,7 +32,6 @@ export const useBookComments = (slug, isAuthenticated = true) => {
     refetchOnReconnect: false,
   })
 
-  // Set initial selected group from URL
   useEffect(() => {
     if (readingGroupId && userGroups) {
       const group = userGroups.find((g) => g.id === parseInt(readingGroupId))
@@ -43,7 +42,6 @@ export const useBookComments = (slug, isAuthenticated = true) => {
     }
   }, [readingGroupId, userGroups])
 
-  // Fetch comments
   const {
     data: comments,
     isLoading: commentsLoading,
@@ -53,12 +51,6 @@ export const useBookComments = (slug, isAuthenticated = true) => {
     queryFn: () => {
       const groupId = commentType === 'personal' ? null : readingGroupId
       return getBookComments(slug, groupId).then((data) => {
-        if (import.meta.env.DEV) {
-          console.log('Comments loaded:', data)
-          if (data && data.length > 0) {
-            console.log('First comment CFI:', data[0].cfi_range)
-          }
-        }
         return data
       })
     },
@@ -72,41 +64,74 @@ export const useBookComments = (slug, isAuthenticated = true) => {
     refetchOnReconnect: false,
   })
 
-  // Callback to run after successful comment creation
   const [onCreateSuccess, setOnCreateSuccess] = useState(null)
 
-  // Create comment mutation
   const createCommentMutation = useMutation({
     mutationFn: (data) => createBookComment(slug, data),
+    onMutate: async (newComment) => {
+      await queryClient.cancelQueries({
+        queryKey: ['bookComments', slug, commentType, readingGroupId],
+      })
+
+      const previousComments = queryClient.getQueryData([
+        'bookComments',
+        slug,
+        commentType,
+        readingGroupId,
+      ])
+
+      const userData = queryClient.getQueryData(['username'])
+
+      queryClient.setQueryData(
+        ['bookComments', slug, commentType, readingGroupId],
+        (old) => {
+          const existing = Array.isArray(old) ? old : []
+          const tempComment = {
+            ...newComment,
+            id: `temp-${Date.now()}`,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            user: userData || { username: 'current_user' },
+            book: slug,
+            parent_comment: null,
+            replies_count: 0,
+          }
+          return [tempComment, ...existing]
+        },
+      )
+
+      return { previousComments }
+    },
     onSuccess: (data) => {
-      if (import.meta.env.DEV) {
-        console.log('Comment created successfully:', data)
-      }
       queryClient.setQueryData(
         ['bookComments', slug, commentType, readingGroupId],
         (oldData) => {
           const existing = Array.isArray(oldData) ? oldData : []
-          return [data, ...existing]
+          const withoutTemp = existing.filter((c) => !c.id.toString().startsWith('temp-'))
+          return [data, ...withoutTemp]
         },
       )
-      queryClient.invalidateQueries({
-        queryKey: ['bookComments', slug, commentType, readingGroupId],
-      })
       setShowCommentForm(false)
+      setFormError(null)
       if (onCreateSuccess) {
         onCreateSuccess()
         setOnCreateSuccess(null)
       }
     },
-    onError: (err) => {
-      if (import.meta.env.DEV) {
-        console.error('Failed to create comment:', err)
+    onError: (err, newComment, context) => {
+      if (context?.previousComments) {
+        queryClient.setQueryData(
+          ['bookComments', slug, commentType, readingGroupId],
+          context.previousComments,
+        )
       }
-      toast.error(err.message || 'Ошибка при создании комментария')
+      console.error('Failed to create comment:', err)
+      const errorMessage = err.message || 'Ошибка при создании комментария'
+      setFormError(errorMessage)
+      toast.error(errorMessage)
     },
   })
 
-  // Update comment mutation
   const updateCommentMutation = useMutation({
     mutationFn: ({ commentId, data }) =>
       updateBookComment(slug, commentId, data),
@@ -116,13 +141,15 @@ export const useBookComments = (slug, isAuthenticated = true) => {
       })
       setShowCommentForm(false)
       setEditingComment(null)
+      setFormError(null)
     },
     onError: (err) => {
-      toast.error(err.message || 'Ошибка при обновлении комментария')
+      const errorMessage = err.message || 'Ошибка при обновлении комментария'
+      setFormError(errorMessage)
+      toast.error(errorMessage)
     },
   })
 
-  // Delete comment mutation
   const deleteCommentMutation = useMutation({
     mutationFn: (commentId) => deleteBookComment(slug, commentId),
     onSuccess: () => {
@@ -142,17 +169,6 @@ export const useBookComments = (slug, isAuthenticated = true) => {
         data: formData,
       })
     } else {
-      if (!selectedTextData) {
-        if (import.meta.env.DEV) {
-          console.warn('handleSubmitComment: No selectedTextData provided')
-        }
-        return
-      }
-
-      if (import.meta.env.DEV) {
-        console.log('Creating comment with selectedTextData:', selectedTextData)
-        console.log('CFI Range:', selectedTextData.cfiRange)
-      }
 
       const commentData = {
         cfi_range: selectedTextData.cfiRange,
@@ -160,15 +176,10 @@ export const useBookComments = (slug, isAuthenticated = true) => {
         ...formData,
       }
 
-      if (import.meta.env.DEV) {
-        console.log('Comment data to send:', commentData)
-      }
-
       if (commentType === 'group' && readingGroupId) {
         commentData.reading_group = parseInt(readingGroupId)
       }
 
-      // Store callback to run after success
       if (onSuccess) {
         setOnCreateSuccess(() => onSuccess)
       }
@@ -188,11 +199,13 @@ export const useBookComments = (slug, isAuthenticated = true) => {
 
   const handleOpenCommentForm = () => {
     setShowCommentForm(true)
+    setFormError(null)
   }
 
   const handleCloseCommentForm = () => {
     setShowCommentForm(false)
     setEditingComment(null)
+    setFormError(null)
   }
 
   const handleSelectGroup = (group) => {
@@ -216,7 +229,6 @@ export const useBookComments = (slug, isAuthenticated = true) => {
   }
 
   return {
-    // State
     comments,
     commentsLoading,
     commentsError,
@@ -228,12 +240,11 @@ export const useBookComments = (slug, isAuthenticated = true) => {
     userGroups,
     userGroupsLoading,
     isAuthenticated,
+    formError,
 
-    // Mutation states
     isSubmitting:
       createCommentMutation.isPending || updateCommentMutation.isPending,
 
-    // Handlers
     handleSubmitComment,
     handleEditComment,
     handleDeleteComment,

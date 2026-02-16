@@ -1,24 +1,17 @@
-"""
-Reward management views.
-
-Handles reward template creation and user reward tracking.
-"""
-
 import logging
+
 from django.shortcuts import get_object_or_404
-from django.db import models
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ..models import (
+    PrizeBoardCell,
+    ReadingGroup,
     RewardTemplate,
     UserReward,
     UserRewardSummary,
-    ReadingGroup,
-    UserToReadingGroupState,
-    PrizeBoardCell,
 )
 from ..serializers import (
     RewardTemplateSerializer,
@@ -29,24 +22,10 @@ from ..serializers import (
 logger = logging.getLogger(__name__)
 
 
-# Reward Templates
-
-
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_reward_templates(request):
-    """Get all reward templates (global and user's groups)."""
-    user = request.user
-
-    # Get global rewards and rewards from user's groups
-    user_groups = UserToReadingGroupState.objects.filter(
-        user=user, in_reading_group=True
-    ).values_list("reading_group_id", flat=True)
-
-    templates = RewardTemplate.objects.filter(
-        models.Q(reading_group__isnull=True)
-        | models.Q(reading_group_id__in=user_groups)
-    ).select_related("created_by", "reading_group")
+    templates = RewardTemplate.objects.all()
 
     serializer = RewardTemplateSerializer(templates, many=True)
     return Response(serializer.data)
@@ -55,11 +34,9 @@ def get_reward_templates(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_reward_template(request):
-    """Create a reward template (admin for global, group leader for group)."""
     user = request.user
     reading_group_id = request.data.get("reading_group")
 
-    # Check permissions
     if reading_group_id:
         try:
             reading_group = ReadingGroup.objects.get(id=reading_group_id)
@@ -80,18 +57,29 @@ def create_reward_template(request):
 
     serializer = RewardTemplateSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save(created_by=user)
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# User Rewards
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_reward_template(request, template_id):
+    if not request.user.is_superuser:
+        return Response(
+            {"error": "Only superusers can delete reward templates"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    template = get_object_or_404(RewardTemplate, id=template_id)
+    if template.image:
+        template.image.delete(save=False)
+    template.delete()
+    return Response({"message": "Шаблон приза удалён"}, status=status.HTTP_200_OK)
 
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_my_rewards(request):
-    """Get current user's rewards."""
     user = request.user
     rewards = (
         UserReward.objects.filter(user=user)
@@ -106,7 +94,6 @@ def get_my_rewards(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_my_reward_summaries(request):
-    """Get aggregated reward counts for current user."""
     user = request.user
     summaries = (
         UserRewardSummary.objects.filter(user=user)
@@ -120,7 +107,6 @@ def get_my_reward_summaries(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_my_reward_placements(request):
-    """Get list of user_reward ids placed by the user across all boards."""
     user = request.user
     placed_reward_ids = list(
         PrizeBoardCell.objects.filter(user_reward__user=user).values_list(
@@ -133,7 +119,6 @@ def get_my_reward_placements(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_user_rewards(request, username):
-    """Get specific user's rewards."""
     try:
         from django.contrib.auth import get_user_model
 
@@ -155,7 +140,6 @@ def get_user_rewards(request, username):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_user_reward_summaries(request, username):
-    """Get aggregated reward counts for a specific user."""
     try:
         from django.contrib.auth import get_user_model
 

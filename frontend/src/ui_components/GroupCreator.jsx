@@ -11,7 +11,6 @@ const GroupCreator = ({reading_group}) => {
       <span className="flex items-center gap-2">
 
           <div className="w-[40px] h-[40px] rounded-full overflow-hidden">
-            {/* User Avatar */}
             {reading_group.creator.profile_picture ? (
               <img
                 src={resolveMediaUrl(reading_group.creator.profile_picture)}

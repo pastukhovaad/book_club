@@ -2,25 +2,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
-// import {
-//   Select,
-//   SelectContent,
-//   SelectItem,
-//   SelectTrigger,
-//   SelectValue,
-//   SelectGroup,
-//   SelectLabel,
-// } from "@/components/ui/select";
 import InputError from "@/ui_components/InputError";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createReadingGroup, updateReadingGroup } from "@/services/apiBook";
+import { createReadingGroup, updateReadingGroup } from "@/services";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import SmallSpinner from "@/ui_components/SmallSpinner";
 import SmallSpinnerText from "@/ui_components/SmallSpinnerText";
 import LoginPage from "./LoginPage";
+import { useAuth } from "@/context/AuthContext";
 
-const CreateReadingGroupPage = ({ reading_group, isAuthenticated }) => {
+const CreateReadingGroupPage = ({ reading_group }) => {
+  const { isAuthenticated } = useAuth();
   const { register, handleSubmit, formState, setValue } = useForm({
     defaultValues: reading_group ? reading_group : {},
   });
@@ -34,20 +27,19 @@ const CreateReadingGroupPage = ({ reading_group, isAuthenticated }) => {
     mutationFn: ({ data, id }) => updateReadingGroup(data, id),
     onSuccess: () => {
       navigate("/");
-      toast.success("Ваша группа была успешно обновлена!");
-      console.log("Ваша группа была успешно обновлена!");
+      toast.success("Ваша группа была успешно обновлена.");
     },
 
     onError: (err) => {
       toast.error(err.message);
-      console.log("Возникла ошибка при обновлении группы", err);
+      console.log("Error updating group:", err);
     },
   });
 
   const mutation = useMutation({
     mutationFn: (data) => createReadingGroup(data),
     onSuccess: () => {
-      toast.success("Новая группа успешно создана!");
+      toast.success("Новая группа успешно создана.");
       queryClient.invalidateQueries({ queryKey: ["reading_groups"] });
       navigate("/");
     },
@@ -128,38 +120,6 @@ const CreateReadingGroupPage = ({ reading_group, isAuthenticated }) => {
           <InputError error={errors.description.message} />
         )}
       </div>
-
-      {/* <div className="w-full">
-        <Label htmlFor="category">Category *</Label>
-
-        <Select
-          {...register("category", { required: "Book's category is required" })}
-          onValueChange={(value) => setValue("category", value)}
-          defaultValue={book ? book.category : ""}
-        >
-          <SelectTrigger className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full max-sm:w-[300px] max-sm:text-[14px]">
-            <SelectValue placeholder="Select a category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Categories</SelectLabel>
-              <SelectItem value="Science Fiction">Science Fiction</SelectItem>
-              <SelectItem value="Fantasy">Fantasy</SelectItem>
-              <SelectItem value="Detective Fiction">Detective Fiction</SelectItem>
-              <SelectItem value="Thriller">Thriller</SelectItem>
-              <SelectItem value="Romance">Romance</SelectItem>
-              <SelectItem value="Horror">Horror</SelectItem>
-              <SelectItem value="Historical Fiction">Historical Fiction</SelectItem>
-              <SelectItem value="Adventure">Adventure</SelectItem>                            
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-
-        {errors?.category?.message && (
-          <InputError error={errors.category.message} />
-        )}
-      </div> */}
-      {/* Could add group categories */}
 
       <div className="w-full">
         <Label htmlFor="featured_image">Картинка группы *</Label>

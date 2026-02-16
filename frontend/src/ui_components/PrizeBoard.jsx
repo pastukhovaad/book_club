@@ -107,9 +107,6 @@ const PrizeBoard = ({
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
       <div className="flex items-center justify-end">
-        {/* <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-          Доска фигурок
-        </h3> */}
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -203,7 +200,7 @@ const PrizeBoard = ({
                       onMouseEnter={() => setHoveredCell({ x, y })}
                       onMouseLeave={() => setHoveredCell(null)}
                       title={cellContent
-                        ? `${rewardName || "Фигурка"} (от ${cellContent?.placed_by?.username || ""})`
+                        ? `${rewardName || "Награда"} (от ${cellContent?.placed_by?.username || ""})`
                         : canPlace
                           ? "Нажмите, чтобы разместить"
                           : ""
@@ -263,7 +260,6 @@ const PrizeBoard = ({
                             transform: `translate(-62%, -95%) ${contentTransform}`,
                             width: "130%",
                             height: "120%", 
-                            // TODO: 110 or 120?
                           }}
                         >
                           <img
@@ -290,15 +286,29 @@ const PrizeBoard = ({
         {canEdit && isEditing && (
           <div className="border dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 w-full lg:w-72">
             <h4 className="text-md font-semibold mb-3 text-gray-800 dark:text-gray-200">
-              Ваши фигурки
+              Ваши награды
             </h4>
+            <div className="mb-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <span>Про размещение наград</span>
+                <div className="relative group">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs cursor-help">
+                    ?
+                  </span>
+                  <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 rounded-md bg-gray-200 text-gray-700 text-xs px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                    На доску можно поставить любые имеющиеся награды. 
+                    Для размещения награды, нажмите сначала на награду, а затем на свободную ячейку доски, на которую вы хотите поставить эту награду. 
+                    Для удаления награды с доски, нажмите на ячейку доски, на которой она находится.
+                    На ячейках с зелёными краями стоят награды, выставленные вами, а на ячейками с красными краями – награды, выставленные другими пользователями.
+                  </div>
+                </div>
+              </div>
             <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 mb-4">
               <input
                 type="checkbox"
                 checked={showPlacedNames}
                 onChange={(event) => setShowPlacedNames(event.target.checked)}
               />
-              Показывать имена владельцев
+              Показывать имена владельцев выставленных наград
             </label>
             {rewardTemplateList.length > 0 ? (
               <div className="flex gap-4 flex-wrap">
@@ -341,7 +351,7 @@ const PrizeBoard = ({
               </div>
             ) : (
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                У вас пока нет фигурок для размещения.
+                У вас нет наград для размещения.
               </p>
             )}
           </div>

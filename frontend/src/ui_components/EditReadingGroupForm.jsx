@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateReadingGroup } from "@/services/apiBook";
+import { updateReadingGroup } from "@/services";
 import { toast } from "react-toastify";
 import SmallSpinner from "./SmallSpinner";
 import { resolveMediaUrl } from "@/api";
@@ -42,7 +42,6 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
         ...prev,
         featured_image: file,
       }));
-      // Preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -71,7 +70,6 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
       </h2>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        {/* Name Field */}
         <div className="flex flex-col gap-2">
           <label htmlFor="name" className="font-semibold text-[#181A2A] dark:text-[#FFFFFF]">
             Название
@@ -87,7 +85,6 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
           />
         </div>
 
-        {/* Description Field */}
         <div className="flex flex-col gap-2">
           <label htmlFor="description" className="font-semibold text-[#181A2A] dark:text-[#FFFFFF]">
             Описание
@@ -102,13 +99,11 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
           />
         </div>
 
-        {/* Image Field */}
         <div className="flex flex-col gap-2">
           <label htmlFor="featured_image" className="font-semibold text-[#181A2A] dark:text-[#FFFFFF]">
             Приложенное изображение
           </label>
           
-          {/* Current Image or New Preview */}
           {imagePreview || reading_group.featured_image ? (
             <div className="w-full h-40 rounded-lg overflow-hidden mb-2">
               <img
@@ -136,7 +131,6 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
           </p>
         </div>
 
-        {/* Submit Button */}
         <div className="flex gap-2 justify-end mt-6">
           <button
             type="button"

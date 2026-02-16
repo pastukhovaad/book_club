@@ -13,6 +13,7 @@ from .models import (
     Quest,
     QuestCompletion,
     QuestProgress,
+    QuestTemplate,
     ReadingGroup,
     ReadingProgress,
     RewardTemplate,
@@ -21,16 +22,12 @@ from .models import (
     UserStats,
     UserToReadingGroupState,
 )
-
-
-def text_formating(content):
-    processed_data = content
-    return processed_data
+from .validators import validate_no_profanity
 
 
 class UpdateUserProfileSerializer(serializers.ModelSerializer):
     profile_picture = serializers.ImageField(
-        required=False, allow_null=True, allow_empty_file=True, write_only=True
+        required=False, allow_null=True, write_only=True
     )
 
     class Meta:
@@ -48,14 +45,17 @@ class UpdateUserProfileSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Сделаем поля необязательными
         self.fields["profile_picture"].required = False
 
+    def validate_bio(self, value):
+        if value:
+            validate_no_profanity(value)
+        return value
+
     def update(self, instance, validated_data):
-        # Если profile_picture не в initial_data, не обновляем его
         if "profile_picture" not in self.initial_data:
             validated_data.pop("profile_picture", None)
-        # Если загружается новая картинка, удаляем старую из S3/MinIO
+
         elif "profile_picture" in validated_data and validated_data["profile_picture"]:
             if instance.profile_picture:
                 instance.profile_picture.delete(save=False)
@@ -67,13 +67,16 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = ["id", "username", "first_name", "last_name", "password"]
-        extra_kwargs = {"password": {"write_only": True}}
+        extra_kwargs = {
+            "password": {"write_only": True},
+            "first_name": {"required": False, "allow_blank": True},
+            "last_name": {"required": False, "allow_blank": True},
+        }
 
     def create(self, validated_data):
         username = validated_data["username"]
-        first_name = validated_data["first_name"]
-        last_name = validated_data["last_name"]
-        first_name = validated_data["first_name"]
+        first_name = validated_data.get("first_name", "")
+        last_name = validated_data.get("last_name", "")
         password = validated_data["password"]
 
         user = get_user_model()
@@ -146,24 +149,18 @@ class BookSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
 
-        # Handle content based on content_type
         if instance.content_type == "epub":
-            # For EPUB books, provide structured content
             representation["processed_content"] = None
             representation["chapters"] = instance.table_of_contents or []
             representation["has_epub"] = True
         else:
-            # For plain text books, use existing formatting
             content = representation.get("content", "")
-            representation["processed_content"] = (
-                text_formating(content) if content else ""
-            )
+            representation["processed_content"] = content
             representation["has_epub"] = False
 
         return representation
 
     def validate(self, data):
-        """Validate that content or epub_file is provided based on content_type."""
         content_type = data.get("content_type", "plaintext")
 
         if content_type == "epub":
@@ -180,8 +177,6 @@ class BookSerializer(serializers.ModelSerializer):
         return data
 
 
-
-
 class BookSerializerInfo(serializers.ModelSerializer):
     author = SimpleAuthorSerializer(read_only=True)
     reading_group = serializers.PrimaryKeyRelatedField(
@@ -190,7 +185,7 @@ class BookSerializerInfo(serializers.ModelSerializer):
     average_rating = serializers.SerializerMethodField()
     hashtags = HashtagSerializer(many=True, read_only=True)
     category_display = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Book
 
@@ -217,23 +212,13 @@ class BookSerializerInfo(serializers.ModelSerializer):
     def get_category_display(self, obj):
         return dict(Book.CATEGORY).get(obj.category, "Unknown")
 
-    
-
     def get_average_rating(self, instance):
+        if hasattr(instance, "average_rating"):
+            return instance.average_rating
         rating = BookReview.objects.filter(book=instance).aggregate(
             avg=Avg("stars_amount")
         )
         return rating["avg"]
-
-
-
-
-
-
-
-
-
-
 
 
 class BookReviewSerializer(serializers.ModelSerializer):
@@ -260,12 +245,17 @@ class BookReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "user", "book", "creation_date", "likes"]
 
     def validate_description(self, value):
+        if value:
+            validate_no_profanity(value)
         return value or ""
+
+    def validate_title(self, value):
+        if value:
+            validate_no_profanity(value)
+        return value
 
 
 class UserWithStatusSerializer(serializers.ModelSerializer):
-    """Serializer for users that includes their in_reading_group status."""
-
     in_reading_group = serializers.SerializerMethodField()
 
     class Meta:
@@ -281,9 +271,16 @@ class UserWithStatusSerializer(serializers.ModelSerializer):
         ]
 
     def get_in_reading_group(self, obj):
-        """Get the in_reading_group status from the through table."""
         reading_group_id = self.context.get("reading_group_id")
         if reading_group_id:
+            if (
+                hasattr(obj, "_prefetched_objects_cache")
+                and "usertoreadinggroupstate_set" in obj._prefetched_objects_cache
+            ):
+                for state in obj.usertoreadinggroupstate_set.all():
+                    if state.reading_group_id == reading_group_id:
+                        return state.in_reading_group
+                return False
             try:
                 state = UserToReadingGroupState.objects.get(
                     user=obj, reading_group_id=reading_group_id
@@ -312,7 +309,6 @@ class ReadingGroupSerializer(serializers.ModelSerializer):
         ]
 
     def get_user(self, obj):
-        """Get all users with their in_reading_group status."""
         users = obj.user.all()
         serializer = UserWithStatusSerializer(
             users, many=True, context={"reading_group_id": obj.id}
@@ -342,7 +338,6 @@ class NotificationSerializer(serializers.ModelSerializer):
         ]
 
     def get_related_quest(self, obj):
-        """Return quest data if related_quest exists."""
         if obj.related_quest:
             return {
                 "id": obj.related_quest.id,
@@ -351,7 +346,6 @@ class NotificationSerializer(serializers.ModelSerializer):
         return None
 
     def get_related_reward(self, obj):
-        """Return reward data if related_reward exists."""
         if obj.related_reward:
             from .models import RewardTemplate
 
@@ -385,7 +379,9 @@ class UserInfoSerializer(serializers.ModelSerializer):
         ]
 
     def get_author_posts(self, user):
-        books = Book.objects.filter(author=user)[:9]
+        books = Book.objects.filter(author=user).annotate(
+            average_rating=Avg("bookreview__stars_amount")
+        )[:9]
         serializer = BookSerializerInfo(books, many=True, context=self.context)
         return serializer.data
 
@@ -417,7 +413,6 @@ class UserToReadingGroupStateSerializer(serializers.ModelSerializer):
 
 
 class BookCommentSerializer(serializers.ModelSerializer):
-    """Serializer for book comments with user and book info."""
 
     user = SimpleAuthorSerializer(read_only=True)
     book_slug = serializers.CharField(source="book.slug", read_only=True)
@@ -462,20 +457,17 @@ class BookCommentSerializer(serializers.ModelSerializer):
         ]
 
     def validate_cfi_range(self, value):
-        """Validate that cfi_range is not empty for root comments."""
-        # Allow empty cfi_range for replies
+        # console.log("Validating CFI range:", value)
         return value
 
     def validate_comment_text(self, value):
-        """Validate that comment text is not empty."""
         if not value or not value.strip():
             raise serializers.ValidationError("Comment text cannot be empty")
+        validate_no_profanity(value)
         return value
 
 
 class BookCommentCreateSerializer(serializers.ModelSerializer):
-    """Simplified serializer for creating comments."""
-
     class Meta:
         model = BookComment
         fields = [
@@ -487,23 +479,23 @@ class BookCommentCreateSerializer(serializers.ModelSerializer):
             "highlight_color",
         ]
 
+    def validate_comment_text(self, value):
+        validate_no_profanity(value)
+        return value
+
     def validate(self, data):
-        """Validate that the user is a member of the reading group (if group is specified)."""
         request = self.context.get("request")
         if request and request.user:
             reading_group = data.get("reading_group")
-            # Check if user is a member of the reading group (only for group comments)
             if reading_group:
                 if not reading_group.user.filter(id=request.user.id).exists():
                     raise serializers.ValidationError(
                         "You must be a member of the reading group to comment"
                     )
-            # If reading_group is None, it's a personal comment - no additional validation needed
         return data
 
 
 class CommentReplySerializer(serializers.ModelSerializer):
-    """Serializer for comment replies."""
 
     user = SimpleAuthorSerializer(read_only=True)
 
@@ -519,10 +511,14 @@ class CommentReplySerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "user", "parent_comment", "created_at", "updated_at"]
 
+    def validate_comment_text(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Reply text cannot be empty")
+        validate_no_profanity(value)
+        return value
+
 
 class CommentReplyCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating replies to comments."""
-
     class Meta:
         model = BookComment
         fields = [
@@ -530,13 +526,12 @@ class CommentReplyCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate_comment_text(self, value):
-        """Validate that comment text is not empty."""
         if not value or not value.strip():
             raise serializers.ValidationError("Reply text cannot be empty")
+        validate_no_profanity(value)
         return value
 
     def validate(self, data):
-        """Validate that the user has access to the parent comment's group."""
         request = self.context.get("request")
         parent_comment = self.context.get("parent_comment")
 
@@ -545,7 +540,6 @@ class CommentReplyCreateSerializer(serializers.ModelSerializer):
 
         if request and request.user:
             reading_group = parent_comment.reading_group
-            # For group comments, check if user is a confirmed member
             if reading_group:
                 try:
                     membership = UserToReadingGroupState.objects.get(
@@ -560,7 +554,6 @@ class CommentReplyCreateSerializer(serializers.ModelSerializer):
                         "You must be a member of the reading group to reply"
                     )
             else:
-                # Personal comments - only the owner can reply (or we can disable replies)
                 if parent_comment.user != request.user:
                     raise serializers.ValidationError(
                         "You cannot reply to other users' personal comments"
@@ -569,21 +562,42 @@ class CommentReplyCreateSerializer(serializers.ModelSerializer):
         return data
 
 
-# ============================================================================
-# Gamification Serializers
-# ============================================================================
-
-
 class RewardTemplateSerializer(serializers.ModelSerializer):
-    """Serializer for reward templates."""
 
     class Meta:
         model = RewardTemplate
         fields = ["id", "name", "image"]
 
 
+class QuestTemplateSerializer(serializers.ModelSerializer):
+
+    quest_type_display = serializers.SerializerMethodField()
+    quest_scope_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = QuestTemplate
+        fields = [
+            "id",
+            "title",
+            "description",
+            "quest_type",
+            "quest_type_display",
+            "quest_scope",
+            "quest_scope_display",
+            "target_count",
+            "is_active",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
+
+    def get_quest_type_display(self, obj):
+        return obj.get_quest_type_display()
+
+    def get_quest_scope_display(self, obj):
+        return obj.get_quest_scope_display()
+
+
 class UserRewardSerializer(serializers.ModelSerializer):
-    """Serializer for user rewards."""
 
     user = SimpleAuthorSerializer(read_only=True)
     reward_template = RewardTemplateSerializer(read_only=True)
@@ -605,7 +619,6 @@ class UserRewardSerializer(serializers.ModelSerializer):
 
 
 class UserRewardSummarySerializer(serializers.ModelSerializer):
-    """Serializer for aggregated user reward counts."""
 
     user = SimpleAuthorSerializer(read_only=True)
     reward_template = RewardTemplateSerializer(read_only=True)
@@ -629,7 +642,6 @@ class UserRewardSummarySerializer(serializers.ModelSerializer):
 
 
 class QuestSerializer(serializers.ModelSerializer):
-    """Serializer for quests."""
 
     created_by = SimpleAuthorSerializer(read_only=True)
     reward_template = RewardTemplateSerializer(read_only=True)
@@ -657,7 +669,6 @@ class QuestSerializer(serializers.ModelSerializer):
             "created_by",
             "start_date",
             "end_date",
-            "is_active",
             "is_completed",
             "created_at",
         ]
@@ -665,7 +676,6 @@ class QuestSerializer(serializers.ModelSerializer):
 
 
 class QuestProgressSerializer(serializers.ModelSerializer):
-    """Serializer for quest progress."""
 
     user = SimpleAuthorSerializer(read_only=True)
     quest = QuestSerializer(read_only=True)
@@ -684,14 +694,12 @@ class QuestProgressSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "user", "last_updated"]
 
     def get_progress_percentage(self, obj):
-        """Calculate progress as percentage."""
         if obj.quest.target_count > 0:
             return min(100, (obj.current_count / obj.quest.target_count) * 100)
         return 0
 
 
 class QuestCompletionSerializer(serializers.ModelSerializer):
-    """Serializer for completed quests."""
 
     user = SimpleAuthorSerializer(read_only=True)
     quest = QuestSerializer(read_only=True)
@@ -713,7 +721,6 @@ class QuestCompletionSerializer(serializers.ModelSerializer):
 
 
 class PrizeBoardSerializer(serializers.ModelSerializer):
-    """Serializer for prize boards."""
 
     reading_group = ReadingGroupSerializer(read_only=True)
     user = SimpleAuthorSerializer(read_only=True)
@@ -734,7 +741,6 @@ class PrizeBoardSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at"]
 
     def get_cells(self, obj):
-        """Get all cells with their rewards."""
         cells = PrizeBoardCell.objects.filter(board=obj).select_related(
             "user_reward__reward_template", "placed_by"
         )
@@ -742,7 +748,6 @@ class PrizeBoardSerializer(serializers.ModelSerializer):
 
 
 class PrizeBoardCellSerializer(serializers.ModelSerializer):
-    """Serializer for prize board cells."""
 
     user_reward = UserRewardSerializer(read_only=True)
     placed_by = SimpleAuthorSerializer(read_only=True)
@@ -762,7 +767,6 @@ class PrizeBoardCellSerializer(serializers.ModelSerializer):
 
 
 class ReadingProgressSerializer(serializers.ModelSerializer):
-    """Serializer for reading progress."""
 
     user = SimpleAuthorSerializer(read_only=True)
     book = serializers.SerializerMethodField()
@@ -782,7 +786,6 @@ class ReadingProgressSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "user", "last_read_at"]
 
     def get_book(self, obj):
-        """Return basic book info."""
         return {
             "id": obj.book.id,
             "title": obj.book.title,
@@ -794,7 +797,6 @@ class ReadingProgressSerializer(serializers.ModelSerializer):
 
 
 class UserStatsSerializer(serializers.ModelSerializer):
-    """Serializer for user statistics."""
 
     user = SimpleAuthorSerializer(read_only=True)
     favorite_genre = serializers.SerializerMethodField()
@@ -824,9 +826,7 @@ class UserStatsSerializer(serializers.ModelSerializer):
             .order_by("-total")
             .first()
         )
-        top_display = dict(Book.CATEGORY).get(top["book__category"] )
-        return  top_display if top_display else None
-    
-    
-
-
+        if not top:
+            return None
+        top_display = dict(Book.CATEGORY).get(top["book__category"])
+        return top_display if top_display else None

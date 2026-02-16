@@ -1,7 +1,7 @@
 import BookCard from "./BookCard"
 import Spinner from "./Spinner"
 
-const BookContainer = ({isPending, books=[], title="", showVisibilityLabels=false}) => {
+const BookContainer = ({isPending, books=[], title="", showVisibilityLabels=false, noneText=""}) => {
 
   if(isPending){
     return <Spinner />
@@ -23,8 +23,13 @@ const BookContainer = ({isPending, books=[], title="", showVisibilityLabels=fals
           showVisibilityLabels={showVisibilityLabels}
         />
       ))}
-      
     </div>
+    
+    {noneText && (
+      <p className="flex justify-center text-[#3B3C4A] dark:text-[#BABABF]">
+        {noneText}
+      </p>
+    )}
   </section>
   )
 }

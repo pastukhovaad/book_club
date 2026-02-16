@@ -15,9 +15,6 @@ const BookWriter = ({book}) => {
       
       <span className="flex items-center gap-2">
           <div className="w-[40px] h-[40px] rounded-full overflow-hidden">
-
-
-            {/* User Avatar */}
             {book.author.profile_picture ? (
               <img
                 src={resolveMediaUrl(book.author.profile_picture)}

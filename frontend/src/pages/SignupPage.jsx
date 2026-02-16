@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { registerUser, updateProfile } from '@/services/apiBook'
+import { registerUser, updateProfile } from '@/services'
 import InputError from '@/ui_components/InputError'
 import SmallSpinner from '@/ui_components/SmallSpinner'
 import SmallSpinnerText from '@/ui_components/SmallSpinnerText'
@@ -74,8 +74,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
       formData.append('job_title', data.job_title || '')
       formData.append('bio', data.bio || '')
 
-      // Добавляем новое изображение только если оно выбрано
-      if (data.profile_picture && data.profile_picture.length > 0) {
+      if (data.profile_picture instanceof FileList && data.profile_picture.length > 0) {
         formData.append('profile_picture', data.profile_picture[0])
       }
 
@@ -106,7 +105,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
 
       <div>
         <Label htmlFor="username" className="dark:text-[97989F]">
-          Имя пользователя
+          Имя пользователя *
         </Label>
         <Input
           type="text"
@@ -132,18 +131,9 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
           type="text"
           id="first_name"
           placeholder="Введите имя"
-          {...register('first_name', {
-            required: 'Имя обязательно',
-            minLength: {
-              value: 3,
-              message: 'Имя должно содержать не менее 3 символов',
-            },
-          })}
+          {...register('first_name')}
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full"
         />
-        {errors?.first_name?.message && (
-          <InputError error={errors.first_name.message} />
-        )}
       </div>
 
       <div className="w-[300px]">
@@ -152,18 +142,9 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
           type="text"
           id="last_name"
           placeholder="Введите фамилию"
-          {...register('last_name', {
-            required: 'Фамилия обязательна',
-            minLength: {
-              value: 3,
-              message: 'Фамилия должна содержать не менее 3 символов',
-            },
-          })}
+          {...register('last_name')}
           className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full"
         />
-        {errors?.last_name?.message && (
-          <InputError error={errors.last_name.message} />
-        )}
       </div>
 
       {updateForm && (
@@ -176,7 +157,6 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
             id="job_title"
             placeholder="Введите вашу должность"
             {...register('job_title', {
-              // required: 'Ваша должность обязательна',
               minLength: {
                 value: 3,
                 message: 'Ваша должность должна содержать не менее 3 символов',
@@ -196,16 +176,9 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
           <Textarea
             id="content"
             placeholder="Расскажите о себе"
-            {...register('bio', {
-              required: 'Ваше описание обязательно',
-              minLength: {
-                value: 10,
-                message: 'Ваше описание должно содержать не менее 10 символов',
-              },
-            })}
+            {...register('bio')}
             className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[60px] w-full text-justify"
           />
-          {errors?.bio?.message && <InputError error={errors.bio.message} />}
         </div>
       )}
 
@@ -213,7 +186,6 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
         <div className="w-[300px]">
           <Label htmlFor="profile_picture">Картинка профиля</Label>
 
-          {/* Отображение текущего изображения */}
           {!imagePreview && userInfo?.profile_picture && (
             <div className="mb-3">
               <img
@@ -225,7 +197,6 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
             </div>
           )}
 
-          {/* Отображение превью нового изображения */}
           {imagePreview && (
             <div className="mb-3">
               <img
@@ -258,7 +229,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
 
       {updateForm || (
         <div>
-          <Label htmlFor="password">Пароль</Label>
+          <Label htmlFor="password">Пароль *</Label>
           <Input
             type="password"
             id="password"
@@ -280,7 +251,7 @@ const SignupPage = ({ userInfo, updateForm, toggleModal }) => {
 
       {updateForm || (
         <div>
-          <Label htmlFor="confirmPassword">Подтвердите пароль</Label>
+          <Label htmlFor="confirmPassword">Подтвердите пароль *</Label>
           <Input
             type="password"
             id="confirmPassword"

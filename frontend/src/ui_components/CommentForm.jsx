@@ -10,6 +10,7 @@ const CommentForm = ({
   isEditing = false,
   isSubmitting = false,
   commentType = 'personal',
+  error = null,
 }) => {
   const [commentText, setCommentText] = useState(initialComment);
   const [highlightColor, setHighlightColor] = useState('#FFFF00');
@@ -36,7 +37,6 @@ const CommentForm = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white dark:bg-[#181A2A] rounded-lg shadow-xl w-full max-w-md mx-4">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
           <div>
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -59,9 +59,15 @@ const CommentForm = ({
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6">
-          {/* Selected Text Display */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg">
+              <p className="text-sm text-red-800 dark:text-red-300">
+                {error}
+              </p>
+            </div>
+          )}
+
           {selectedText && !isEditing && (
             <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
@@ -73,7 +79,6 @@ const CommentForm = ({
             </div>
           )}
 
-          {/* Comment Input */}
           <div className="mb-4">
             <label
               htmlFor="comment"
@@ -93,7 +98,6 @@ const CommentForm = ({
             />
           </div>
 
-          {/* Color Picker */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Цвет выделения
@@ -117,7 +121,6 @@ const CommentForm = ({
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-3 justify-end">
             <button
               type="button"
@@ -125,7 +128,7 @@ const CommentForm = ({
               className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               disabled={isSubmitting}
             >
-              Cancel
+              Отмена
             </button>
             <button
               type="submit"

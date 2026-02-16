@@ -11,7 +11,6 @@ from .validators import (
     validate_file_is_not_empty,
 )
 
-# Cyrillic to Latin transliteration map
 CYRILLIC_TO_LATIN = {
     "а": "a",
     "б": "b",
@@ -83,7 +82,6 @@ CYRILLIC_TO_LATIN = {
 
 
 def transliterate(text):
-    """Transliterate Cyrillic characters to Latin."""
     return "".join(CYRILLIC_TO_LATIN.get(char, char) for char in text)
 
 
@@ -91,20 +89,28 @@ import os
 import uuid
 
 
-def unique_file_name(upload_path):
-# Generate a unique file name using UUID
-    def generate_unique_filename(instance, filename):
+class UniqueFileNameGenerator:
+    def __init__(self, upload_path):
+        self.upload_path = upload_path
 
-        ext = os.path.splitext(filename)[1]  
+    def __call__(self, _instance, filename):
+        ext = os.path.splitext(filename)[1]
         unique_filename = f"{uuid.uuid4()}{ext}"
-        return os.path.join(upload_path, unique_filename)
+        return os.path.join(self.upload_path, unique_filename)
 
-    return generate_unique_filename
+    def deconstruct(self):
+        return (
+            "bookapp.models.UniqueFileNameGenerator",
+            [self.upload_path],
+            {},
+        )
 
 
 class CustomUser(AbstractUser):
     bio = models.TextField(blank=True, null=True)
-    profile_picture = models.ImageField(upload_to=unique_file_name("profile_img/"), blank=True, null=True)
+    profile_picture = models.ImageField(
+        upload_to=UniqueFileNameGenerator("profile_img/"), blank=True, null=True
+    )
     profile_picture_url = models.URLField(blank=True, null=True)
     job_title = models.CharField(max_length=50, blank=True, null=True)
 
@@ -153,14 +159,15 @@ class Book(models.Model):
         ("other", "Другое"),
     )
 
-
     CONTENT_TYPE = (
         ("plaintext", "Plain Text"),
         ("epub", "EPUB"),
     )
 
     title = models.CharField(max_length=255)
-    book_author = models.CharField(max_length=255, blank=True, default="", verbose_name="Автор книги")
+    book_author = models.CharField(
+        max_length=255, blank=True, default="", verbose_name="Автор книги"
+    )
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     description = models.TextField(blank=True, null=True)
     content = models.TextField(blank=True, null=True)
@@ -168,7 +175,7 @@ class Book(models.Model):
         max_length=20, choices=CONTENT_TYPE, default="plaintext"
     )
     epub_file = models.FileField(
-        upload_to=unique_file_name("epub_files/"),
+        upload_to=UniqueFileNameGenerator("epub_files/"),
         blank=True,
         null=True,
         validators=[
@@ -189,7 +196,9 @@ class Book(models.Model):
     published_date = models.DateTimeField(blank=True, null=True)
     is_draft = models.BooleanField(default=True)
     category = models.CharField(max_length=255, choices=CATEGORY, blank=True, null=True)
-    featured_image = models.ImageField(upload_to=unique_file_name("book_img/"), blank=True, null=True)
+    featured_image = models.ImageField(
+        upload_to=UniqueFileNameGenerator("book_img/"), blank=True, null=True
+    )
     visibility = models.CharField(
         max_length=20,
         choices=VISIBILITY_CHOICES,
@@ -214,22 +223,7 @@ class Book(models.Model):
     def __str__(self):
         return self.title
 
-        # def save(self, *args, **kwargs):
-        #     base_slug = slugify(self.title)
-        #     slug = base_slug
-        #     num = 1
-        #     while Book.objects.filter(slug=slug).exists():
-        #         slug = f"{base_slug}-{num}"
-        #         num += 1
-        #     self.slug = slug
-
-        #     if not self.is_draft and self.published_date is None:
-        #         self.published_date = timezone.now()
-
-        super().save(*args, **kwargs)
-
     def save(self, *args, **kwargs):
-        # Transliterate title to Latin characters before slugifying
         transliterated_title = transliterate(self.title)
         base_slug = slugify(transliterated_title)
         slug = base_slug
@@ -242,7 +236,6 @@ class Book(models.Model):
         if not self.is_draft and self.published_date is None:
             self.published_date = timezone.now()
 
-        
         super().save(*args, **kwargs)
 
 
@@ -263,26 +256,17 @@ class ReadingGroup(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     featured_image = models.ImageField(
-        upload_to=unique_file_name("reading_group_img/"), blank=True, null=True
+        upload_to=UniqueFileNameGenerator("reading_group_img/"), blank=True, null=True
     )
     description = models.TextField(blank=True, null=True)
 
     class Meta:
         ordering = ["-created_at"]
 
-    # updated_at = models.DateTimeField(auto_now=True)
-    # published_date = models.DateTimeField(blank=True, null=True)
-    # is_draft = models.BooleanField(default=True)
-    # featured_image = models.ImageField(upload_to="book_img", blank=True, null=True)
-
-    # class Meta:
-    #     ordering = ["-published_date"]
-
     def __str__(self):
         return self.name
 
     def save(self, *args, **kwargs):
-        # Transliterate name to Latin characters before slugifying
         transliterated_name = transliterate(self.name)
         base_slug = slugify(transliterated_name)
         slug = base_slug
@@ -305,7 +289,6 @@ class UserToReadingGroupState(models.Model):
         on_delete=models.CASCADE,
     )
     in_reading_group = models.BooleanField(default=False)
-    # requested_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["in_reading_group"]
@@ -375,8 +358,6 @@ class Notification(models.Model):
 
 
 class BookComment(models.Model):
-    """Model for storing comments linked to specific text locations in EPUB books."""
-
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="comments")
     reading_group = models.ForeignKey(
         ReadingGroup,
@@ -390,7 +371,6 @@ class BookComment(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="book_comments"
     )
 
-    # Parent comment for replies (null for root comments)
     parent_comment = models.ForeignKey(
         "self",
         on_delete=models.CASCADE,
@@ -400,8 +380,6 @@ class BookComment(models.Model):
         help_text="Parent comment if this is a reply (null for root comments)",
     )
 
-    # Text location data (EPUB CFI - Canonical Fragment Identifier)
-    # These fields are optional for replies (replies don't have their own text selection)
     cfi_range = models.TextField(
         blank=True,
         null=True,
@@ -413,14 +391,11 @@ class BookComment(models.Model):
         help_text="The actual text that was selected and commented on (null for replies)",
     )
 
-    # Comment content
     comment_text = models.TextField()
 
-    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # Visual customization
     highlight_color = models.CharField(
         max_length=7,
         default="#FFFF00",
@@ -432,8 +407,8 @@ class BookComment(models.Model):
         indexes = [
             models.Index(fields=["book", "reading_group"]),
             models.Index(fields=["user", "reading_group"]),
-            models.Index(fields=["book", "user"]),  # For personal comments
-            models.Index(fields=["parent_comment"]),  # For fetching replies
+            models.Index(fields=["book", "user"]),
+            models.Index(fields=["parent_comment"]),
         ]
 
     def __str__(self):
@@ -443,13 +418,7 @@ class BookComment(models.Model):
 
     @property
     def is_reply(self):
-        """Check if this comment is a reply to another comment."""
         return self.parent_comment is not None
-
-    @property
-    def replies_count(self):
-        """Get the number of replies to this comment."""
-        return self.replies.count()
 
 
 class BookReview(models.Model):
@@ -476,16 +445,11 @@ class BookReview(models.Model):
         return self.title
 
 
-# ============================================================================
-# Gamification Models
-# ============================================================================
-
-
 class RewardTemplate(models.Model):
-    """Template for rewards that can be earned by completing quests."""
-
     name = models.CharField(max_length=200, verbose_name="Название")
-    image = models.ImageField(upload_to=unique_file_name("rewards/"), verbose_name="Изображение")
+    image = models.ImageField(
+        upload_to=UniqueFileNameGenerator("rewards/"), verbose_name="Изображение"
+    )
 
     class Meta:
         verbose_name = "Шаблон приза"
@@ -496,9 +460,52 @@ class RewardTemplate(models.Model):
         return f"{self.name}"
 
 
-class UserReward(models.Model):
-    """Rewards earned by users through quest completion."""
+class QuestTemplate(models.Model):
+    QUEST_TYPE_CHOICES = [
+        ("read_books", "Прочитать книги"),
+        ("create_comments", "Оставить комментарии"),
+        ("reply_comments", "Ответить на комментарии"),
+        ("place_rewards", "Разместить призы"),
+    ]
 
+    QUEST_SCOPE_CHOICES = [
+        ("personal", "Личное"),
+        ("group", "Групповое"),
+    ]
+
+    title = models.CharField(max_length=200, verbose_name="Название")
+    description = models.TextField(blank=True, verbose_name="Описание")
+    quest_type = models.CharField(
+        max_length=50, choices=QUEST_TYPE_CHOICES, verbose_name="Тип задания"
+    )
+    quest_scope = models.CharField(
+        max_length=20,
+        choices=QUEST_SCOPE_CHOICES,
+        default="personal",
+        verbose_name="Область применения",
+        help_text="Для личных или групповых заданий",
+    )
+    target_count = models.PositiveIntegerField(
+        verbose_name="Целевое количество",
+        help_text="Сколько нужно выполнить действий",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Активен",
+        help_text="Неактивные шаблоны не используются при генерации",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+
+    class Meta:
+        verbose_name = "Шаблон задания"
+        verbose_name_plural = "Шаблоны заданий"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.title} ({self.get_quest_type_display()}, {self.get_quest_scope_display()}, x{self.target_count})"
+
+
+class UserReward(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -532,8 +539,6 @@ class UserReward(models.Model):
 
 
 class UserRewardSummary(models.Model):
-    """Aggregated reward counts per user and reward template."""
-
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -564,8 +569,6 @@ class UserRewardSummary(models.Model):
 
 
 class Quest(models.Model):
-    """Quest/Challenge that users can complete to earn rewards."""
-
     PERIOD_CHOICES = [
         ("day", "День"),
         ("week", "Неделя"),
@@ -626,7 +629,6 @@ class Quest(models.Model):
 
     start_date = models.DateTimeField(verbose_name="Дата начала")
     end_date = models.DateTimeField(verbose_name="Дата окончания")
-    is_active = models.BooleanField(default=True, verbose_name="Активно")
     is_completed = models.BooleanField(
         default=False,
         verbose_name="Завершено",
@@ -646,8 +648,6 @@ class Quest(models.Model):
 
 
 class QuestProgress(models.Model):
-    """Tracks user progress on active quests."""
-
     quest = models.ForeignKey(
         Quest,
         on_delete=models.CASCADE,
@@ -680,8 +680,6 @@ class QuestProgress(models.Model):
 
 
 class QuestCompletion(models.Model):
-    """Records completed quests and issued rewards."""
-
     quest = models.ForeignKey(
         Quest,
         on_delete=models.CASCADE,
@@ -718,8 +716,6 @@ class QuestCompletion(models.Model):
 
 
 class PrizeBoard(models.Model):
-    """Grid board for displaying rewards within a reading group or for a user."""
-
     BOARD_TYPE_CHOICES = [
         ("group", "Группа"),
         ("user", "Пользователь"),
@@ -778,8 +774,6 @@ class PrizeBoard(models.Model):
 
 
 class PrizeBoardCell(models.Model):
-    """Individual cell on a prize board containing a placed reward."""
-
     board = models.ForeignKey(
         PrizeBoard, on_delete=models.CASCADE, related_name="cells", verbose_name="Поле"
     )
@@ -812,8 +806,6 @@ class PrizeBoardCell(models.Model):
 
 
 class ReadingProgress(models.Model):
-    """Tracks user's reading progress through books."""
-
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -859,8 +851,6 @@ class ReadingProgress(models.Model):
 
 
 class UserStats(models.Model):
-    """Aggregated statistics for each user's activity."""
-
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

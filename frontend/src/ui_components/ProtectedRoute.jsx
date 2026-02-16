@@ -2,72 +2,36 @@ import { jwtDecode } from "jwt-decode"
 import { useState, useEffect }  from "react"
 import Spinner from "./Spinner"
 import { Navigate, useLocation } from "react-router-dom"
-import api from "@/api"
 
 const ProtectedRoute = ({children}) => {
 
     const [isAuthorized, setIsAuthorized] = useState(null)
     const location = useLocation()
 
-    useEffect(function(){
-        authorize().catch(() => setIsAuthorized(false))
-    }, [])
-
-    
-
-    async function refreshToken(){
-
+    useEffect(() => {
+        const token = localStorage.getItem("access")
         const refresh = localStorage.getItem("refresh")
 
-        try{
-
-            const response = await api.post("token_refresh/", {refresh})
-            if(response.status === 200){
-                localStorage.setItem("access", response.data.access)
-                setIsAuthorized(true)
-            }
-
-            else{
-                setIsAuthorized(false)
-            }
-
-        }
-
-
-        catch(err){
-            setIsAuthorized(false)
-            console.log(err)
-        }
-
-
-       
-
-    }
-
-
-    async function authorize(){
-        const token = localStorage.getItem("access")
-        if(!token){
-            setIsAuthorized(false)
+        if (!token) {
+            setIsAuthorized(Boolean(refresh))
             return
         }
 
-        const decodedToken = jwtDecode(token)
-        const expiry_date = decodedToken.exp
-        const current_time = Date.now()/1000
+        try {
+            const decodedToken = jwtDecode(token)
+            const expiry_date = decodedToken.exp
+            const current_time = Date.now() / 1000
 
-        if(current_time > expiry_date){
-            await refreshToken()
+            if (expiry_date && current_time < expiry_date) {
+                setIsAuthorized(true)
+                return
+            }
+        } catch (err) {
+            console.log(err)
         }
 
-
-        else{
-            setIsAuthorized(true)
-        }
-
-
-
-    }
+        setIsAuthorized(Boolean(refresh))
+    }, [])
 
 
     if(isAuthorized === null){
@@ -76,7 +40,7 @@ const ProtectedRoute = ({children}) => {
 
   return (
     <>
-    {isAuthorized ? children : <Navigate to="/signin" state={{from:location}} replace />}
+        {isAuthorized ? children : <Navigate to="/signin" state={{from:location}} replace />}
     </>
   )
 }

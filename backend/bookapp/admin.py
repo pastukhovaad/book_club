@@ -13,6 +13,7 @@ from .models import (
     Quest,
     QuestCompletion,
     QuestProgress,
+    QuestTemplate,
     ReadingGroup,
     ReadingProgress,
     RewardTemplate,
@@ -21,8 +22,6 @@ from .models import (
     UserStats,
     UserToReadingGroupState,
 )
-
-# Register your models here.
 
 
 class CustomUserAdmin(UserAdmin):
@@ -146,11 +145,6 @@ class BookCommentAdmin(admin.ModelAdmin):
 admin.site.register(BookComment, BookCommentAdmin)
 
 
-# ============================================================================
-# Gamification Admin
-# ============================================================================
-
-
 class RewardTemplateAdmin(admin.ModelAdmin):
     list_display = ("name", "image")
 
@@ -183,11 +177,10 @@ class QuestAdmin(admin.ModelAdmin):
         "participation_type",
         "target_count",
         "reading_group",
-        "is_active",
         "start_date",
         "end_date",
     )
-    list_filter = ("quest_type", "participation_type", "is_active", "reading_group")
+    list_filter = ("quest_type", "participation_type", "reading_group")
     search_fields = ("title", "description")
 
 
@@ -213,7 +206,14 @@ admin.site.register(QuestCompletion, QuestCompletionAdmin)
 
 
 class PrizeBoardAdmin(admin.ModelAdmin):
-    list_display = ("board_type", "reading_group", "user", "width", "height", "created_at")
+    list_display = (
+        "board_type",
+        "reading_group",
+        "user",
+        "width",
+        "height",
+        "created_at",
+    )
     list_filter = ("board_type", "created_at")
     search_fields = ("reading_group__name", "user__username")
 
@@ -252,3 +252,12 @@ class UserStatsAdmin(admin.ModelAdmin):
 
 
 admin.site.register(UserStats, UserStatsAdmin)
+
+
+class QuestTemplateAdmin(admin.ModelAdmin):
+    list_display = ("title", "quest_type", "target_count", "is_active", "created_at")
+    list_filter = ("quest_type", "is_active")
+    search_fields = ("title", "description")
+
+
+admin.site.register(QuestTemplate, QuestTemplateAdmin)

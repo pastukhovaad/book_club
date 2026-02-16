@@ -1,5 +1,6 @@
 import axios from "axios"
 import { jwtDecode } from "jwt-decode"
+import { toast } from "react-toastify"
 
 
 export const BASE_URL = import.meta.env.VITE_BASE_URL
@@ -15,6 +16,23 @@ export const resolveMediaUrl = (path) => {
 const api = axios.create({
     baseURL: BASE_URL
 })
+
+const refreshClient = axios.create({
+    baseURL: BASE_URL
+})
+
+let isRefreshing = false
+let refreshSubscribers = []
+let hasSessionExpiredNotice = false
+
+const subscribeTokenRefresh = (callback) => {
+    refreshSubscribers.push(callback)
+}
+
+const notifyRefreshSubscribers = (newToken) => {
+    refreshSubscribers.forEach((callback) => callback(newToken))
+    refreshSubscribers = []
+}
 
 
 api.interceptors.request.use(
@@ -36,6 +54,70 @@ api.interceptors.request.use(
         return Promise.reject(error)
     }
 
+)
+
+api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config
+
+        if (!originalRequest || originalRequest._retry) {
+            return Promise.reject(error)
+        }
+
+        if (error.response?.status !== 401) {
+            return Promise.reject(error)
+        }
+
+        const refresh = localStorage.getItem("refresh")
+        if (!refresh) {
+            return Promise.reject(error)
+        }
+
+        originalRequest._retry = true
+
+        if (isRefreshing) {
+            return new Promise((resolve, reject) => {
+                subscribeTokenRefresh((newToken) => {
+                    if (!newToken) {
+                        reject(error)
+                        return
+                    }
+                    originalRequest.headers.Authorization = `Bearer ${newToken}`
+                    resolve(api(originalRequest))
+                })
+            })
+        }
+
+        isRefreshing = true
+
+        try {
+            const response = await refreshClient.post("token_refresh/", { refresh })
+            const newAccess = response.data.access
+
+            localStorage.setItem("access", newAccess)
+            api.defaults.headers.common.Authorization = `Bearer ${newAccess}`
+            notifyRefreshSubscribers(newAccess)
+            originalRequest.headers.Authorization = `Bearer ${newAccess}`
+
+            return api(originalRequest)
+        } catch (refreshError) {
+            localStorage.removeItem("access")
+            localStorage.removeItem("refresh")
+            notifyRefreshSubscribers(null)
+
+            if (!hasSessionExpiredNotice) {
+                hasSessionExpiredNotice = true
+                toast.error("Сессия истекла. Войдите снова.")
+                if (window.location.pathname !== "/signin") {
+                    window.location.assign("/signin")
+                }
+            }
+            return Promise.reject(refreshError)
+        } finally {
+            isRefreshing = false
+        }
+    }
 )
 
 

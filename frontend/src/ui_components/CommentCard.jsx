@@ -21,7 +21,6 @@ const CommentCard = ({
 
   const isOwner = currentUser && comment.user.username === currentUser;
 
-  // Hook for managing replies (only enabled when replies section is open)
   const {
     replies,
     repliesLoading,
@@ -29,6 +28,7 @@ const CommentCard = ({
     showReplyForm,
     isSubmitting,
     isDeleting,
+    replyFormError,
     handleSubmitReply,
     handleEditReply,
     handleDeleteReply,
@@ -52,10 +52,10 @@ const CommentCard = ({
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return 'Только что';
+    if (diffMins < 60) return `${diffMins}м назад`;
+    if (diffHours < 24) return `${diffHours}ч назад`;
+    if (diffDays < 7) return `${diffDays}д назад`;
     return date.toLocaleDateString();
   };
 
@@ -76,10 +76,8 @@ const CommentCard = ({
         }
       }}
     >
-      {/* Header */}
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
-          {/* User Avatar */}
           {comment.user.profile_picture ? (
             <img
               src={resolveMediaUrl(comment.user.profile_picture)}
@@ -101,7 +99,6 @@ const CommentCard = ({
           </div>
         </div>
 
-        {/* Actions */}
         {isOwner && (
           <div className="flex gap-1">
             <button
@@ -128,7 +125,6 @@ const CommentCard = ({
         )}
       </div>
 
-      {/* Selected Text Quote */}
       <div className="mb-2 pl-3 border-l-3 border-gray-300 dark:border-gray-600">
         <div className="flex items-start gap-2">
           <BsQuote className="text-gray-400 dark:text-gray-500 flex-shrink-0 mt-1" size={14} />
@@ -138,12 +134,10 @@ const CommentCard = ({
         </div>
       </div>
 
-      {/* Comment Text */}
       <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
         {comment.comment_text}
       </p>
 
-      {/* Highlight Color Indicator */}
       <div className="flex items-center gap-2 mt-2">
         <div
           className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-600"
@@ -154,7 +148,6 @@ const CommentCard = ({
         </span>
       </div>
 
-      {/* Delete Confirmation */}
       {showDeleteConfirm && (
         <div
           className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg"
@@ -180,10 +173,8 @@ const CommentCard = ({
         </div>
       )}
 
-      {/* Replies Section - Only for group comments */}
       {isGroupComment && (
         <div className="mt-3">
-          {/* Toggle Replies Button */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -193,14 +184,13 @@ const CommentCard = ({
           >
             <IoChatbubbleOutline size={16} />
             <span>
-              {repliesCount > 0 ? `${repliesCount} ${repliesCount === 1 ? 'reply' : 'replies'}` : 'Reply'}
+              {repliesCount > 0 ? `${repliesCount} ${repliesCount === 1 ? 'Ответ' : 'Ответа'}` : 'Ответ'}
             </span>
             {repliesCount > 0 && (
               showReplies ? <IoChevronUp size={14} /> : <IoChevronDown size={14} />
             )}
           </button>
 
-          {/* Replies Content */}
           {showReplies && (
             <CommentReplies
               replies={replies}
@@ -210,6 +200,7 @@ const CommentCard = ({
               editingReply={editingReply}
               isSubmitting={isSubmitting}
               isDeleting={isDeleting}
+              replyFormError={replyFormError}
               onSubmitReply={handleSubmitReply}
               onEditReply={handleEditReply}
               onDeleteReply={handleDeleteReply}

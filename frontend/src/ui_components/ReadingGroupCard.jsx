@@ -1,6 +1,4 @@
-// import Badge from "./Badge";  CREATE SEP BADGE FOR READING GROUP IF TYPES OF GROUPS ARE NEEDED
 import ReadingGroupCardFooter from "./ReadingGroupCardFooter";
-import thumbnail from "../images/design_vii.jpg";
 import { Link, useNavigate } from "react-router-dom";
 import { resolveMediaUrl } from "@/api";
 
@@ -17,7 +15,7 @@ const ReadingGroupCard = ({reading_group}) => {
   };
 
   return (
-    <div className="px-3 py-3 rounded-md w-[300px] h-auto flex flex-col gap-4 dark:border-gray-800 border   shadow-lg">
+    <div className="px-3 py-3 rounded-md w-[300px] h-auto flex flex-col gap-4 dark:border-gray-800 border shadow-lg">
       <Link to={`/groups/${reading_group.slug}`} onClick={handleCardClick}>
       <div className="w-full h-[200px] border rounded-md overflow-hidden">
         <img
@@ -26,8 +24,6 @@ const ReadingGroupCard = ({reading_group}) => {
         />
       </div>
       </Link>
-
-      {/* <Badge reading_group={reading_group} /> */}
 
       <Link to={`/groups/${reading_group.slug}`} onClick={handleCardClick}>
         <h3 className="font-semibold  leading-normal text-[#181A2A] mb-0 dark:text-white">

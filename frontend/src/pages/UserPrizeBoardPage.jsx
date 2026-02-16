@@ -1,11 +1,13 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getUserPrizeBoard, placeRewardOnUserBoard, removeRewardFromUserBoard, getMyRewards, getMyRewardPlacements } from "@/services/apiBook";
+import { getUserPrizeBoard, placeRewardOnUserBoard, removeRewardFromUserBoard, getMyRewards, getMyRewardPlacements } from "@/services";
 import PrizeBoard from "@/ui_components/PrizeBoard";
 import Spinner from "@/ui_components/Spinner";
+import { useAuth } from "@/context/AuthContext";
 
 
-const UserPrizeBoardPage = ({ username: authUsername }) => {
+const UserPrizeBoardPage = () => {
+  const { username: authUsername } = useAuth();
   const { username } = useParams();
   const queryClient = useQueryClient();
   const navigate = useNavigate();

@@ -1,10 +1,8 @@
-// THIS DETAILS THE SHOWING OF BOOKS (.../books/book-name)
-
 import Badge from '@/ui_components/Badge'
 import BookWriter from '@/ui_components/BookWriter'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { createBookReview, deleteBook, getBook, getBookReviews, getReadingProgress } from '@/services/apiBook'
+import { createBookReview, deleteBook, getBook, getBookReviews, getReadingProgress } from '@/services'
 import Spinner from '@/ui_components/Spinner'
 import { resolveMediaUrl } from '@/api'
 import { HiPencilAlt } from 'react-icons/hi'
@@ -16,8 +14,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { Link } from 'react-router-dom'
 import { FormatDate } from '@/services/formatDate'
+import { useAuth } from '@/context/AuthContext'
 
-const DetailPage = ({ username, isAuthenticated }) => {
+const DetailPage = () => {
+  const { username, isAuthenticated } = useAuth();
   const { slug } = useParams()
   const [showModal, setShowModal] = useState(false)
   const [showReviewForm, setShowReviewForm] = useState(false)
@@ -55,8 +55,6 @@ const DetailPage = ({ username, isAuthenticated }) => {
 
   const bookID = book?.id
 
-  // removed debug console.log to avoid duplicate logs
-
   const queryClient = useQueryClient()
 
   const deleteMutation = useMutation({
@@ -83,6 +81,10 @@ const DetailPage = ({ username, isAuthenticated }) => {
       queryClient.invalidateQueries({ queryKey: ['bookReviews', slug] })
     },
     onError: (err) => {
+      setReviewTitle('')
+      setReviewDescription('')
+      setReviewStars(5)
+      setShowReviewForm(false)
       toast.error(err.message)
     },
   })
@@ -113,11 +115,11 @@ const DetailPage = ({ username, isAuthenticated }) => {
     <>
       <div className="padding-dx max-container py-9">
         <div className="flex flex-wrap justify-between items-center gap-4">
-          <h2 className="py-6 leading-normal text-2xl md:text-3xl text-[#181A2A] tracking-wide font-semibold dark:text-[#FFFFFF]">
+          <h2 className="py-6 leading-normal text-2xl md:text-3xl text-[#181A2A] tracking-wide font-semibold dark:text-[#FFFFFF] flex-1 min-w-0">
             {book.title}
           </h2>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-shrink-0">
             <Link
               to={`/books/${slug}/page`}
               className="bg-[#4B6BFB] text-white py-3 px-6 rounded-md flex gap-2"
@@ -172,9 +174,13 @@ const DetailPage = ({ username, isAuthenticated }) => {
                 </Link>
               ))}
             </div>
-            {book.book_author && (
+            {book.book_author ? (
               <p className="text-[15px] text-[#3B3C4A] dark:text-[#BABABF] mb-4">
                 <span className="font-semibold">Автор:</span> {book.book_author}
+              </p>
+            ) : (
+              <p className="text-[15px] text-[#3B3C4A] dark:text-[#BABABF] mb-4">
+                <span className="font-semibold">Автор:</span> {book.author.username || "Неизвестный автор"}
               </p>
             )}
             <h3 className="text-xl font-semibold text-[#181A2A] dark:text-white mb-2">
@@ -305,7 +311,7 @@ const DetailPage = ({ username, isAuthenticated }) => {
               <Spinner />
             ) : reviews.length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Пока нет отзывов.
+                Ещё нет отзывов.
               </p>
             ) : (
               reviews.map((review) => (

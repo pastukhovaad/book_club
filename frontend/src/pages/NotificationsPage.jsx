@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { getNotifications, getUsername } from '@/services/apiBook'
+import { getNotifications } from '@/services'
 import NotificationContainer from '@/ui_components/NotificationContainer'
 import PagePagination from '../ui_components/PagePagination'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { useAuth } from '@/context/AuthContext'
 
-const AllBooksPage = ( { authUsername } ) => {
+const AllBooksPage = () => {
+  const { username: authUsername } = useAuth();
   const [page, setPage] = useState(1)
   const numOfNotificationsPerPage = 9
 
@@ -16,11 +18,7 @@ const AllBooksPage = ( { authUsername } ) => {
   })
 
   const notifications = data?.results || []
-  console.log(authUsername)
-  console.log(notifications)
   const numOfPages = Math.ceil(data?.count / numOfNotificationsPerPage)
-  console.log(numOfPages)
-  console.log(page)
 
   function handleSetPage(val) {
     setPage(val)
@@ -41,7 +39,6 @@ const AllBooksPage = ( { authUsername } ) => {
           Ваши уведомления
         </h2>
       </div>
-      {/* TODO: Make NotificationContainer and NotificationCard */}
       <NotificationContainer isPending={isPending} notifications={notifications} />
       <PagePagination
         increasePageValue={increasePageValue}

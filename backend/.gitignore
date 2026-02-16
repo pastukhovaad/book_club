@@ -24,6 +24,8 @@ ENV/
 .env/
 env.bak/
 venv.bak/
+activate_env.bat
+
 
 # Django migrations
 */migrations/*.pyc
@@ -52,3 +54,4 @@ venv.bak/
 .env.production
 
 *.epub
+

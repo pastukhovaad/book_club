@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getPublicBooks, getReadingGroups, getRecentReadingBooks } from "@/services/apiBook";
+import { getPublicBooks, getReadingGroups, getRecentReadingBooks } from "@/services";
 import BookContainer from "@/ui_components/BookContainer";
 import Header from "@/ui_components/Header";
 import PagePagination from "../ui_components/PagePagination";
@@ -85,6 +85,7 @@ const HomePage = () => {
               Вы недавно читали
             </Link>
             {hasToken ? (
+              recentBooks.length > 0 ? (
               <>
                 <BookContainer isPending={recentPending} books={recentBooks} />
                 <PagePagination
@@ -95,8 +96,13 @@ const HomePage = () => {
                   handleSetPage={handleSetRecentPage}
                 />
               </>
+              ) : (
+                <p className="flex justify-center text-sm py-6 text-gray-500 dark:text-gray-400">
+                  Вы ещё не читали книг.
+                </p>
+              )
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="flex justify-center text-sm py-6 text-sm text-gray-500 dark:text-gray-400">
                 Войдите, чтобы видеть последние прочитанные книги.
               </p>
             )}

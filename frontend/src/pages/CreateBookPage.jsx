@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import InputError from "@/ui_components/InputError";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { createBook, updateBook, getUserCreatedGroups, getBook } from "@/services/apiBook";
+import { createBook, updateBook, getUserCreatedGroups, getBook } from "@/services";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import SmallSpinner from "@/ui_components/SmallSpinner";
@@ -22,20 +22,20 @@ import SmallSpinnerText from "@/ui_components/SmallSpinnerText";
 import LoginPage from "./LoginPage";
 import { resolveMediaUrl } from "@/api";
 import Spinner from "@/ui_components/Spinner";
+import { useAuth } from "@/context/AuthContext";
 
-const CreateBookPage = ({ book, isAuthenticated }) => {
-  // If book is passed (edit mode), load full book data with all fields including content
+const CreateBookPage = ({ book }) => {
+  const { isAuthenticated } = useAuth();
   const {
     data: fullBook,
     isPending: isLoadingFullBook,
     isError: isFullBookError
   } = useQuery({
     queryKey: ['fullBook', book?.slug],
-    queryFn: () => getBook(book.slug, false), // info_only = false to get all fields
-    enabled: !!book, // Only run query if book is passed (edit mode)
+    queryFn: () => getBook(book.slug, false),
+    enabled: !!book,
   });
 
-  // Use fullBook if available (edit mode), otherwise use passed book (which will be undefined for create mode)
   const bookData = fullBook || book;
 
   const { register, handleSubmit, formState, setValue } = useForm({
@@ -55,18 +55,14 @@ const CreateBookPage = ({ book, isAuthenticated }) => {
 
   const bookID = bookData?.id;
 
-
-  // Register required fields for validation (without ref, since Radix Select doesn't support it)
   useEffect(() => {
     register("category", { required: "Категория книги обязательна" });
     register("visibility", { required: "Тип книги обязателен" });
-    // Set default visibility value in form when creating new book
     if (!bookData) {
       setValue("visibility", "public");
     }
   }, [register, setValue, bookData]);
 
-  // Update form values when fullBook data is loaded
   useEffect(() => {
     if (fullBook) {
       setValue("title", fullBook.title);
@@ -131,20 +127,16 @@ const CreateBookPage = ({ book, isAuthenticated }) => {
       formData.append("reading_group", selectedGroupId);
     }
 
-    // Add content based on content type
     if (contentType === "plaintext") {
       formData.append("content", data.content);
     } else if (contentType === "epub") {
-      // Добавляем epub файл только если выбран новый файл
       if (data.epub_file && data.epub_file.length > 0 && data.epub_file[0] instanceof File) {
         formData.append("epub_file", data.epub_file[0]);
       }
     }
 
-    // Добавляем хештеги
     hashtags.forEach((tag) => formData.append("hashtags", tag));
 
-    // Добавляем изображение только если выбран новый файл
     if (data.featured_image && data.featured_image.length > 0 && data.featured_image[0] instanceof File) {
       formData.append("featured_image", data.featured_image[0]);
     }
@@ -196,7 +188,6 @@ const CreateBookPage = ({ book, isAuthenticated }) => {
     return <LoginPage />;
   }
 
-  // Show loading spinner while fetching full book data in edit mode
   if (book && isLoadingFullBook) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -205,7 +196,6 @@ const CreateBookPage = ({ book, isAuthenticated }) => {
     );
   }
 
-  // Show error message if failed to load full book data
   if (book && isFullBookError) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -219,18 +209,12 @@ const CreateBookPage = ({ book, isAuthenticated }) => {
       onSubmit={handleSubmit(onSubmit)}
       className={`${
         bookData && "h-[90%] overflow-auto"
-      }  md:px-16 px-8 py-6 flex flex-col mx-auto my-9 items-center gap-6 w-fit rounded-lg bg-[#FFFFFF] shadow-xl dark:text-white dark:bg-[#141624]`}
+      }  md:px-16 px-8 py-6 flex flex-col mx-auto my-9 items-center gap-6 w-[528px] max-sm:w-[364px] rounded-lg bg-[#FFFFFF] shadow-xl dark:text-white dark:bg-[#141624]`}
     >
       <div className="flex flex-col gap-2 justify-center items-center mb-2">
         <h3 className="font-semibold text-2xl max-sm:text-xl">
           {bookData ? "Обновить книгу" : "Создать книгу"}
         </h3>
-
-        <p className="max-sm:text-[14px]">
-          {bookData
-            ? "Хотите внести изменения в свою книгу?"
-            : "Создайте новую книгу и поделитесь своими идеями."}
-        </p>
       </div>
 
       <div>
@@ -268,7 +252,7 @@ const CreateBookPage = ({ book, isAuthenticated }) => {
       </div>
 
       <div>
-        <Label htmlFor="description">Описание*</Label>
+        <Label htmlFor="description">Описание *</Label>
         <Textarea
           id="description"
           placeholder="Дайте краткое описание вашей книге"
@@ -421,9 +405,9 @@ const CreateBookPage = ({ book, isAuthenticated }) => {
           </button>
         </div>
         {hashtags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2">
+          <div className="flex flex-wrap gap-2 mt-2 max-w-[400px] max-sm:max-w-[300px]">
             {hashtags.map((tag) => (
-              <span
+              <span 
                 key={tag}
                 className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#4B6BFB]/10 text-[#4B6BFB] text-sm"
               >
@@ -549,7 +533,6 @@ const CreateBookPage = ({ book, isAuthenticated }) => {
       <div className="w-full">
         <Label htmlFor="featured_image">Изображение книги {!bookData && "*"}</Label>
 
-        {/* Отображение текущего изображения */}
         {!imagePreview && bookData?.featured_image && (
           <div className="mb-3">
             <img
@@ -561,7 +544,6 @@ const CreateBookPage = ({ book, isAuthenticated }) => {
           </div>
         )}
 
-        {/* Отображение превью нового изображения */}
         {imagePreview && (
           <div className="mb-3">
             <img

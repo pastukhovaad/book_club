@@ -2,12 +2,11 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ReactReader } from 'react-reader'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getBook, getBookChaptersList, getUsername, getReadingProgress, updateReadingProgress } from '@/services/apiBook'
+import { getBook, getBookChaptersList, getUsername, getReadingProgress, updateReadingProgress } from '@/services'
 import { resolveMediaUrl } from '@/api'
 
 import SmallSpinner from '@/ui_components/SmallSpinner'
 import CommentButton from '@/ui_components/CommentButton'
-import CommentForm from '@/ui_components/CommentForm'
 import CommentsSidebar from '@/ui_components/CommentsSidebar'
 import TableOfContents from '@/ui_components/TableOfContents'
 
@@ -34,16 +33,12 @@ const EpubReaderPage = () => {
   const currentPercentageRef = useRef(0)
   const locationsReadyRef = useRef(false)
   
-  // Flag to ignore locationChanged events immediately after restoring position
   const ignoreLocationChangeUntilRef = useRef(0)
   
-  // Get theme context
   const { darkMode, toggleDarkMode } = useTheme()
 
-  // Check if user has a token (basic auth check)
   const hasToken = !!localStorage.getItem('access')
 
-  // Fetch book data
   const {
     data: book,
     isLoading: bookLoading,
@@ -57,7 +52,6 @@ const EpubReaderPage = () => {
     refetchOnReconnect: false,
   })
 
-  // Fetch chapters list
   const { data: chaptersData } = useQuery({
     queryKey: ['bookChapters', slug],
     queryFn: () => getBookChaptersList(slug),
@@ -68,7 +62,6 @@ const EpubReaderPage = () => {
     refetchOnReconnect: false,
   })
 
-  // Fetch current user (only if has token)
   const { data: userData, error: userError } = useQuery({
     queryKey: ['username'],
     queryFn: getUsername,
@@ -80,7 +73,6 @@ const EpubReaderPage = () => {
     refetchOnReconnect: false,
   })
 
-  // Fetch reading progress
   const { data: readingProgressData, isLoading: progressLoading } = useQuery({
     queryKey: ['readingProgress', slug],
     queryFn: () => getReadingProgress(slug),
@@ -92,36 +84,27 @@ const EpubReaderPage = () => {
     refetchOnReconnect: false,
   })
 
-  // Update reading progress mutation
   const updateProgressMutation = useMutation({
     mutationFn: (data) => updateReadingProgress(slug, data),
     onSuccess: (responseData) => {
-      // Update the cache directly instead of refetching to avoid navigation resets
-      // The server returns the updated reading progress, so we can use it
       if (responseData) {
         queryClient.setQueryData(['readingProgress', slug], responseData)
       }
-      // Note: Quest progress is only affected when book is marked complete,
-      // not on every page turn, so we don't invalidate quests here
     },
     onError: (err) => {
       console.error('Failed to update reading progress:', err)
     },
   })
 
-  // Debounced progress update
   const progressUpdateTimerRef = useRef(null)
   const updateProgress = useCallback((newLocation) => {
     if (!hasToken) return
 
-    // Clear existing timer
     if (progressUpdateTimerRef.current) {
       clearTimeout(progressUpdateTimerRef.current)
     }
 
-    // Set new timer to update after 2 seconds of no location change
     progressUpdateTimerRef.current = setTimeout(() => {
-      // Only include progress_percent if locations are ready
       const data = { current_cfi: newLocation }
       if (locationsReadyRef.current) {
         data.progress_percent = currentPercentageRef.current
@@ -131,14 +114,12 @@ const EpubReaderPage = () => {
     }, 2000)
   }, [hasToken, updateProgressMutation])
 
-  // Show warning if user data fails to load (only if has token)
   useEffect(() => {
     if (hasToken && userError) {
-      toast.warn('Could not load user data. Some features may be limited.')
+      toast.warn('Ошибка при загрузке данных пользователя.')
     }
   }, [hasToken, userError])
 
-  // Custom hooks
   const {
     location,
     setLocation: setLocationOriginal,
@@ -158,7 +139,6 @@ const EpubReaderPage = () => {
     setShowToc,
   } = useEpubReader()
 
-  // Generate locations and track progress percentage from epub.js
   useEffect(() => {
     if (!rendition) return
 
@@ -166,48 +146,27 @@ const EpubReaderPage = () => {
     let isSubscribed = true
 
     const handleRelocated = (location) => {
-      // Only update percentage if locations have been generated
       if (!locationsReadyRef.current) {
-        if (import.meta.env.DEV) {
-          console.log('EPUB relocated event ignored - locations not ready yet')
-        }
         return
       }
 
-      // epub.js provides percentage as a decimal (0.0 to 1.0)
       const percentage = (location?.end?.percentage ?? location?.start?.percentage ?? 0) * 100
       currentPercentageRef.current = Math.min(percentage, 100)
 
-      if (import.meta.env.DEV) {
-        console.log('EPUB progress percentage:', currentPercentageRef.current.toFixed(1) + '%')
-      }
     }
 
-    // Generate locations to enable percentage tracking
-    // The number (1600) is characters per location - higher = faster generation, lower = more precision
     book.locations.generate(1600).then(() => {
       if (!isSubscribed) return
 
       locationsReadyRef.current = true
 
-      if (import.meta.env.DEV) {
-        console.log('EPUB locations generated, total:', book.locations.total)
-      }
-
-      // Get current percentage now that locations are ready
       const currentLocation = rendition.currentLocation()
       if (currentLocation) {
         const percentage = (currentLocation?.end?.percentage ?? currentLocation?.start?.percentage ?? 0) * 100
         currentPercentageRef.current = Math.min(percentage, 100)
-
-        if (import.meta.env.DEV) {
-          console.log('Initial EPUB progress percentage:', currentPercentageRef.current.toFixed(1) + '%')
-        }
       }
     }).catch((err) => {
-      if (import.meta.env.DEV) {
-        console.error('Failed to generate EPUB locations:', err)
-      }
+      console.error('Failed to generate EPUB locations:', err)
     })
 
     rendition.on('relocated', handleRelocated)
@@ -218,29 +177,19 @@ const EpubReaderPage = () => {
     }
   }, [rendition])
 
-  // Store the most precise CFI from relocated event for saving progress
   const preciseCfiRef = useRef(null)
 
-  // Listen to relocated event to get precise CFI for saving
   useEffect(() => {
     if (!rendition) return
 
     const handleRelocatedForSave = (location) => {
-      // Skip if we're in the process of restoring saved position
       if (ignoreLocationChangeUntilRef.current > Date.now()) {
-        if (import.meta.env.DEV) {
-          console.log('⏳ Ignoring relocated event for CFI save (restoring position)')
-        }
         return
       }
       
-      // Get the most precise CFI available - prefer start.cfi which includes character offset
       const preciseCfi = location?.start?.cfi
       if (preciseCfi) {
         preciseCfiRef.current = preciseCfi
-        if (import.meta.env.DEV) {
-          console.log('Precise CFI captured from relocated:', preciseCfi)
-        }
       }
     }
 
@@ -250,107 +199,45 @@ const EpubReaderPage = () => {
     }
   }, [rendition])
 
-  // Wrapper for setLocation that also updates progress
   const setLocation = useCallback((newLocation) => {
-    // Ignore locationChanged events for a short time after restoring saved position
-    // This prevents epub.js from resetting to chapter start
     if (ignoreLocationChangeUntilRef.current > Date.now()) {
-      if (import.meta.env.DEV) {
-        console.log('⏳ Ignoring locationChanged event (restoring position):', newLocation)
-      }
       return
     }
     
-    if (import.meta.env.DEV) {
-      console.log('setLocation called with:', newLocation)
-    }
     setLocationOriginal(newLocation)
     
-    // Use the precise CFI from relocated event if available, otherwise fall back to newLocation
-    // The precise CFI includes exact character position within the element
     const cfiToSave = preciseCfiRef.current || newLocation
-    if (import.meta.env.DEV && preciseCfiRef.current && preciseCfiRef.current !== newLocation) {
-      console.log('Using precise CFI for save:', cfiToSave)
-    }
     updateProgress(cfiToSave)
   }, [setLocationOriginal, updateProgress])
 
-  // Load saved reading position on mount (only once)
   useEffect(() => {
-    // Skip if we've already loaded the position
     if (hasLoadedPosition.current) {
       return
     }
-
-    if (import.meta.env.DEV) {
-      console.log('Checking saved position:', {
-        hasData: !!readingProgressData,
-        currentCfi: readingProgressData?.current_cfi,
-        hasLoaded: hasLoadedPosition.current,
-        hasRendition: !!rendition,
-        progressLoading,
-      })
-    }
     
     if (readingProgressData?.current_cfi && rendition) {
-      // Mark as loaded immediately to prevent any race conditions
       hasLoadedPosition.current = true
       
       const savedCfi = readingProgressData.current_cfi
       
-      if (import.meta.env.DEV) {
-        console.log('🚀 Loading saved position:', savedCfi)
-        console.log('Rendition ready:', !!rendition)
-      }
-      
-      // Wait for the book to be fully ready before navigating
       const book = rendition.book
       
       const navigateToSavedPosition = async () => {
         try {
-          // Wait for book to be ready (spine loaded, etc.)
           await book.ready
           
-          if (import.meta.env.DEV) {
-            console.log('Book ready, navigating to saved CFI:', savedCfi)
-          }
-          
-          // Ignore locationChanged events for the next 3 seconds
-          // This prevents epub.js from resetting to chapter start after we navigate
           ignoreLocationChangeUntilRef.current = Date.now() + 3000
           
-          // Set location in state
           setLocationOriginal(savedCfi)
           
-          // Display the saved position
           await rendition.display(savedCfi)
           
-          if (import.meta.env.DEV) {
-            console.log('✅ First display complete')
-          }
-          
-          // epub.js sometimes resets position due to internal events (resize, content loading)
-          // We need to force navigation again after these events settle
-          // Wait for layout to stabilize and navigate again
           setTimeout(async () => {
             try {
-              if (import.meta.env.DEV) {
-                console.log('🔄 Re-navigating to ensure correct position:', savedCfi)
-              }
               await rendition.display(savedCfi)
-              
-              if (import.meta.env.DEV) {
-                console.log('✅ Successfully displayed saved position (final)')
-                const currentLoc = rendition.currentLocation()
-                console.log('Current location after final navigation:', currentLoc?.start?.cfi)
-              }
-              
-              // Clear the ignore flag after final navigation succeeds
+
               setTimeout(() => {
                 ignoreLocationChangeUntilRef.current = 0
-                if (import.meta.env.DEV) {
-                  console.log('✅ Position restore complete, locationChanged events enabled')
-                }
               }, 500)
             } catch (e) {
               if (import.meta.env.DEV) {
@@ -362,11 +249,9 @@ const EpubReaderPage = () => {
           
         } catch (err) {
           if (import.meta.env.DEV) {
-            console.error('❌ Failed to display saved position:', err)
+            console.error('Failed to display saved position:', err)
           }
-          // Clear the ignore flag on error
           ignoreLocationChangeUntilRef.current = 0
-          // Fallback to beginning if saved position is invalid
           try {
             await rendition.display(0)
           } catch (e) {
@@ -393,6 +278,7 @@ const EpubReaderPage = () => {
     userGroupsLoading,
     isSubmitting,
     isAuthenticated: isAuth,
+    formError,
     handleSubmitComment,
     handleEditComment,
     handleDeleteComment,
@@ -409,54 +295,33 @@ const EpubReaderPage = () => {
     clearSelection,
   } = useTextSelection(rendition)
 
-  // Handle highlight click - scroll to comment in sidebar
   const handleHighlightClick = useCallback(() => {
     setShowCommentsSidebar(true)
   }, [])
 
-  const { activeCommentId } = useHighlights(
+  const { activeCommentId, clearActiveComment } = useHighlights(
     rendition,
     comments,
     handleHighlightClick,
   )
 
-  // Log highlights state for debugging
   useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log(
-        'EpubReaderPage: Rendition ready, comments count:',
-        comments?.length || 0,
-      )
-    }
   }, [rendition, comments])
 
-  // Handle sidebar visibility changes - resize reader
   useEffect(() => {
-    if (rendition && import.meta.env.DEV) {
-      console.log('Sidebar visibility changed, resizing reader')
-    }
-
-    // Only resize if visibility actually changed (not on initial render)
-    // AND we're not in the middle of restoring saved position
     if (rendition && prevSidebarVisibilityRef.current !== showCommentsSidebar) {
-      // Skip resize during position restore to avoid disrupting navigation
       if (ignoreLocationChangeUntilRef.current > Date.now()) {
-        if (import.meta.env.DEV) {
-          console.log('⏳ Skipping resize during position restore')
-        }
+        console.log('Skipping resize during position restore')
       } else {
-        // Small delay to let CSS transitions complete
         setTimeout(() => {
           rendition.resize()
         }, 300)
       }
     }
 
-    // Update ref for next comparison
     prevSidebarVisibilityRef.current = showCommentsSidebar
   }, [showCommentsSidebar, rendition])
 
-  // Wrapper for submit that clears selection after success
   const onSubmitComment = useCallback(
     (formData) => {
       handleSubmitComment(formData, selectedTextData, clearSelection)
@@ -464,7 +329,6 @@ const EpubReaderPage = () => {
     [handleSubmitComment, selectedTextData, clearSelection],
   )
 
-  // Loading state
   if (bookLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -473,7 +337,6 @@ const EpubReaderPage = () => {
     )
   }
 
-  // Error states
   if (bookError || !book) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -502,7 +365,6 @@ const EpubReaderPage = () => {
 
   return (
     <div className="flex flex-col h-screen bg-[#FFFFFF] dark:bg-[#181A2A] text-[#181A2A] dark:text-[#FFFFFF]">
-      {/* Header */}
       <div className="sticky top-0 z-10 bg-[#FFFFFF] dark:bg-[#141624] border-b border-[#E8E8EA] dark:border-[#242535]">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
@@ -515,10 +377,12 @@ const EpubReaderPage = () => {
             <h1 className="text-xl font-semibold text-[#181A2A] dark:text-[#FFFFFF] truncate max-w-md">
               {book.title}
             </h1>
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#E8E8EA] dark:bg-[#242535] text-[#3B3C4A] dark:text-[#BABABF]">
+              EPUB файл
+            </span  >
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Font size controls */}
             <div className="flex items-center gap-2 border border-[#E8E8EA] dark:border-[#242535] rounded-lg px-3 py-1 bg-[#FFFFFF] dark:bg-[#1F2136]">
               <button
                 onClick={decreaseFontSize}
@@ -539,7 +403,6 @@ const EpubReaderPage = () => {
               </button>
             </div>
 
-            {/* Theme toggle */}
             <button
               onClick={toggleDarkMode}
               className="flex items-center gap-2 px-3 py-2 border border-[#E8E8EA] dark:border-[#242535] rounded-lg bg-[#FFFFFF] dark:bg-[#1F2136] text-[#3B3C4A] dark:text-[#BABABF] hover:text-[#4B6BFB] dark:hover:text-[#4B6BFB] transition-colors"
@@ -548,7 +411,6 @@ const EpubReaderPage = () => {
               {darkMode ? <HiSun size={20} /> : <HiMoon size={20} />}
             </button>
 
-            {/* Comments toggle */}
             <button
               onClick={() => setShowCommentsSidebar((prev) => !prev)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
@@ -559,7 +421,7 @@ const EpubReaderPage = () => {
               title="Toggle comments"
             >
               <BiMessageSquareDetail size={20} />
-              <span className="max-sm:hidden">Comments</span>
+              <span className="max-sm:hidden">Комментарии</span>
               {comments && comments.length > 0 && (
                 <span className="bg-[#FFFFFF] dark:bg-[#181A2A] text-[#4B6BFB] text-xs font-semibold px-2 py-0.5 rounded-full border border-[#E8E8EA] dark:border-[#242535]">
                   {comments.length}
@@ -567,16 +429,14 @@ const EpubReaderPage = () => {
               )}
             </button>
 
-            {/* TOC toggle */}
             <button
               onClick={toggleToc}
               className="flex items-center gap-2 px-4 py-2 bg-[#4B6BFB] text-white rounded-lg hover:bg-[#3554D1] dark:hover:bg-[#3554D1] transition-colors"
             >
               <FiList size={20} />
-              <span className="max-sm:hidden">Chapters</span>
+              <span className="max-sm:hidden">Главы</span>
             </button>
 
-            {/* Completed indicator */}
             {readingProgressData?.is_completed && (
               <div className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg border border-green-300 dark:border-green-700">
                 <FiCheckCircle size={20} />
@@ -587,9 +447,7 @@ const EpubReaderPage = () => {
         </div>
       </div>
 
-      {/* Reader Container */}
       <div className="flex-1 relative flex overflow-hidden">
-        {/* Reader */}
         <div className="flex-1 overflow-hidden min-h-0">
           <ReactReader
             url={epubUrl}
@@ -611,7 +469,6 @@ const EpubReaderPage = () => {
           />
         </div>
 
-        {/* Comments Sidebar */}
         {showCommentsSidebar && (
           <CommentsSidebar
             comments={comments}
@@ -623,6 +480,7 @@ const EpubReaderPage = () => {
             onDelete={handleDeleteComment}
             onJumpTo={handleJumpToLocation}
             activeCommentId={activeCommentId}
+            onClearActiveComment={clearActiveComment}
             commentType={commentType}
             onCommentTypeChange={handleCommentTypeChange}
             readingGroupId={readingGroupId}
@@ -632,10 +490,16 @@ const EpubReaderPage = () => {
             selectedGroup={selectedGroup}
             bookSlug={slug}
             isAuthenticated={isAuth}
+            showCommentForm={showCommentForm}
+            selectedText={editingComment ? null : selectedTextData?.text}
+            onSubmitComment={onSubmitComment}
+            onCancelComment={handleCloseCommentForm}
+            editingComment={editingComment}
+            isSubmitting={isSubmitting}
+            formError={formError}
           />
         )}
 
-        {/* Table of Contents Sidebar */}
         <TableOfContents
           tocItems={tocFromEpub}
           chaptersData={chaptersData}
@@ -644,7 +508,6 @@ const EpubReaderPage = () => {
           isOpen={showToc}
         />
 
-        {/* Navigation buttons */}
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">
           <button
             onClick={goToPrevPage}
@@ -669,7 +532,6 @@ const EpubReaderPage = () => {
         </div>
       </div>
 
-      {/* Chapter info */}
       {chaptersData && (
         <div className="px-6 py-2 bg-[#F6F6F7] dark:bg-[#141624] border-t border-[#E8E8EA] dark:border-[#242535]">
           <p className="text-sm text-[#3B3C4A] dark:text-[#BABABF] text-center">
@@ -678,25 +540,14 @@ const EpubReaderPage = () => {
         </div>
       )}
 
-      {/* Floating Comment Button (only for authenticated users) */}
       {isAuth && (
         <CommentButton
           position={commentButtonPosition}
-          onClick={handleOpenCommentForm}
+          onClick={() => {
+            handleOpenCommentForm()
+            setShowCommentsSidebar(true)
+          }}
           visible={showCommentButton}
-        />
-      )}
-
-      {/* Comment Form Modal (only for authenticated users) */}
-      {isAuth && showCommentForm && (
-        <CommentForm
-          selectedText={editingComment ? null : selectedTextData?.text}
-          onSubmit={onSubmitComment}
-          onCancel={handleCloseCommentForm}
-          initialComment={editingComment?.comment_text || ''}
-          isEditing={!!editingComment}
-          isSubmitting={isSubmitting}
-          commentType={commentType}
         />
       )}
     </div>

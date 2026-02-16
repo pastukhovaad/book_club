@@ -1,15 +1,16 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getPrizeBoard, placeRewardOnBoard, removeRewardFromBoard, getMyRewards, getMyRewardPlacements } from "@/services/apiBook";
+import { getPrizeBoard, placeRewardOnBoard, removeRewardFromBoard, getMyRewards, getMyRewardPlacements } from "@/services";
 import PrizeBoard from "@/ui_components/PrizeBoard";
 import Spinner from "@/ui_components/Spinner";
+import { useAuth } from "@/context/AuthContext";
 
 
-const PrizeBoardPage = ({ username }) => {
+const PrizeBoardPage = () => {
+  const { username } = useAuth();
   const { slug } = useParams();
   const queryClient = useQueryClient();
 
-  // Fetch prize board
   const { isPending: boardPending, isError: boardError, error: boardErrorMsg, data: boardData } = useQuery({
     queryKey: ["prizeBoard", slug],
     queryFn: () => getPrizeBoard(slug),
@@ -17,7 +18,6 @@ const PrizeBoardPage = ({ username }) => {
 
   const canEditBoard = !!boardData?.can_edit || username === boardData?.reading_group?.creator?.username;
 
-  // Fetch user's rewards
   const { data: userRewards } = useQuery({
     queryKey: ["myRewards"],
     queryFn: getMyRewards,
@@ -32,7 +32,6 @@ const PrizeBoardPage = ({ username }) => {
 
   const navigate = useNavigate();
 
-  // Place reward mutation
   const placeRewardMutation = useMutation({
     mutationFn: ({ rewardId, x, y }) => placeRewardOnBoard(slug, { user_reward: rewardId, x, y }),
     onMutate: async ({ rewardId, x, y }) => {
@@ -89,7 +88,6 @@ const PrizeBoardPage = ({ username }) => {
     },
   });
 
-  // Remove reward mutation
   const removeRewardMutation = useMutation({
     mutationFn: ({ x, y }) => removeRewardFromBoard(slug, x, y),
     onMutate: async ({ x, y }) => {

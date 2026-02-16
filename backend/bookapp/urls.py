@@ -7,10 +7,13 @@ urlpatterns = [
     path("register_user/", register_user, name="register_user"),
     path("create_book/", views.create_book, name="create_book"),
     path("create_notification/", views.create_notification, name="create_notification"),
-    path("books/by_hashtag/", views.search_books_by_hashtag, name="search_books_by_hashtag"),
+    path(
+        "books/by_hashtag/",
+        views.search_books_by_hashtag,
+        name="search_books_by_hashtag",
+    ),
     path("book_list/<int:amount>/", views.book_list, name="book_list"),
     path("public_books/<int:amount>/", views.public_book_list, name="public_book_list"),
-    # path("group_list", views.reading_group_list, name="group_list"),
     path(
         "group_list/<int:amount>/",
         views.reading_group_list,
@@ -43,7 +46,6 @@ urlpatterns = [
     path("get_username", views.get_username, name="get_username"),
     path("get_userinfo/<str:username>", views.get_userinfo, name="get_userinfo"),
     path("users/<str:username>/books/", views.get_user_books, name="get_user_books"),
-    path("get_user/<str:email>", views.get_user, name="get_user"),
     path("groups/<slug:slug>", views.get_reading_group, name="get_reading_group"),
     path(
         "groups/<slug:slug>/books/reading/",
@@ -102,7 +104,6 @@ urlpatterns = [
         views.confirm_user_to_group,
         name="confirm_user_to_group",
     ),
-    # Book Comments endpoints
     path(
         "books/<slug:slug>/comments/", views.get_book_comments, name="get_book_comments"
     ),
@@ -111,7 +112,6 @@ urlpatterns = [
         views.create_book_comment,
         name="create_book_comment",
     ),
-    # Book Reviews endpoints
     path(
         "books/<slug:slug>/reviews/",
         views.get_book_reviews,
@@ -137,7 +137,6 @@ urlpatterns = [
         views.delete_book_comment,
         name="delete_book_comment",
     ),
-    # Comment Replies endpoints
     path(
         "books/<slug:slug>/comments/<int:comment_id>/replies/",
         views.get_comment_replies,
@@ -158,14 +157,17 @@ urlpatterns = [
         views.delete_comment_reply,
         name="delete_comment_reply",
     ),
-    # Gamification - Reward Templates
     path("rewards/templates/", views.get_reward_templates, name="get_reward_templates"),
     path(
         "rewards/templates/create/",
         views.create_reward_template,
         name="create_reward_template",
     ),
-    # Gamification - User Rewards
+    path(
+        "rewards/templates/<int:template_id>/delete/",
+        views.delete_reward_template,
+        name="delete_reward_template",
+    ),
     path("rewards/my/", views.get_my_rewards, name="get_my_rewards"),
     path(
         "rewards/my/summary/",
@@ -185,7 +187,6 @@ urlpatterns = [
         views.get_user_reward_summaries,
         name="get_user_reward_summaries",
     ),
-    # Gamification - Quests
     path("quests/", views.get_quests, name="get_quests"),
     path("groups/<slug:slug>/quests/", views.get_group_quests, name="get_group_quests"),
     path(
@@ -205,7 +206,22 @@ urlpatterns = [
         views.generate_daily_personal_quests,
         name="generate_daily_personal_quests",
     ),
-    # Gamification - Prize Board
+    path("quest-templates/", views.get_quest_templates, name="get_quest_templates"),
+    path(
+        "quest-templates/create/",
+        views.create_quest_template,
+        name="create_quest_template",
+    ),
+    path(
+        "quest-templates/<int:template_id>/update/",
+        views.update_quest_template,
+        name="update_quest_template",
+    ),
+    path(
+        "quest-templates/<int:template_id>/delete/",
+        views.delete_quest_template,
+        name="delete_quest_template",
+    ),
     path("groups/<slug:slug>/board/", views.get_prize_board, name="get_prize_board"),
     path(
         "groups/<slug:slug>/board/settings/",
@@ -222,7 +238,6 @@ urlpatterns = [
         views.remove_reward_from_board,
         name="remove_reward_from_board",
     ),
-    # Gamification - User Prize Board
     path(
         "users/<str:username>/board/",
         views.get_user_prize_board,
@@ -238,7 +253,6 @@ urlpatterns = [
         views.remove_reward_from_user_board,
         name="remove_reward_from_user_board",
     ),
-    # Gamification - Reading Progress
     path(
         "books/<slug:slug>/progress/",
         views.get_reading_progress,
@@ -255,6 +269,5 @@ urlpatterns = [
         name="get_recent_reading_books",
     ),
     path("books/<slug:slug>/complete/", views.complete_book, name="complete_book"),
-    # Gamification - User Stats
     path("users/<str:username>/stats/", views.get_user_stats, name="get_user_stats"),
 ]

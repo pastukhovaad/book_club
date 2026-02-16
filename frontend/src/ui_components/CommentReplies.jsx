@@ -21,10 +21,10 @@ const ReplyItem = ({
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return 'Только что';
+    if (diffMins < 60) return `${diffMins}м назад`;
+    if (diffHours < 24) return `${diffHours}ч назад`;
+    if (diffDays < 7) return `${diffDays}д назад`;
     return date.toLocaleDateString();
   };
 
@@ -41,7 +41,6 @@ const ReplyItem = ({
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
-          {/* User Avatar */}
           {reply.user.profile_picture ? (
             <img
               src={resolveMediaUrl(reply.user.profile_picture)}
@@ -63,7 +62,6 @@ const ReplyItem = ({
           </div>
         </div>
 
-        {/* Actions */}
         {isOwner && (
           <div className="flex gap-1">
             <button
@@ -90,12 +88,10 @@ const ReplyItem = ({
         )}
       </div>
 
-      {/* Reply Text */}
       <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 ml-8">
         {reply.comment_text}
       </p>
 
-      {/* Delete Confirmation */}
       {showDeleteConfirm && (
         <div
           className="mt-2 ml-8 p-2 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded"
@@ -141,13 +137,13 @@ const CommentReplies = ({
   onOpenReplyForm,
   onCloseReplyForm,
   isDeleting,
+  replyFormError,
 }) => {
   return (
     <div
       className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Replies List */}
       {repliesLoading ? (
         <div className="flex justify-center py-2">
           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
@@ -167,17 +163,17 @@ const CommentReplies = ({
         </div>
       ) : (
         <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">
-          No replies yet
+          Еще нет ответов
         </p>
       )}
 
-      {/* Reply Form */}
       {showReplyForm ? (
         <ReplyForm
           onSubmit={onSubmitReply}
           onCancel={onCloseReplyForm}
           isSubmitting={isSubmitting}
           editingReply={editingReply}
+          error={replyFormError}
         />
       ) : (
         <button
@@ -187,7 +183,7 @@ const CommentReplies = ({
           }}
           className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
         >
-          + Add reply
+          Ответить
         </button>
       )}
     </div>

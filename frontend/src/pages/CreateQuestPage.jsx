@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createQuest, getReadingGroups, getRewardTemplates } from "@/services/apiBook";
+import { createQuest, getReadingGroups, getRewardTemplates } from "@/services";
 import Spinner from "@/ui_components/Spinner";
 
 const CreateQuestPage = () => {
@@ -20,13 +20,11 @@ const CreateQuestPage = () => {
 
   const [error, setError] = useState("");
 
-  // Fetch reading groups
   const { data: groupsData } = useQuery({
     queryKey: ["readingGroups"],
     queryFn: () => getReadingGroups(1, 100),
   });
 
-  // Fetch reward templates
   const { data: rewardsData } = useQuery({
     queryKey: ["rewardTemplates"],
     queryFn: getRewardTemplates,
@@ -49,7 +47,6 @@ const CreateQuestPage = () => {
       [name]: value
     }));
 
-    // Auto-adjust participation type based on group selection
     if (name === "reading_group") {
       if (!value && formData.participation_type === "group") {
         setFormData(prev => ({ ...prev, participation_type: "personal" }));
@@ -61,7 +58,6 @@ const CreateQuestPage = () => {
     e.preventDefault();
     setError("");
 
-    // Validation
     if (!formData.title.trim()) {
       setError("Введите название задания");
       return;
@@ -75,7 +71,6 @@ const CreateQuestPage = () => {
       return;
     }
 
-    // Prepare data for submission
     const submitData = {
       ...formData,
       target_count: parseInt(formData.target_count),
@@ -103,7 +98,6 @@ const CreateQuestPage = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Title */}
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
               Название *
@@ -118,7 +112,6 @@ const CreateQuestPage = () => {
             />
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
               Описание
@@ -132,7 +125,6 @@ const CreateQuestPage = () => {
             />
           </div>
 
-          {/* Quest Type */}
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
               Тип задания *
@@ -151,7 +143,6 @@ const CreateQuestPage = () => {
             </select>
           </div>
 
-          {/* Target Count */}
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
               Целевое количество *
@@ -167,7 +158,6 @@ const CreateQuestPage = () => {
             />
           </div>
 
-          {/* Participation Type */}
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
               Тип участия *
@@ -184,7 +174,6 @@ const CreateQuestPage = () => {
             </select>
           </div>
 
-          {/* Reading Group */}
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
               Читательская группа (опционально)
@@ -204,7 +193,6 @@ const CreateQuestPage = () => {
             </select>
           </div>
 
-          {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
@@ -234,7 +222,6 @@ const CreateQuestPage = () => {
             </div>
           </div>
 
-          {/* Reward Template */}
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
               Награда (опционально)
@@ -254,7 +241,6 @@ const CreateQuestPage = () => {
             </select>
           </div>
 
-          {/* Submit buttons */}
           <div className="flex gap-4 pt-4">
             <button
               type="submit"

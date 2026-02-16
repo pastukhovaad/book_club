@@ -7,11 +7,7 @@ export const useEpubReader = () => {
   const [rendition, setRendition] = useState(null);
   const [tocFromEpub, setTocFromEpub] = useState([]);
 
-  // Log location changes for debugging
   useEffect(() => {
-    if (import.meta.env.DEV && location) {
-      console.log('useEpubReader: location changed to:', location);
-    }
   }, [location]);
 
   const normalizeHref = useCallback((href) => {
@@ -19,17 +15,14 @@ export const useEpubReader = () => {
 
     let normalized = href.trim();
 
-    // Remove hash part for spine lookup
     normalized = normalized.split('#')[0];
 
-    // Try to decode URL-encoded hrefs
     try {
       normalized = decodeURIComponent(normalized);
     } catch {
-      // Keep original if decoding fails
+      // .
     }
 
-    // Normalize leading "./"
     if (normalized.startsWith('./')) {
       normalized = normalized.slice(2);
     }
@@ -37,20 +30,17 @@ export const useEpubReader = () => {
     return normalized;
   }, []);
 
-  // Navigation guard to prevent concurrent navigations
   const navigationRef = useRef({
     isNavigating: false,
     navigationId: 0,
   });
 
-  // Apply font size when rendition is ready
   useEffect(() => {
     if (rendition) {
       rendition.themes.fontSize(`${fontSize}%`);
     }
   }, [fontSize, rendition]);
 
-  // Handle window resize
   useEffect(() => {
     if (!rendition) return;
 
@@ -62,12 +52,10 @@ export const useEpubReader = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [rendition]);
 
-  // Handle keyboard navigation
   useEffect(() => {
     if (!rendition) return;
 
     const handleKeyDown = (e) => {
-      // Ignore if user is typing in an input/textarea
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
         return;
       }
@@ -109,40 +97,17 @@ export const useEpubReader = () => {
 
   const handleChapterClick = useCallback(
     (href) => {
-      if (!href) {
-        if (import.meta.env.DEV) {
-          console.warn('handleChapterClick: No href provided');
-        }
-        return;
-      }
-
-      if (!rendition) {
-        if (import.meta.env.DEV) {
-          console.warn('handleChapterClick: Rendition not ready');
-        }
-        return;
-      }
-
       const book = rendition.book;
 
       const anchor = href.includes('#') ? href.split('#')[1] : null;
       const hrefWithoutAnchor = normalizeHref(href);
 
-      if (import.meta.env.DEV) {
-        console.log('Navigating to chapter:', href);
-        console.log('Href without anchor:', hrefWithoutAnchor);
-        console.log('Anchor:', anchor);
-        console.log('Current location before:', rendition.location?.start?.cfi);
-      }
-
-      // Try to find the section in the spine
       let spineItem = null;
       let spineIndex = -1;
 
       if (book?.spine) {
         spineItem = book.spine.get(hrefWithoutAnchor);
 
-        // If not found directly, try to find by matching end of href
         if (!spineItem && book.spine.items) {
           const foundIndex = book.spine.items.findIndex(item =>
             item.href === hrefWithoutAnchor ||
@@ -159,36 +124,15 @@ export const useEpubReader = () => {
           spineIndex = book.spine.items?.findIndex(item => item.href === spineItem.href) ?? -1;
         }
 
-        if (import.meta.env.DEV) {
-          console.log('Spine item found:', spineItem ? spineItem.href : 'NOT FOUND');
-          console.log('Spine index:', spineIndex);
-          if (!spineItem) {
-            console.log('Available spine items:', book.spine.items?.map(i => i.href));
-          }
-        }
       }
 
-      // Single navigation - determine target CFI first, then navigate once
       const performNavigation = async () => {
-        if (!spineItem) {
-          if (import.meta.env.DEV) {
-            console.warn('No spine item found, cannot navigate');
-          }
-          return;
-        }
-
-        // Cancel any previous navigation and start new one
         navigationRef.current.navigationId += 1;
         const currentNavId = navigationRef.current.navigationId;
         navigationRef.current.isNavigating = true;
 
-        if (import.meta.env.DEV) {
-          console.log(`Starting navigation #${currentNavId}`);
-        }
-
         let targetCfi = null;
 
-        // If there's an anchor, find its CFI first
         if (anchor) {
           try {
             const section = book.spine.get(spineItem.href);
@@ -201,11 +145,6 @@ export const useEpubReader = () => {
                                 doc.querySelector(`a[id="${anchor}"]`);
                 if (element) {
                   targetCfi = section.cfiFromElement(element);
-                  if (import.meta.env.DEV) {
-                    console.log('Found anchor CFI:', targetCfi);
-                  }
-                } else if (import.meta.env.DEV) {
-                  console.warn('Anchor element not found:', anchor);
                 }
               }
             }
@@ -216,20 +155,7 @@ export const useEpubReader = () => {
           }
         }
 
-        // Check if this navigation was cancelled
-        if (navigationRef.current.navigationId !== currentNavId) {
-          if (import.meta.env.DEV) {
-            console.log(`Navigation #${currentNavId} cancelled`);
-          }
-          return;
-        }
-
-        // Fallback to spine item href if no anchor CFI found
         const target = targetCfi || spineItem.href;
-
-        if (import.meta.env.DEV) {
-          console.log('Navigating to:', target);
-        }
 
         try {
           await rendition.display(target);
@@ -244,7 +170,6 @@ export const useEpubReader = () => {
         }
       };
 
-      // Execute navigation
       performNavigation();
       setShowToc(false);
     },
@@ -253,32 +178,12 @@ export const useEpubReader = () => {
 
   const handleJumpToLocation = useCallback(
     (cfiRange) => {
-      if (!cfiRange) {
-        if (import.meta.env.DEV) {
-          console.warn('handleJumpToLocation: No CFI range provided');
-        }
-        return;
-      }
-
-      if (!rendition) {
-        if (import.meta.env.DEV) {
-          console.warn('handleJumpToLocation: Rendition not ready');
-        }
-        return;
-      }
-
-      if (import.meta.env.DEV) {
-        console.log('Jumping to CFI:', cfiRange);
-      }
 
       navigationRef.current.navigationId += 1;
       const currentNavId = navigationRef.current.navigationId;
       navigationRef.current.isNavigating = true;
 
       rendition.display(cfiRange).then(() => {
-        if (import.meta.env.DEV) {
-          console.log('Navigation complete');
-        }
       }).catch((err) => {
         if (import.meta.env.DEV) {
           console.error('Navigation failed:', err);
@@ -305,14 +210,10 @@ export const useEpubReader = () => {
   );
 
   const handleTocChanged = useCallback((toc) => {
-    if (import.meta.env.DEV) {
-      console.log('TOC loaded:', toc?.map(item => ({ label: item.label, href: item.href })));
-    }
     setTocFromEpub(toc);
   }, []);
 
   return {
-    // State
     location,
     setLocation,
     fontSize,
@@ -321,7 +222,6 @@ export const useEpubReader = () => {
     rendition,
     tocFromEpub,
 
-    // Handlers
     increaseFontSize,
     decreaseFontSize,
     goToPrevPage,

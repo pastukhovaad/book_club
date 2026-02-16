@@ -6,41 +6,34 @@ import {
   getUsername,
   getReadingProgress,
   updateReadingProgress,
-} from '@/services/apiBook'
+} from '@/services'
 import SmallSpinner from '@/ui_components/SmallSpinner'
 import CommentButton from '@/ui_components/CommentButton'
-import CommentForm from '@/ui_components/CommentForm'
 import CommentsSidebar from '@/ui_components/CommentsSidebar'
 import useBookComments from '@/hooks/useBookComments'
 import useDynamicPagination from '@/hooks/useDynamicPagination'
 import EpubReaderPage from './EpubReaderPage'
 
+import { useTheme } from '@/context/ThemeContext'
 import { IoHomeOutline } from 'react-icons/io5'
 import { AiOutlinePlus, AiOutlineMinus } from 'react-icons/ai'
 import { BiMessageSquareDetail } from 'react-icons/bi'
 import { FiCheckCircle, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import { HiMoon, HiSun } from 'react-icons/hi'
 
-// Normalize whitespace: collapse multiple spaces/newlines to single space
 const normalizeWhitespace = (str) => str.replace(/\s+/g, ' ').trim()
 
-/**
- * Find text fragment in content with whitespace normalization fallback.
- * Returns { start, end } indices in the original content, or null if not found.
- */
 const findTextInContent = (content, targetText, startFrom = 0) => {
   if (!content || !targetText) return null
 
-  // Try exact match first
   const exactIndex = content.indexOf(targetText, startFrom)
   if (exactIndex !== -1) {
     return { start: exactIndex, end: exactIndex + targetText.length }
   }
 
-  // Try with normalized whitespace
   const normalizedTarget = normalizeWhitespace(targetText)
   if (!normalizedTarget) return null
 
-  // Build a mapping from normalized positions to original positions
   const originalPositions = []
   let inWhitespace = false
 
@@ -50,7 +43,7 @@ const findTextInContent = (content, targetText, startFrom = 0) => {
 
     if (isWs) {
       if (!inWhitespace) {
-        originalPositions.push(i) // Position of the whitespace sequence (becomes single space)
+        originalPositions.push(i)
         inWhitespace = true
       }
     } else {
@@ -59,18 +52,14 @@ const findTextInContent = (content, targetText, startFrom = 0) => {
     }
   }
 
-  // Create normalized content starting from startFrom
   const normalizedContent = normalizeWhitespace(content.slice(startFrom))
   const normalizedIndex = normalizedContent.indexOf(normalizedTarget)
 
   if (normalizedIndex === -1) return null
 
-  // Map normalized indices back to original positions
   const originalStart = originalPositions[normalizedIndex]
   const normalizedEnd = normalizedIndex + normalizedTarget.length
   
-  // Find the original end position
-  // We need to find where the last character of the match is in the original content
   let originalEnd
   if (normalizedEnd >= originalPositions.length) {
     originalEnd = content.length
@@ -78,8 +67,6 @@ const findTextInContent = (content, targetText, startFrom = 0) => {
     originalEnd = originalPositions[normalizedEnd]
   }
 
-  // Adjust end to include the full last character sequence
-  // (in case the match ends with collapsed whitespace)
   if (originalEnd > originalStart) {
     return { start: originalStart, end: originalEnd }
   }
@@ -102,6 +89,9 @@ const BookPagesPage = ({ isAuthenticated }) => {
   const [showCommentButton, setShowCommentButton] = useState(false)
   const [commentButtonPosition, setCommentButtonPosition] = useState({ x: 0, y: 0 })
   const [selectedTextData, setSelectedTextData] = useState(null)
+  const [activeCommentId, setActiveCommentId] = useState(null)
+
+  const { darkMode, toggleDarkMode } = useTheme()
 
   const {
     data: book,
@@ -141,12 +131,9 @@ const BookPagesPage = ({ isAuthenticated }) => {
   const updateProgressMutation = useMutation({
     mutationFn: (data) => updateReadingProgress(slug, data),
     onSuccess: (responseData) => {
-      // Update the cache directly instead of refetching to avoid navigation resets
       if (responseData) {
         queryClient.setQueryData(['readingProgress', slug], responseData)
       }
-      // Note: Quest progress is only affected when book is marked complete,
-      // not on every page turn, so we don't invalidate quests here
     },
   })
 
@@ -162,6 +149,7 @@ const BookPagesPage = ({ isAuthenticated }) => {
     userGroups,
     userGroupsLoading,
     isSubmitting,
+    formError,
     handleSubmitComment,
     handleEditComment,
     handleDeleteComment,
@@ -171,7 +159,6 @@ const BookPagesPage = ({ isAuthenticated }) => {
     handleCommentTypeChange,
   } = useBookComments(slug, isAuth)
 
-  // Dynamic pagination hook
   const {
     currentPage,
     totalPages,
@@ -192,7 +179,6 @@ const BookPagesPage = ({ isAuthenticated }) => {
     initialCharacterOffset: 0,
   })
 
-  // Restore reading position when progress data is loaded
   const hasRestoredPosition = useRef(false)
   useEffect(() => {
     if (hasRestoredPosition.current || !readingProgressData) return
@@ -203,7 +189,6 @@ const BookPagesPage = ({ isAuthenticated }) => {
     }
   }, [readingProgressData, restorePosition])
 
-  // Recalculate pagination when sidebar visibility changes
   useEffect(() => {
     const timer = setTimeout(debouncedRecalculate, 300)
     return () => clearTimeout(timer)
@@ -233,7 +218,6 @@ const BookPagesPage = ({ isAuthenticated }) => {
       const selected = comment?.selected_text
       if (!selected) return
 
-      // Use findTextInContent with normalization fallback
       const match = findTextInContent(currentText, selected, 0)
       if (match) {
         matches.push({
@@ -249,36 +233,89 @@ const BookPagesPage = ({ isAuthenticated }) => {
 
     matches.sort((a, b) => a.start - b.start)
 
-    const filtered = []
-    let lastEnd = 0
+    const segments = []
+    const events = []
+
     matches.forEach((match) => {
-      if (match.start >= lastEnd) {
-        filtered.push(match)
-        lastEnd = match.end
-      }
+      events.push({ pos: match.start, type: 'start', match })
+      events.push({ pos: match.end, type: 'end', match })
     })
+
+    events.sort((a, b) => {
+      if (a.pos !== b.pos) return a.pos - b.pos
+      return a.type === 'start' ? -1 : 1
+    })
+
+    let currentPos = 0
+    const activeMatches = []
+
+    events.forEach((event) => {
+      if (event.pos > currentPos && activeMatches.length === 0) {
+        segments.push({
+          start: currentPos,
+          end: event.pos,
+          matches: [],
+        })
+      } else if (event.pos > currentPos && activeMatches.length > 0) {
+        segments.push({
+          start: currentPos,
+          end: event.pos,
+          matches: [...activeMatches],
+        })
+      }
+
+      if (event.type === 'start') {
+        activeMatches.push(event.match)
+      } else {
+        const index = activeMatches.findIndex((m) => m.id === event.match.id)
+        if (index !== -1) activeMatches.splice(index, 1)
+      }
+
+      currentPos = event.pos
+    })
+
+    if (currentPos < currentText.length) {
+      segments.push({
+        start: currentPos,
+        end: currentText.length,
+        matches: [],
+      })
+    }
 
     const result = []
-    let cursor = 0
-    filtered.forEach((match, index) => {
-      if (cursor < match.start) {
-        result.push(currentText.slice(cursor, match.start))
-      }
-      result.push(
-        <mark
-          key={`${match.id}-${index}`}
-          className="px-0.5"
-          style={{ backgroundColor: toRgba(match.color) }}
-        >
-          {currentText.slice(match.start, match.end)}
-        </mark>
-      )
-      cursor = match.end
-    })
+    segments.forEach((segment, segmentIndex) => {
+      const text = currentText.slice(segment.start, segment.end)
+      if (!text) return
 
-    if (cursor < currentText.length) {
-      result.push(currentText.slice(cursor))
-    }
+      if (segment.matches.length === 0) {
+        result.push(text)
+      } else {
+        const primaryMatch = segment.matches[0]
+        const backgroundColor = segment.matches.length > 1
+          ? toRgba(primaryMatch.color, 0.5)
+          : toRgba(primaryMatch.color, 0.35)
+
+        result.push(
+          <mark
+            key={`${segment.start}-${segmentIndex}`}
+            className="px-0 cursor-pointer hover:opacity-80 transition-opacity"
+            style={{
+              backgroundColor,
+              fontFamily: 'inherit',
+              fontSize: 'inherit',
+            }}
+            onClick={(e) => {
+              e.stopPropagation()
+              setActiveCommentId(primaryMatch.id)
+              setShowCommentsSidebar(true)
+            }}
+            title={segment.matches.length > 1 ? `${segment.matches.length} комментариев` : undefined}
+          >
+            {text}
+          </mark>
+        )
+      }
+    })
 
     return result
   }, [currentText, comments])
@@ -288,18 +325,22 @@ const BookPagesPage = ({ isAuthenticated }) => {
   useEffect(() => {
     if (!isAuth || !book?.content) return
 
-    // Only send when character offset changes
-    if (lastProgressRef.current.charOffset === characterOffset) return
+    const readUpTo =
+      currentPage >= totalPages
+        ? book.content.length
+        : Math.min(characterOffset + (currentText?.length || 0), book.content.length)
+
+    if (lastProgressRef.current.charOffset === readUpTo) return
 
     const timer = setTimeout(() => {
       updateProgressMutation.mutate({
-        character_offset: characterOffset,
+        character_offset: readUpTo,
       })
-      lastProgressRef.current = { charOffset: characterOffset }
-    }, 2000) // Increased debounce to 2 seconds like EpubReaderPage
+      lastProgressRef.current = { charOffset: readUpTo }
+    }, 2000)
 
     return () => clearTimeout(timer)
-  }, [characterOffset, book?.content, isAuth, updateProgressMutation])
+  }, [characterOffset, currentPage, totalPages, currentText, book?.content, isAuth, updateProgressMutation])
 
   const clearSelection = useCallback(() => {
     setSelectedTextData(null)
@@ -368,7 +409,7 @@ const BookPagesPage = ({ isAuthenticated }) => {
   if (bookError || !book) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <p className="text-red-500">Error loading book</p>
+        <p className="text-red-500">Ошибка при загрузке книги.</p>
       </div>
     )
   }
@@ -379,22 +420,14 @@ const BookPagesPage = ({ isAuthenticated }) => {
 
   if (!book.content) {
     return (
-      <div className="padding-dx max-container py-9">
-        <div className="flex flex-col items-center justify-center h-[50vh]">
-          <p className="text-xl text-gray-600 dark:text-gray-400">
-            This book has no content available.
-          </p>
-          <Link to={`/books/${slug}`} className="mt-4 text-blue-600 hover:underline">
-            Back to book details
-          </Link>
-        </div>
-      </div>
+      <p className="text-xl text-gray-600 dark:text-gray-400">
+        Ошибка при загрузке контента книги.
+      </p>
     )
   }
 
   return (
     <div className="flex flex-col h-screen bg-[#FFFFFF] dark:bg-[#181A2A] text-[#181A2A] dark:text-[#FFFFFF]">
-      {/* Header */}
       <div className="sticky top-0 z-10 bg-[#FFFFFF] dark:bg-[#141624] border-b border-[#E8E8EA] dark:border-[#242535]">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
@@ -415,21 +448,18 @@ const BookPagesPage = ({ isAuthenticated }) => {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Font family selector */}
             <div className="flex items-center gap-2 border border-[#E8E8EA] dark:border-[#242535] rounded-lg px-3 py-1 bg-[#FFFFFF] dark:bg-[#1F2136]">
               <select
                 value={fontFamily}
                 onChange={(e) => setFontFamily(e.target.value)}
                 className="text-sm bg-transparent text-[#3B3C4A] dark:text-[#BABABF] outline-none"
               >
-                <option value="serif">Serif</option>
                 <option value="sans-serif">Sans</option>
                 <option value="monospace">Mono</option>
                 <option value="georgia">Georgia</option>
                 <option value="times">Times</option>
               </select>
             </div>
-            {/* Font size controls */}
             <div className="flex items-center gap-2 border border-[#E8E8EA] dark:border-[#242535] rounded-lg px-3 py-1 bg-[#FFFFFF] dark:bg-[#1F2136]">
               <button
                 onClick={() => setFontSize((prev) => Math.max(80, prev - 10))}
@@ -450,7 +480,14 @@ const BookPagesPage = ({ isAuthenticated }) => {
               </button>
             </div>
 
-            {/* Comments toggle */}
+            <button
+              onClick={toggleDarkMode}
+              className="flex items-center gap-2 px-3 py-2 border border-[#E8E8EA] dark:border-[#242535] rounded-lg bg-[#FFFFFF] dark:bg-[#1F2136] text-[#3B3C4A] dark:text-[#BABABF] hover:text-[#4B6BFB] dark:hover:text-[#4B6BFB] transition-colors"
+              title={darkMode ? "Светлая тема" : "Темная тема"}
+            >
+              {darkMode ? <HiSun size={20} /> : <HiMoon size={20} />}
+            </button>
+
             <button
               onClick={() => setShowCommentsSidebar((prev) => !prev)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
@@ -469,7 +506,6 @@ const BookPagesPage = ({ isAuthenticated }) => {
               )}
             </button>
 
-            {/* Completed indicator */}
             {readingProgressData?.is_completed && (
               <div className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg border border-green-300 dark:border-green-700">
                 <FiCheckCircle size={20} />
@@ -480,7 +516,6 @@ const BookPagesPage = ({ isAuthenticated }) => {
         </div>
       </div>
 
-      {/* TODO/FIXLATER some of the fonts dont work */}
       <div className="flex-1 relative flex overflow-hidden">
         <div ref={containerRef} className="flex-1 overflow-hidden min-h-0">
           <div
@@ -509,7 +544,6 @@ const BookPagesPage = ({ isAuthenticated }) => {
           </div>
         </div>
 
-        {/* Comments Sidebar */}
         {showCommentsSidebar && (
           <CommentsSidebar
             comments={comments}
@@ -520,7 +554,8 @@ const BookPagesPage = ({ isAuthenticated }) => {
             onEdit={handleEditComment}
             onDelete={handleDeleteComment}
             onJumpTo={handleJumpToText}
-            activeCommentId={null}
+            activeCommentId={activeCommentId}
+            onClearActiveComment={() => setActiveCommentId(null)}
             commentType={commentType}
             onCommentTypeChange={handleCommentTypeChange}
             readingGroupId={readingGroupId}
@@ -530,10 +565,16 @@ const BookPagesPage = ({ isAuthenticated }) => {
             selectedGroup={selectedGroup}
             bookSlug={slug}
             isAuthenticated={isAuth}
+            showCommentForm={showCommentForm}
+            selectedText={selectedTextData?.text || editingComment?.selected_text}
+            onSubmitComment={onSubmitComment}
+            onCancelComment={handleCloseCommentForm}
+            editingComment={editingComment}
+            isSubmitting={isSubmitting}
+            formError={formError}
           />
         )}
 
-        {/* Navigation buttons */}
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2">
           <button
             onClick={goToPrevPage}
@@ -544,7 +585,6 @@ const BookPagesPage = ({ isAuthenticated }) => {
             <FiChevronLeft size={24} className="text-[#3B3C4A] dark:text-[#BABABF]" />
           </button>
 
-          {/* Page input */}
           <div className="flex items-center gap-1 bg-[#FFFFFF] dark:bg-[#1F2136] border border-[#E8E8EA] dark:border-[#242535] shadow-md rounded-lg px-3 py-2">
             <input
               type="number"
@@ -584,21 +624,10 @@ const BookPagesPage = ({ isAuthenticated }) => {
         onClick={() => {
           handleOpenCommentForm()
           setShowCommentButton(false)
+          setShowCommentsSidebar(true)
         }}
         visible={showCommentButton && isAuth}
       />
-
-      {showCommentForm && (
-        <CommentForm
-          selectedText={selectedTextData?.text || editingComment?.selected_text}
-          onSubmit={onSubmitComment}
-          onCancel={handleCloseCommentForm}
-          initialComment={editingComment?.comment_text || ''}
-          isEditing={!!editingComment}
-          isSubmitting={isSubmitting}
-          commentType={commentType}
-        />
-      )}
     </div>
   )
 }

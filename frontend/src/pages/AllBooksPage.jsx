@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getBooks, searchBooksByHashtag } from "@/services/apiBook";
+import { getBooks, searchBooksByHashtag } from "@/services";
 import BookContainer from "@/ui_components/BookContainer";
 import PagePagination from "../ui_components/PagePagination";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
@@ -14,18 +14,15 @@ const AllBooksPage = () => {
   const [search, setSearch] = useState("");
   const numOfBooksPerPage = 9;
 
-  // Определяем тип поиска
   const searchTerm = search.trim();
   const isHashtagSearch = searchTerm.startsWith("#") && searchTerm.length > 1;
   const searchHashtag = isHashtagSearch ? searchTerm.slice(1).toLowerCase() : "";
   const isTitleSearch = searchTerm.length > 0 && !isHashtagSearch;
   const isTagFiltering = tagFromUrl.length > 0;
 
-  // Активный хештег — либо из URL, либо из строки поиска
   const activeTag = isTagFiltering ? tagFromUrl : searchHashtag;
   const isActiveTagSearch = activeTag.length > 0;
 
-  // Обычный запрос книг (без фильтра по хештегу)
   const { isPending, data } = useQuery({
     queryKey: ["books", page],
     queryFn: () => getBooks(page, numOfBooksPerPage),
@@ -33,7 +30,6 @@ const AllBooksPage = () => {
     enabled: !isActiveTagSearch,
   });
 
-  // Запрос книг по хештегу (из URL или из строки поиска)
   const { isPending: isTagPending, data: tagData } = useQuery({
     queryKey: ["books", "hashtag", activeTag, page],
     queryFn: () => searchBooksByHashtag(activeTag, page, numOfBooksPerPage),
@@ -41,7 +37,6 @@ const AllBooksPage = () => {
     enabled: isActiveTagSearch,
   });
 
-  // Загрузка всех книг для клиентской фильтрации по названию
   const { data: allBooksData } = useQuery({
     queryKey: ["books", "all"],
     queryFn: () => getBooks(1, 1000),
@@ -82,7 +77,6 @@ const AllBooksPage = () => {
     setPage(1);
   }, [tagFromUrl]);
 
-  // Если перешли по ссылке с ?tag=, подставляем хештег в строку поиска
   useEffect(() => {
     if (tagFromUrl) {
       setSearch(`#${tagFromUrl}`);
@@ -147,7 +141,6 @@ const AllBooksPage = () => {
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
-                // Если пользователь очищает строку, убираем фильтр из URL
                 if (!e.target.value.trim() && tagFromUrl) {
                   searchParams.delete("tag");
                   setSearchParams(searchParams);
@@ -169,7 +162,7 @@ const AllBooksPage = () => {
           handleSetPage={handleSetPage}
         />
       ) : (
-        <p className="text-center text-gray-500 dark:text-gray-400 mt-12 text-lg">
+        <p className="text-center text-gray-500 dark:text-gray-400 mt-12 text-md">
           По вашему запросу ничего не найдено.
         </p>
       )}

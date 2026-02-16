@@ -5,7 +5,6 @@ export const useTextSelection = (rendition) => {
   const [commentButtonPosition, setCommentButtonPosition] = useState({ x: 0, y: 0 });
   const [selectedTextData, setSelectedTextData] = useState(null);
 
-  // Setup text selection listener
   useEffect(() => {
     if (!rendition) return;
 

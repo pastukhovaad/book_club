@@ -1,16 +1,12 @@
-"""
-Reading progress tracking views.
-
-Handles user reading progress for books, including progress updates and completion tracking.
-"""
-
 import logging
 
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from urllib3 import request
 
 from ..models import Book, CustomUser, ReadingProgress
 from ..serializers import BookSerializerInfo, ReadingProgressSerializer
@@ -22,7 +18,6 @@ logger = logging.getLogger(__name__)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_reading_progress(request, slug):
-    """Get user's reading progress for a book."""
     user = request.user
 
     try:
@@ -53,7 +48,11 @@ def get_reading_progress(request, slug):
 @api_view(["PUT", "PATCH"])
 @permission_classes([IsAuthenticated])
 def update_reading_progress(request, slug):
-    """Update user's reading progress for a book."""
+    logger.debug(f"===============================")
+    logger.debug(
+        f"Received request to update reading progress for book slug '{slug}' with data: {request.data}"
+    )
+
     user = request.user
 
     try:
@@ -87,11 +86,14 @@ def update_reading_progress(request, slug):
                     except (TypeError, ValueError):
                         pass
 
+            logger.debug(
+                f"Calculated progress percent for book slug '{slug}': {calculated_percent}"
+            )
+
             # Update progress_percent if calculated
             if calculated_percent is not None:
                 saved_progress.progress_percent = min(calculated_percent, 100)
 
-                # Auto-complete if progress >= 95%
                 if (
                     saved_progress.progress_percent >= 95
                     and not saved_progress.is_completed
@@ -110,9 +112,10 @@ def update_reading_progress(request, slug):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def complete_book(request, slug):
-    """Mark a book as completed."""
     user = request.user
-
+    logger.debug(
+        f"Received request to mark book slug '{slug}' as completed for user {user.username}"
+    )
     try:
         book = Book.objects.get(slug=slug)
 
@@ -131,7 +134,6 @@ def complete_book(request, slug):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_recent_reading_books(request, amount):
-    """Get recently read books for the authenticated user."""
     progress_qs = (
         ReadingProgress.objects.filter(user=request.user)
         .select_related("book", "book__author", "book__reading_group")
@@ -141,6 +143,13 @@ def get_recent_reading_books(request, amount):
     paginator = AnyListPagination(amount=amount)
     paginated_progress = paginator.paginate_queryset(progress_qs, request)
 
-    books = [progress.book for progress in paginated_progress]
+    book_ids = [progress.book_id for progress in paginated_progress]
+    books_with_rating = {
+        b.id: b
+        for b in Book.objects.filter(id__in=book_ids).annotate(
+            average_rating=Avg("bookreview__stars_amount")
+        )
+    }
+    books = [books_with_rating[progress.book_id] for progress in paginated_progress]
     serializer = BookSerializerInfo(books, many=True)
     return paginator.get_paginated_response(serializer.data)

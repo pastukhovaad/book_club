@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getMyRewards, getUserRewards } from "@/services/apiBook";
+import { getMyRewards, getUserRewards } from "@/services";
 import RewardCard from "@/ui_components/RewardCard";
 import Spinner from "@/ui_components/Spinner";
 import { useSearchParams } from "react-router-dom";
@@ -42,7 +42,7 @@ const RewardsPage = () => {
       {rewards.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 dark:text-gray-400 text-lg mb-4">
-            {username ? "У пользователя пока нет наград" : "У вас пока нет наград"}
+            {username ? "У пользователя ещё нет наград" : "У вас ещё нет наград"}
           </p>
           <p className="text-gray-400 dark:text-gray-500">
             Выполняйте задания, чтобы получить награды!

@@ -6,14 +6,14 @@ import {
   createCommentReply,
   updateCommentReply,
   deleteCommentReply,
-} from '@/services/apiBook';
+} from '@/services';
 
 export const useCommentReplies = (slug, commentId, enabled = false) => {
   const queryClient = useQueryClient();
   const [editingReply, setEditingReply] = useState(null);
   const [showReplyForm, setShowReplyForm] = useState(false);
+  const [replyFormError, setReplyFormError] = useState(null);
 
-  // Fetch replies for a specific comment
   const {
     data: replies,
     isLoading: repliesLoading,
@@ -24,41 +24,42 @@ export const useCommentReplies = (slug, commentId, enabled = false) => {
     enabled: enabled && !!slug && !!commentId,
   });
 
-  // Create reply mutation
   const createReplyMutation = useMutation({
     mutationFn: (data) => createCommentReply(slug, commentId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['commentReplies', slug, commentId] });
-      // Also invalidate parent comments to update replies_count
       queryClient.invalidateQueries({ queryKey: ['bookComments', slug] });
       setShowReplyForm(false);
+      setReplyFormError(null);
       toast.success('Reply added');
     },
     onError: (err) => {
-      toast.error(err.message || 'Failed to create reply');
+      const errorMessage = err.message || 'Failed to create reply';
+      setReplyFormError(errorMessage);
+      toast.error(errorMessage);
     },
   });
 
-  // Update reply mutation
   const updateReplyMutation = useMutation({
     mutationFn: ({ replyId, data }) => updateCommentReply(slug, commentId, replyId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['commentReplies', slug, commentId] });
       setShowReplyForm(false);
       setEditingReply(null);
+      setReplyFormError(null);
       toast.success('Reply updated');
     },
     onError: (err) => {
-      toast.error(err.message || 'Failed to update reply');
+      const errorMessage = err.message || 'Failed to update reply';
+      setReplyFormError(errorMessage);
+      toast.error(errorMessage);
     },
   });
 
-  // Delete reply mutation
   const deleteReplyMutation = useMutation({
     mutationFn: (replyId) => deleteCommentReply(slug, commentId, replyId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['commentReplies', slug, commentId] });
-      // Also invalidate parent comments to update replies_count
       queryClient.invalidateQueries({ queryKey: ['bookComments', slug] });
       toast.success('Reply deleted');
     },
@@ -90,26 +91,26 @@ export const useCommentReplies = (slug, commentId, enabled = false) => {
   const handleOpenReplyForm = () => {
     setEditingReply(null);
     setShowReplyForm(true);
+    setReplyFormError(null);
   };
 
   const handleCloseReplyForm = () => {
     setShowReplyForm(false);
     setEditingReply(null);
+    setReplyFormError(null);
   };
 
   return {
-    // State
     replies,
     repliesLoading,
     repliesError,
     editingReply,
     showReplyForm,
+    replyFormError,
 
-    // Mutation states
     isSubmitting: createReplyMutation.isPending || updateReplyMutation.isPending,
     isDeleting: deleteReplyMutation.isPending,
 
-    // Handlers
     handleSubmitReply,
     handleEditReply,
     handleDeleteReply,

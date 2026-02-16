@@ -1,15 +1,16 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getGroupQuests, generateDailyQuests, getReadingGroup, getUserToReadingGroupStates } from "@/services/apiBook";
+import { getGroupQuests, generateDailyQuests, getReadingGroup, getUserToReadingGroupStates } from "@/services";
 import QuestCard from "@/ui_components/QuestCard";
 import Spinner from "@/ui_components/Spinner";
 import { toast } from "react-toastify";
+import { useAuth } from "@/context/AuthContext";
 
-const GroupQuestsPage = ({ username }) => {
+const GroupQuestsPage = () => {
+  const { username } = useAuth();
   const { slug } = useParams();
   const queryClient = useQueryClient();
 
-  // Fetch reading group to get creator info
   const { data: reading_group } = useQuery({
     queryKey: ["groups", slug],
     queryFn: () => getReadingGroup(slug),
@@ -17,14 +18,12 @@ const GroupQuestsPage = ({ username }) => {
 
   const reading_groupID = reading_group?.id;
 
-  // Fetch user states to check membership
   const { data: userStates } = useQuery({
     queryKey: ["userToReadingGroupState", reading_groupID],
     queryFn: () => getUserToReadingGroupStates(reading_groupID),
     enabled: !!reading_groupID,
   });
 
-  // Check if current user is a member or creator
   const isUserMember = userStates?.some(
     (state) =>
       state.reading_group.id === reading_groupID &&
@@ -87,7 +86,6 @@ const GroupQuestsPage = ({ username }) => {
         </div>
       </div>
 
-      {/* Generate button or quests */}
       {quests.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 dark:text-gray-400 mb-6 text-lg">

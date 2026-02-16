@@ -104,12 +104,6 @@ button[disabled]{
  
 }
 
-body {
-  background-color: #ffffff;
-}
-
-
-
 html {
   scroll-behavior: smooth;
 }

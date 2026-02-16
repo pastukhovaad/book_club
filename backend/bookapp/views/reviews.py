@@ -1,9 +1,3 @@
-"""
-Book reviews management views.
-
-Handles review listing and creation for books.
-"""
-
 import logging
 from datetime import date
 
@@ -21,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 @api_view(["GET"])
 def get_book_reviews(request, slug):
-    """Return all reviews for a book."""
     book = get_object_or_404(Book, slug=slug)
     reviews = BookReview.objects.filter(book=book).select_related("user", "book")
     serializer = BookReviewSerializer(reviews, many=True)
@@ -31,7 +24,6 @@ def get_book_reviews(request, slug):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_book_review(request, slug):
-    """Create a review for a book."""
     book = get_object_or_404(Book, slug=slug)
     data = request.data.copy()
     if "description" not in data or data.get("description") is None:

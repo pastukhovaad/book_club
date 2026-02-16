@@ -1,0 +1,19 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    env_file:
+      - ./.env
+    ports:
+      - "53342:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_BASE_URL: ${VITE_BASE_URL}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    ports:
+      - "53341:80"
+    restart: unless-stopped

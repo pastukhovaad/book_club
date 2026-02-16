@@ -1,43 +1,105 @@
-"""
-Book management views.
-
-Handles book CRUD operations, EPUB file processing, and chapter retrieval.
-"""
-
 import logging
+import os
+import tempfile
+from typing import Any, Dict, Optional, Tuple
+
+from django.db import models
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.db import models
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from ..epub_handler import EPUBHandler, parse_epub_file
 from ..models import Book, Hashtag, UserToReadingGroupState
 from ..serializers import BookSerializer, BookSerializerInfo
 from ..validators import validate_epub_file_complete
-from ..epub_handler import EPUBHandler, parse_epub_file
-from .utils import local_epub_path, AnyListPagination
+from .utils import AnyListPagination, local_epub_path
 
 logger = logging.getLogger(__name__)
 
 
+def process_and_validate_epub(
+    epub_source,
+) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    temp_path = None
+    should_cleanup = False
+
+    try:
+        if isinstance(epub_source, str):
+            file_path = epub_source
+        elif hasattr(epub_source, "path"):
+            file_path = epub_source.path
+        else:
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".epub")
+            temp_path = temp_file.name
+            should_cleanup = True
+
+            for chunk in epub_source.chunks():
+                temp_file.write(chunk)
+            temp_file.close()
+
+            epub_source.seek(0)
+
+            file_path = temp_path
+
+        is_valid, error_message = validate_epub_file_complete(file_path)
+
+        if not is_valid:
+            return None, f"Invalid EPUB file: {error_message}"
+
+        epub_data = parse_epub_file(file_path)
+
+        return epub_data, None
+
+    except Exception as e:
+        logger.error(f"Error processing EPUB file: {e}")
+        return None, f"Failed to process EPUB file: {str(e)}"
+
+    finally:
+        if should_cleanup and temp_path:
+            try:
+                os.remove(temp_path)
+            except OSError as e:
+                logger.warning(f"Failed to remove temp EPUB file {temp_path}: {e}")
+
+
 @api_view(["GET"])
-def book_list(request, amount):
+def book_list(request, amount=None):
     user = request.user if request.user.is_authenticated else None
+
+    if amount is None:
+        amount = request.query_params.get("amount", 9)
+    try:
+        amount = int(amount)
+    except (TypeError, ValueError):
+        return Response(
+            {"error": "Invalid amount"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     if user:
         user_group_ids = UserToReadingGroupState.objects.filter(
             user=user, in_reading_group=True
         ).values_list("reading_group_id", flat=True)
 
-        books = Book.objects.filter(
-            models.Q(visibility="public")
-            | models.Q(visibility="personal", author=user)
-            | models.Q(visibility="group", reading_group_id__in=user_group_ids)
-        ).select_related('author', 'reading_group')
+        books = (
+            Book.objects.filter(
+                models.Q(visibility="public")
+                | models.Q(visibility="personal", author=user)
+                | models.Q(visibility="group", reading_group_id__in=user_group_ids)
+            )
+            .select_related("author", "reading_group")
+            .annotate(average_rating=Avg("bookreview__stars_amount"))
+        )
     else:
-        books = Book.objects.filter(visibility="public").select_related('author', 'reading_group')
+        books = (
+            Book.objects.filter(visibility="public")
+            .select_related("author", "reading_group")
+            .annotate(average_rating=Avg("bookreview__stars_amount"))
+        )
     paginator = AnyListPagination(amount=amount)
     paginated_books = paginator.paginate_queryset(books, request)
     serializer = BookSerializerInfo(paginated_books, many=True)
@@ -46,8 +108,12 @@ def book_list(request, amount):
 
 @api_view(["GET"])
 def public_book_list(request, amount):
-    # Optimize: select_related for author and reading_group foreign keys
-    books = Book.objects.filter(visibility="public").select_related('author', 'reading_group')
+    books = (
+        Book.objects.filter(visibility="public")
+        .select_related("author", "reading_group")
+        .annotate(average_rating=Avg("bookreview__stars_amount"))
+        .order_by("-created_at")
+    )
     paginator = AnyListPagination(amount=amount)
     paginated_books = paginator.paginate_queryset(books, request)
     serializer = BookSerializerInfo(paginated_books, many=True)
@@ -82,22 +148,18 @@ def get_book(request, slug):
                 status=status.HTTP_403_FORBIDDEN,
             )
     if request.query_params.get("info_only", "false").lower() == "true":
-            serializer = BookSerializerInfo(book)
+        serializer = BookSerializerInfo(book)
     else:
-            serializer = BookSerializer(book)
+        serializer = BookSerializer(book)
 
     return Response(serializer.data)
 
 
 @api_view(["GET"])
 def get_book_chapter(request, slug, chapter_id):
-    """
-    Get a specific chapter from an EPUB book.
-    """
     try:
         book = Book.objects.get(slug=slug)
 
-        # Check if book is EPUB format
         if book.content_type != "epub":
             return Response(
                 {"error": "This book is not in EPUB format"},
@@ -109,7 +171,6 @@ def get_book_chapter(request, slug, chapter_id):
                 {"error": "EPUB file not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        # Parse EPUB and get chapter
         with local_epub_path(book.epub_file) as epub_path:
             if not epub_path:
                 return Response(
@@ -143,9 +204,6 @@ def get_book_chapter(request, slug, chapter_id):
 
 @api_view(["GET"])
 def get_book_chapters_list(request, slug):
-    """
-    Get list of all chapters with metadata (without full content).
-    """
     try:
         book = Book.objects.get(slug=slug)
 
@@ -160,7 +218,6 @@ def get_book_chapters_list(request, slug):
                 {"error": "EPUB file not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        # Get chapters list from table of contents
         if book.table_of_contents:
             return Response(
                 {
@@ -170,7 +227,6 @@ def get_book_chapters_list(request, slug):
                 }
             )
 
-        # Fallback: parse EPUB to get chapters
         with local_epub_path(book.epub_file) as epub_path:
             if not epub_path:
                 return Response(
@@ -180,7 +236,6 @@ def get_book_chapters_list(request, slug):
             handler = EPUBHandler(epub_path)
             chapters = handler.get_chapters()
 
-        # Return only metadata, not full content
         chapters_metadata = [
             {"id": ch["id"], "title": ch["title"], "file_name": ch.get("file_name", "")}
             for ch in chapters
@@ -225,66 +280,48 @@ def create_book(request):
         if visibility == "personal":
             serializer.validated_data["reading_group"] = None
 
-        # Save the book first
         book = serializer.save(author=user)
 
-        # If EPUB file was uploaded, process it
         if book.content_type == "epub" and book.epub_file:
-            try:
-                # Validate EPUB file structure and safety
-                with local_epub_path(book.epub_file) as epub_path:
-                    if not epub_path:
-                        raise ValueError("EPUB file not found")
+            with local_epub_path(book.epub_file) as epub_path:
+                if not epub_path:
+                    if book.epub_file:
+                        book.epub_file.delete(save=False)
+                    if book.featured_image:
+                        book.featured_image.delete(save=False)
+                    book.delete()
+                    return Response(
+                        {"error": "EPUB file not found"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
-                    is_valid, error_message = validate_epub_file_complete(epub_path)
+                epub_data, error_message = process_and_validate_epub(epub_path)
 
-                    if not is_valid:
-                        logger.warning(
-                            f"Invalid EPUB file uploaded by user {user.username}: {error_message}"
-                        )
-                        # Delete uploaded files from S3/MinIO before deleting the book record
-                        if book.epub_file:
-                            book.epub_file.delete(save=False)
-                        if book.featured_image:
-                            book.featured_image.delete(save=False)
-                        book.delete()
-                        return Response(
-                            {"error": f"Invalid EPUB file: {error_message}"},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-
-                    # Parse EPUB file
-                    epub_data = parse_epub_file(epub_path)
-
-                # Update book with parsed data
-                book.table_of_contents = epub_data.get("table_of_contents", [])
-
-                # Extract full text to content field for search/preview
-                if not book.content:
-                    book.content = epub_data.get("full_text", "")[
-                        :1000
-                    ]  # Store first 1000 chars as preview
-
-                book.save()
-
-                logger.info(
-                    f"Successfully processed EPUB file for book '{book.title}' (ID: {book.id})"
+            if error_message:
+                logger.warning(
+                    f"Invalid EPUB file uploaded by user {user.username}: {error_message}"
                 )
-
-            except Exception as e:
-                logger.error(f"Error processing EPUB file: {e}")
-                # Delete uploaded files from S3/MinIO before deleting the book record
                 if book.epub_file:
                     book.epub_file.delete(save=False)
                 if book.featured_image:
                     book.featured_image.delete(save=False)
                 book.delete()
                 return Response(
-                    {"error": f"Failed to process EPUB file: {str(e)}"},
+                    {"error": error_message},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        # Handle hashtags
+            book.table_of_contents = epub_data.get("table_of_contents", [])
+
+            if not book.content:
+                book.content = epub_data.get("full_text", "")[:1000]
+
+            book.save()
+
+            logger.info(
+                f"Successfully processed EPUB file for book '{book.title}' (ID: {book.id})"
+            )
+
         hashtag_names = request.data.getlist("hashtags")
         if hashtag_names:
             hashtag_objs = []
@@ -295,8 +332,10 @@ def create_book(request):
                     hashtag_objs.append(obj)
             book.hashtags.set(hashtag_objs)
 
-        return Response(BookSerializer(book).data)
-    logging.error(f"Book creation failed with errors: {serializer.errors} for user: {user.username}")
+        return Response(BookSerializer(book).data, status=status.HTTP_201_CREATED)
+    logging.error(
+        f"Book creation failed with errors: {serializer.errors} for user: {user.username}"
+    )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -310,6 +349,23 @@ def update_book(request, pk):
             {"error": "You are not the author of this book"},
             status=status.HTTP_403_FORBIDDEN,
         )
+
+    epub_data = None
+    if "epub_file" in request.FILES:
+        uploaded_epub = request.FILES["epub_file"]
+
+        epub_data, error_message = process_and_validate_epub(uploaded_epub)
+
+        if error_message:
+            logger.warning(
+                f"Invalid EPUB file uploaded for book {pk} by user {user.username}: {error_message}"
+            )
+            return Response(
+                {"error": error_message},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        logger.info(f"Successfully validated EPUB file for book update (ID: {pk})")
 
     serializer = BookSerializer(book, data=request.data, partial=True)
 
@@ -328,61 +384,34 @@ def update_book(request, pk):
         if visibility == "personal":
             serializer.validated_data["reading_group"] = None
 
-        # Save old files for deletion if they are being replaced
-        old_epub_file = book.epub_file if "epub_file" in request.FILES and book.epub_file else None
-        old_featured_image = book.featured_image if "featured_image" in request.FILES and book.featured_image else None
+        old_epub_file = (
+            book.epub_file if "epub_file" in request.FILES and book.epub_file else None
+        )
+        old_featured_image = (
+            book.featured_image
+            if "featured_image" in request.FILES and book.featured_image
+            else None
+        )
 
         updated_book = serializer.save()
 
-        # Delete old files from S3/MinIO after successful update
+        if epub_data:
+            updated_book.table_of_contents = epub_data.get("table_of_contents", [])
+
+            if not updated_book.content:
+                updated_book.content = epub_data.get("full_text", "")[:1000]
+
+            updated_book.save()
+
+            logger.info(
+                f"Successfully updated EPUB metadata for book '{updated_book.title}' (ID: {updated_book.id})"
+            )
+
         if old_epub_file:
             old_epub_file.delete(save=False)
         if old_featured_image:
             old_featured_image.delete(save=False)
 
-        # If a new EPUB file was uploaded, process it
-        if "epub_file" in request.FILES:
-            try:
-                # Validate EPUB file structure and safety
-                with local_epub_path(updated_book.epub_file) as epub_path:
-                    if not epub_path:
-                        raise ValueError("EPUB file not found")
-
-                    is_valid, error_message = validate_epub_file_complete(epub_path)
-
-                    if not is_valid:
-                        logger.warning(
-                            f"Invalid EPUB file uploaded for book {pk} by user {user.username}: {error_message}"
-                        )
-                        return Response(
-                            {"error": f"Invalid EPUB file: {error_message}"},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-
-                    # Parse new EPUB file
-                    epub_data = parse_epub_file(epub_path)
-
-                # Update book with parsed data
-                updated_book.table_of_contents = epub_data.get("table_of_contents", [])
-
-                # Update content preview
-                if not updated_book.content:
-                    updated_book.content = epub_data.get("full_text", "")[:1000]
-
-                updated_book.save()
-
-                logger.info(
-                    f"Successfully updated EPUB file for book '{updated_book.title}' (ID: {updated_book.id})"
-                )
-
-            except Exception as e:
-                logger.error(f"Error processing EPUB file: {e}")
-                return Response(
-                    {"error": f"Failed to process EPUB file: {str(e)}"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-        # Handle hashtags
         hashtag_names = request.data.getlist("hashtags")
         if hashtag_names:
             hashtag_objs = []
@@ -400,7 +429,7 @@ def update_book(request, pk):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(["POST"])
+@api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
 def delete_book(request, pk):
     book = get_object_or_404(Book, id=pk)
@@ -411,7 +440,6 @@ def delete_book(request, pk):
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    # Delete files from S3/MinIO before deleting the book
     if book.epub_file:
         book.epub_file.delete(save=False)
     if book.featured_image:
@@ -448,7 +476,12 @@ def search_books_by_hashtag(request):
     else:
         books = books.filter(visibility="public")
 
-    books = books.select_related("author", "reading_group").prefetch_related("hashtags").distinct()
+    books = (
+        books.select_related("author", "reading_group")
+        .prefetch_related("hashtags")
+        .annotate(average_rating=Avg("bookreview__stars_amount"))
+        .distinct()
+    )
 
     amount = int(request.query_params.get("amount", 9))
     paginator = AnyListPagination(amount=amount)

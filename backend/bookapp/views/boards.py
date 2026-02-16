@@ -1,26 +1,20 @@
-"""
-Prize board management views.
-
-Handles prize board operations, reward placement, and board settings.
-"""
-
 import logging
+
+from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from django.contrib.auth import get_user_model
-
 from ..models import (
     PrizeBoard,
     PrizeBoardCell,
-    UserReward,
     ReadingGroup,
+    UserReward,
     UserToReadingGroupState,
 )
-from ..serializers import PrizeBoardSerializer, PrizeBoardCellSerializer
+from ..serializers import PrizeBoardCellSerializer, PrizeBoardSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -28,12 +22,10 @@ logger = logging.getLogger(__name__)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_prize_board(request, slug):
-    """Get prize board for a reading group."""
     try:
         reading_group = ReadingGroup.objects.get(slug=slug)
         user = request.user
 
-        # Check if user is a member (for can_edit flag)
         is_member = False
         try:
             membership = UserToReadingGroupState.objects.get(
@@ -43,7 +35,6 @@ def get_prize_board(request, slug):
         except UserToReadingGroupState.DoesNotExist:
             is_member = False
 
-        # Get or create prize board
         board, created = PrizeBoard.objects.get_or_create(reading_group=reading_group)
 
         serializer = PrizeBoardSerializer(board)
@@ -59,7 +50,6 @@ def get_prize_board(request, slug):
 @api_view(["PUT"])
 @permission_classes([IsAuthenticated])
 def update_prize_board_settings(request, slug):
-    """Update prize board settings (size). Only group leader can do this."""
     try:
         reading_group = ReadingGroup.objects.get(slug=slug)
         user = request.user
@@ -90,12 +80,10 @@ def update_prize_board_settings(request, slug):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def place_reward_on_board(request, slug):
-    """Place a user's reward on the prize board."""
     try:
         reading_group = ReadingGroup.objects.get(slug=slug)
         user = request.user
 
-        # Check if user is a member or the creator
         if reading_group.creator != user:
             try:
                 membership = UserToReadingGroupState.objects.get(
@@ -124,21 +112,18 @@ def place_reward_on_board(request, slug):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Check coordinates are within board
         if x >= board.width or y >= board.height or x < 0 or y < 0:
             return Response(
                 {"error": "Coordinates out of bounds"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Check if cell is already occupied
         if PrizeBoardCell.objects.filter(board=board, x=x, y=y).exists():
             return Response(
                 {"error": "Cell is already occupied"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Check if user owns the reward
         try:
             user_reward = UserReward.objects.get(id=user_reward_id, user=user)
         except UserReward.DoesNotExist:
@@ -147,7 +132,6 @@ def place_reward_on_board(request, slug):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # Create cell
         cell = PrizeBoardCell.objects.create(
             board=board, x=x, y=y, user_reward=user_reward, placed_by=user
         )
@@ -163,7 +147,6 @@ def place_reward_on_board(request, slug):
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
 def remove_reward_from_board(request, slug, x, y):
-    """Remove a reward from the prize board. Only the placer can remove it."""
     try:
         reading_group = ReadingGroup.objects.get(slug=slug)
         user = request.user
@@ -173,7 +156,6 @@ def remove_reward_from_board(request, slug, x, y):
         try:
             cell = PrizeBoardCell.objects.get(board=board, x=x, y=y)
 
-            # Only the placer can remove their reward
             if cell.placed_by != user:
                 return Response(
                     {"error": "You can only remove your own rewards"},
@@ -203,14 +185,11 @@ def remove_reward_from_board(request, slug, x, y):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_user_prize_board(request, username):
-    """Get prize board for a user."""
     User = get_user_model()
     try:
         board_user = User.objects.get(username=username)
     except User.DoesNotExist:
-        return Response(
-            {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
-        )
+        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
     board, created = PrizeBoard.objects.get_or_create(
         user=board_user, defaults={"board_type": "user"}
@@ -225,14 +204,11 @@ def get_user_prize_board(request, username):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def place_reward_on_user_board(request, username):
-    """Place a user's reward on their personal prize board."""
     User = get_user_model()
     try:
         board_user = User.objects.get(username=username)
     except User.DoesNotExist:
-        return Response(
-            {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
-        )
+        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
     if request.user != board_user:
         return Response(
@@ -285,14 +261,11 @@ def place_reward_on_user_board(request, username):
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
 def remove_reward_from_user_board(request, username, x, y):
-    """Remove a reward from a user's personal prize board."""
     User = get_user_model()
     try:
         board_user = User.objects.get(username=username)
     except User.DoesNotExist:
-        return Response(
-            {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
-        )
+        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
     if request.user != board_user:
         return Response(

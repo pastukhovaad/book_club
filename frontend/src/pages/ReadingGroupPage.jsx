@@ -1,12 +1,10 @@
-// THIS IS TRYING TO DETAIL THE SHOWING OF GROUPS (.../groups/group-name)
-
 import Badge from "@/ui_components/Badge";
 import GroupCreator from "@/ui_components/GroupCreator";
 import QuestCard from "@/ui_components/QuestCard";
 import BookContainer from "@/ui_components/BookContainer";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { deleteReadingGroup, getReadingGroup, addUserToGroup, removeUserFromGroup, kickUserFromGroup, createNotification, getUserToReadingGroupStates, getGroupQuests, generateDailyQuests, getGroupReadingBooks, getGroupPostedBooks } from "@/services/apiBook";
+import { deleteReadingGroup, getReadingGroup, addUserToGroup, removeUserFromGroup, kickUserFromGroup, getUserToReadingGroupStates, getGroupQuests, generateDailyQuests, getGroupReadingBooks, getGroupPostedBooks } from "@/services";
 import { MdPersonRemove } from "react-icons/md";
 import Spinner from "@/ui_components/Spinner";
 import { resolveMediaUrl } from "@/api";
@@ -18,13 +16,15 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import SmallSpinner from "@/ui_components/SmallSpinner";
 import SmallSpinnerText from "@/ui_components/SmallSpinnerText";
+import { useAuth } from "@/context/AuthContext";
 
 
-const ReadingGroupPage = ({ username, isAuthenticated }) => {
+const ReadingGroupPage = () => {
+  const { username, isAuthenticated } = useAuth();
 
   const { slug } = useParams();
   const [showModal, setShowModal] = useState(false)
-  const [activeTab, setActiveTab] = useState('info') // 'info', 'quests'
+  const [activeTab, setActiveTab] = useState('info')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   function toggleModal(){
@@ -46,23 +46,14 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
   const { data: userStates } = useQuery({
     queryKey: ["userToReadingGroupState", reading_groupID],
     queryFn: () => getUserToReadingGroupStates(reading_groupID),
-    enabled: !!reading_groupID, // Only run when ID exists
+    enabled: !!reading_groupID,
   });
 
-  // Check if current user is a member of the group
   const isUserMember = userStates?.some(state => state.reading_group.id === reading_groupID && state.in_reading_group && state.user.username === username);
   const isUserPending = userStates?.some(state => state.reading_group.id === reading_groupID && state.in_reading_group === false && state.user.username === username);
   const isCreator = username === reading_group?.creator?.username;
   const isGroupMember = isUserMember || isCreator;
 
-  // Debug info
-  console.log("Username:", username);
-  console.log("Creator:", reading_group?.creator?.username);
-  console.log("Is User Member:", isUserMember);
-  console.log("Is Creator:", isCreator);
-  console.log("User States:", userStates);
-
-  // Fetch group quests
   const { data: groupQuests, isError: questsError } = useQuery({
     queryKey: ["groupQuests", slug],
     queryFn: () => getGroupQuests(slug),
@@ -84,7 +75,6 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
     retry: false,
   });
 
-  // Generate daily quests mutation
   const generateQuestsMutation = useMutation({
     mutationFn: () => generateDailyQuests(slug),
     onSuccess: (data) => {
@@ -111,27 +101,12 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
   })
 
 
-  const confirmMutation = useMutation({
-    mutationFn: (data) => createNotification(data),
-    onSuccess: () => {
-      toast.success("Отправлена нотификация.");
-      queryClient.invalidateQueries({ queryKey: ["groups", slug] });
-      queryClient.invalidateQueries({ queryKey: ["userToReadingGroupState", reading_groupID] });
-    },
-  });
-
   const requestMutation = useMutation({
     mutationFn: (id) => addUserToGroup(id),
     onSuccess: () => {
-
-      const formData = new FormData()
-      formData.append("directed_to_id", reading_group.creator.id || "")
-      formData.append("related_group_id", reading_group.id || "")
-      formData.append("category", "GroupJoinRequest")
-
-      confirmMutation.mutate(formData);
       toast.success("Отправлен запрос на добавление в группу.");
       queryClient.invalidateQueries({ queryKey: ["groups", slug] });
+      queryClient.invalidateQueries({ queryKey: ["userToReadingGroupState", reading_groupID] });
     },
   });
 
@@ -147,24 +122,10 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
     }
   });
 
-  // Mutation for kicking a user (by creator)
   const kickUserMutation = useMutation({
     mutationFn: ({ userId }) => kickUserFromGroup(reading_groupID, userId),
-    onSuccess: (data, variables) => {
-      // Send notification to the kicked user
-      const formData = new FormData();
-      formData.append("directed_to_id", variables.userId);
-      formData.append("related_group_id", reading_group.id);
-      formData.append("category", "GroupKick");
-      
-      createNotification(formData)
-        .then(() => {
-          toast.success("Пользователь удалён из группы и уведомлён.");
-        })
-        .catch(() => {
-          toast.success("Пользователь удалён из группы.");
-        });
-      
+    onSuccess: () => {
+      toast.success("Пользователь удалён из группы.");
       queryClient.invalidateQueries({ queryKey: ["groups", slug] });
       queryClient.invalidateQueries({ queryKey: ["userToReadingGroupState", reading_groupID] });
     },
@@ -193,7 +154,6 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
     kickUserMutation.mutate({ userId });
   }
 
-  // Filter users to only show confirmed members (in_reading_group = true)
   const confirmedMembers = reading_group?.user?.filter(member =>
     member.in_reading_group === true
   ) || [];
@@ -270,7 +230,7 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
             ) : isUserPending ? (
               <button
                 disabled={true}
-                className="bg-[#939393] text-white py-3 px-8 rounded-md flex items-right justify-center gap-2 transition-colors"
+                className="bg-[#A6A6A6] text-white py-3 px-8 rounded-md flex items-right justify-center gap-2 transition-colors"
                 >
                   <p>Запрос на вступление отправлен</p>
                 </button>
@@ -301,7 +261,6 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
 
         <GroupCreator reading_group={reading_group} />
 
-        {/* Tabs */}
         <div className="border-b border-gray-200 dark:border-gray-700">
           <div className="flex gap-4">
             <button
@@ -337,7 +296,6 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
           </div>
         </div>
 
-        {/* Tab Content */}
         <div className="mt-6">
           {activeTab === 'info' && (
             <>
@@ -349,19 +307,18 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
                   onClick={() => navigate(`/groups/${slug}/board`)}
                   className="bg-[#4B6BFB] text-white py-3 px-6 rounded-md hover:bg-[#3a5ae0] transition-colors"
                 >
-                  Открыть поле фигурок
+                  Открыть поле наград
                 </button>
               </div>
 
               <div className="mt-8">
                 <h2 className="text-xl md:text-2xl font-semibold text-[#181A2A] dark:text-[#FFFFFF] mb-4">
-                  Group Members ({confirmedMembers.length})
+                  Участники группы ({confirmedMembers.length})
                 </h2>
                 {confirmedMembers.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {confirmedMembers.map((member) => (
                       <div key={member.id} className="relative flex flex-col items-center p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
-                        {/* Kick button for creator */}
                         {isCreator && member.username !== username && (
                           <button
                             onClick={() => handleKickUser(member.id, member.username)}
@@ -372,9 +329,7 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
                             <MdPersonRemove className="text-lg" />
                           </button>
                         )}
-                        {/* <div className="w-16 h-16 rounded-full overflow-hidden mb-3"> */}
                         <div className="flex items-center gap-2"> 
-                          {/* User Avatar */}
                           {member.profile_picture ? (
                             <img
                               src={resolveMediaUrl(member.profile_picture)}
@@ -405,7 +360,7 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
                   </div>
                 ) : (
                   <p className="text-[#3B3C4A] dark:text-[#BABABF]">
-                    В этой группе пока нет участников.
+                    В этой группе ещё нет участников.
                   </p>
                 )}
               </div>
@@ -414,7 +369,13 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
 
           {activeTab === 'quests' && (
             <div>
-              <div className="py-4 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+              {!isGroupMember ? (
+                <p className="text-[#3B3C4A] dark:text-[#BABABF]">
+                  Вы должны быть участником группы, чтобы просматривать задания.
+                </p>
+              ) : groupQuests && groupQuests.length > 0 ? (
+                <div>
+                <div className="py-4 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                 <span>Получение наград</span>
                 <div className="relative group">
                   <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs cursor-help">
@@ -425,9 +386,9 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
                     <br />После завершения задания награду получить нельзя.
                   </div>
                 </div>
-              </div>
-              {groupQuests && groupQuests.length > 0 ? (
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  
                   {groupQuests.filter(item => item?.quest).map((item) => (
                     <QuestCard
                       key={item.quest.id}
@@ -435,6 +396,7 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
                       userProgress={item.progress}
                     />
                   ))}
+                </div>
                 </div>
               ) : (
                 <div className="text-center py-12">
@@ -452,7 +414,7 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
                   )}
                   {!isAuthenticated && (
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Войдите в систему, чтобы участвовать в заданиях
+                      Войдите, чтобы участвовать в заданиях
                     </p>
                   )}
                 </div>
@@ -469,7 +431,7 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
                   <BookContainer books={groupReadingBooks} />
                 ) : (
                   <p className="text-[#3B3C4A] dark:text-[#BABABF]">
-                    Пока нет читаемых книг в этой группе.
+                    Ещё нет читаемых книг в этой группе.
                   </p>
                 )}
               </div>
@@ -481,7 +443,7 @@ const ReadingGroupPage = ({ username, isAuthenticated }) => {
                   <BookContainer books={groupPostedBooks} />
                 ) : (
                   <p className="text-[#3B3C4A] dark:text-[#BABABF]">
-                    В этой группе пока нет выложенных книг.
+                    В этой группе ещё нет выложенных книг.
                   </p>
                 )}
               </div>
