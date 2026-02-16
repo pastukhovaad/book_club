@@ -107,8 +107,8 @@ const CommentsSidebar = ({
     { value: '#FFA07A', label: 'Orange' },
   ]
   return (
-    <div className="w-96 bg-white dark:bg-[#141624] border-l dark:border-gray-700 flex flex-col h-full">
-      <div className="sticky top-0 bg-white dark:bg-[#141624] border-b dark:border-gray-700 px-4 py-3 z-10">
+    <div className="w-96 bg-white dark:bg-[#141624] border-l dark:border-[#2E3046] flex flex-col h-full">
+      <div className="sticky top-0 bg-white dark:bg-[#141624] border-b dark:border-[#2E3046] px-4 py-3 z-10">
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
             <BiMessageSquareDetail size={24} className="text-blue-600" />
@@ -139,7 +139,7 @@ const CommentsSidebar = ({
               className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 commentType === 'personal'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  : 'bg-gray-100 dark:bg-[#242535] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#2E3046]'
               }`}
             >
               Личные
@@ -156,7 +156,7 @@ const CommentsSidebar = ({
                 className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
                   commentType === 'group'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    : 'bg-gray-100 dark:bg-[#242535] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#2E3046]'
                 }`}
               >
                 <HiUserGroup size={16} />
@@ -165,7 +165,7 @@ const CommentsSidebar = ({
               </button>
 
               {showGroupDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#1F2136] border border-gray-200 dark:border-[#3B3D52] rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
                   {userGroupsLoading ? (
                     <div className="flex justify-center items-center p-4">
                       <SmallSpinner />
@@ -179,7 +179,7 @@ const CommentsSidebar = ({
                             onSelectGroup(group)
                             setShowGroupDropdown(false)
                           }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#242535] transition-colors ${
                             selectedGroup?.id === group.id
                               ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                               : 'text-gray-700 dark:text-gray-300'
@@ -206,9 +206,9 @@ const CommentsSidebar = ({
       </div>
 
       {showCommentForm && (
-        <div className="px-4 py-4 bg-white dark:bg-[#141624] border-b dark:border-gray-700">
-          <div className="bg-white dark:bg-[#1F2136] rounded-lg border border-gray-300 dark:border-gray-600">
-            <div className="px-4 py-3 border-b dark:border-gray-700">
+        <div className="px-4 py-4 bg-white dark:bg-[#141624] border-b dark:border-[#2E3046]">
+          <div className="bg-white dark:bg-[#1F2136] rounded-lg border border-gray-300 dark:border-[#3B3D52]">
+            <div className="px-4 py-3 border-b dark:border-[#2E3046]">
               <h3 className="text-md font-semibold text-gray-800 dark:text-white">
                 {editingComment ? 'Редактировать комментарий' : `Добавить ${commentType === 'personal' ? 'личный комментарий' : 'групповой комментарий'}`}
               </h3>
@@ -224,7 +224,7 @@ const CommentsSidebar = ({
               )}
 
               {selectedText && !editingComment && (
-                <div className="mb-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="mb-3 p-2 bg-gray-50 dark:bg-[#1F2136] rounded-lg">
                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                     Выделенный текст:
                   </p>
@@ -245,7 +245,7 @@ const CommentsSidebar = ({
                   id="comment"
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 resize-none text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-[#3B3D52] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-[#1F2136] text-gray-800 dark:text-gray-200 resize-none text-sm"
                   rows="3"
                   placeholder="Напишите ваш комментарий здесь..."
                   required
@@ -266,7 +266,7 @@ const CommentsSidebar = ({
                       className={`w-8 h-8 rounded-full border-2 transition-all ${
                         highlightColor === color.value
                           ? 'border-blue-600 scale-110'
-                          : 'border-gray-300 dark:border-gray-600 hover:scale-105'
+                          : 'border-gray-300 dark:border-[#3B3D52] hover:scale-105'
                       }`}
                       style={{ backgroundColor: color.value }}
                       title={color.label}
@@ -280,7 +280,7 @@ const CommentsSidebar = ({
                 <button
                   type="button"
                   onClick={onCancelComment}
-                  className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#242535] rounded-lg hover:bg-gray-200 dark:hover:bg-[#2E3046] transition-colors"
                   disabled={isSubmitting}
                 >
                   Отмена
@@ -361,7 +361,7 @@ const CommentsSidebar = ({
       </div>
 
       {!isLoading && !error && comments && comments.length > 0 && (
-        <div className="border-t dark:border-gray-700 px-4 py-2 bg-gray-50 dark:bg-[#0F1117]">
+        <div className="border-t dark:border-[#2E3046] px-4 py-2 bg-gray-50 dark:bg-[#0F1117]">
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
             {commentType === 'personal'
               ? 'Ваши личные комментарии - видны только вам.'

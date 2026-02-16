@@ -30,12 +30,14 @@ const BookWriter = ({book}) => {
 
           </div>
 
-        <small className="text-[#696A75] text-[14px]">
-          {book.author.first_name} {book.author.last_name}
+        <small className="text-[#696A75] dark:text-[#BABABF] text-[14px]">
+          {book.author.first_name || book.author.last_name
+            ? `${book.author.first_name || ''} ${book.author.last_name || ''}`.trim()
+            : `@${book.author.username}`}
         </small>
       </span>
 
-      <small className="text-[#696A75] text-[14px] ml-3">
+      <small className="text-[#696A75] dark:text-[#BABABF] text-[14px] ml-3">
         {FormatDate(book.published_date)}
       </small>
 

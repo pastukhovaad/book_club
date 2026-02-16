@@ -69,7 +69,7 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
         Редактировать группу
       </h2>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-white dark:bg-[#1F2136] p-6 rounded-lg shadow-md">
         <div className="flex flex-col gap-2">
           <label htmlFor="name" className="font-semibold text-[#181A2A] dark:text-[#FFFFFF]">
             Название
@@ -80,7 +80,7 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
             name="name"
             value={formData.name}
             onChange={handleInputChange}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-[#181A2A] dark:text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#4B6BFB]"
+            className="px-4 py-2 border border-gray-300 dark:border-[#3B3D52] rounded-md bg-white dark:bg-[#242535] text-[#181A2A] dark:text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#4B6BFB]"
             required
           />
         </div>
@@ -95,7 +95,7 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
             value={formData.description}
             onChange={handleInputChange}
             rows={5}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-[#181A2A] dark:text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#4B6BFB] resize-none"
+            className="px-4 py-2 border border-gray-300 dark:border-[#3B3D52] rounded-md bg-white dark:bg-[#242535] text-[#181A2A] dark:text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#4B6BFB] resize-none"
           />
         </div>
 
@@ -113,7 +113,7 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
               />
             </div>
           ) : (
-            <div className="w-full h-40 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center mb-2">
+            <div className="w-full h-40 rounded-lg bg-gray-200 dark:bg-[#242535] flex items-center justify-center mb-2">
               <p className="text-gray-500 dark:text-gray-400">No image</p>
             </div>
           )}
@@ -124,7 +124,7 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
             name="featured_image"
             onChange={handleImageChange}
             accept="image/*"
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-[#181A2A] dark:text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#4B6BFB]"
+            className="px-4 py-2 border border-gray-300 dark:border-[#3B3D52] rounded-md bg-white dark:bg-[#242535] text-[#181A2A] dark:text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#4B6BFB]"
           />
           <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF]">
             Оставтьте пустым, чтобы не менять изображение.
@@ -135,7 +135,7 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-[#181A2A] dark:text-[#FFFFFF] hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="px-6 py-2 border border-gray-300 dark:border-[#3B3D52] rounded-md text-[#181A2A] dark:text-[#FFFFFF] hover:bg-gray-100 dark:hover:bg-[#242535] transition-colors"
             disabled={mutation.isPending}
           >
             Отмена

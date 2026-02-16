@@ -22,7 +22,9 @@ const CardFooter = ({ book }) => {
           </div>
 
           <small className="text-[#97989F] text-[12px] font-semibold">
-            {book.author.first_name} {book.author.last_name}
+            {book.author.first_name || book.author.last_name
+              ? `${book.author.first_name || ''} ${book.author.last_name || ''}`.trim()
+              : `@${book.author.username}`}
           </small>
         </span>
 

@@ -23,12 +23,14 @@ const GroupCreator = ({reading_group}) => {
             )}
           </div>
 
-        <small className="text-[#696A75] text-[14px]">
-          {reading_group.creator.first_name} {reading_group.creator.last_name}
+        <small className="text-[#696A75] dark:text-[#BABABF] text-[14px]">
+          {reading_group.creator.first_name || reading_group.creator.last_name
+            ? `${reading_group.creator.first_name || ''} ${reading_group.creator.last_name || ''}`.trim()
+            : `@${reading_group.creator.username}`}
         </small>
       </span>
 
-      <small className="text-[#696A75] text-[14px] ml-3">
+      <small className="text-[#696A75] dark:text-[#BABABF] text-[14px] ml-3">
         {FormatDate(reading_group.created_at)}
       </small>
 

@@ -17,7 +17,7 @@ const ProgressBar = ({ percentage, height = "h-2", showLabel = false, className 
           </span>
         </div>
       )}
-      <div className={`w-full ${height} bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden`}>
+      <div className={`w-full ${height} bg-gray-200 dark:bg-[#242535] rounded-full overflow-hidden`}>
         <div
           className={`${height} ${getColor()} transition-all duration-300 ease-out`}
           style={{ width: `${clampedPercentage}%` }}

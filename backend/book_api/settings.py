@@ -18,9 +18,14 @@ SECRET_KEY = config("SECRET_KEY")
 # Default is False for security - explicitly enable for development
 DEBUG = config("DEBUG", default=False, cast=bool)
 
+
+def parse_csv(value):
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
 # SECURITY WARNING: Configure allowed hosts for production
 # Default to localhost for development, override with comma-separated list in production
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",")
+ALLOWED_HOSTS = parse_csv(config("ALLOWED_HOSTS", default="localhost,127.0.0.1"))
 
 # Validate SECRET_KEY in production
 if not DEBUG:
@@ -48,6 +53,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "bookapp.middleware.SecurityHeadersMiddleware",  # Custom XSS protection headers
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -136,7 +142,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "static"
 
 # MinIO / S3 media storage
@@ -146,8 +152,21 @@ AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="minioadmin")
 AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME", default="book-club-media")
 AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="us-east-1")
 AWS_S3_ADDRESSING_STYLE = config("AWS_S3_ADDRESSING_STYLE", default="path")
-AWS_S3_USE_SSL = config("AWS_S3_USE_SSL", default=False, cast=bool)
+AWS_S3_USE_SSL = config(
+    "AWS_S3_USE_SSL",
+    default=AWS_S3_ENDPOINT_URL.startswith("https"),
+    cast=bool,
+)
 AWS_S3_VERIFY = config("AWS_S3_VERIFY", default=True, cast=bool)
+# If your bucket is private (default for MinIO), unsigned URLs will return 403 in the browser.
+# In production we default to presigned URLs unless explicitly disabled.
+AWS_QUERYSTRING_AUTH = config("AWS_QUERYSTRING_AUTH", default=not DEBUG, cast=bool)
+AWS_QUERYSTRING_EXPIRE = config(
+    "AWS_QUERYSTRING_EXPIRE",
+    default=86400 if not DEBUG else 3600,
+    cast=int,
+)
+AWS_S3_FILE_OVERWRITE = config("AWS_S3_FILE_OVERWRITE", default=False, cast=bool)
 AWS_DEFAULT_ACL = None
 AWS_S3_OBJECT_PARAMETERS = {
     "CacheControl": "max-age=86400",
@@ -165,14 +184,19 @@ STORAGES = {
             "verify": AWS_S3_VERIFY,
             "addressing_style": AWS_S3_ADDRESSING_STYLE,
             "bucket_name": AWS_STORAGE_BUCKET_NAME,
+            "querystring_auth": AWS_QUERYSTRING_AUTH,
+            "querystring_expire": AWS_QUERYSTRING_EXPIRE,
+            "file_overwrite": AWS_S3_FILE_OVERWRITE,
         },
     },
     "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
-MEDIA_URL = f"{AWS_S3_ENDPOINT_URL.rstrip('/')}/{AWS_STORAGE_BUCKET_NAME}/"
+# With S3/MinIO storage enabled, FileField/ImageField URLs are provided by the storage backend.
+# Keep MEDIA_URL relative so local dev/static helpers don't break when DEBUG=True.
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # EPUB File Upload Configuration
@@ -217,6 +241,17 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
 ]
 
+cors_from_env = parse_csv(config("CORS_ALLOWED_ORIGINS", default=""))
+if cors_from_env:
+    CORS_ALLOWED_ORIGINS = cors_from_env
+
+CSRF_TRUSTED_ORIGINS = parse_csv(config("CSRF_TRUSTED_ORIGINS", default=""))
+
+CORS_ALLOW_CREDENTIALS = config("CORS_ALLOW_CREDENTIALS", default=False, cast=bool)
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+
 # XSS Protection Settings (applies to both development and production)
 # Prevent clickjacking attacks
 X_FRAME_OPTIONS = "DENY"
@@ -232,18 +267,17 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 if not DEBUG:
     # HTTPS/SSL settings
     SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=True, cast=bool)
+    CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=True, cast=bool)
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-
-    # Update CORS for production
-    cors_origins = config("CORS_ALLOWED_ORIGINS", default="")
-    if cors_origins:
-        CORS_ALLOWED_ORIGINS = cors_origins.split(",")
+    SECURE_HSTS_SECONDS = config(
+        "SECURE_HSTS_SECONDS", default=31536000, cast=int
+    )  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = config(
+        "SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True, cast=bool
+    )
+    SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=True, cast=bool)
 
 # Logging configuration
 LOG_FILE_PATH = config("LOG_FILE_PATH", default="bookapp/app.log")

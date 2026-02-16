@@ -37,7 +37,7 @@ const CommentForm = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white dark:bg-[#181A2A] rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b dark:border-[#2E3046]">
           <div>
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
               {isEditing ? 'Редактировать комментарий' : `Добавить ${commentType === 'personal' ? 'личный комментарий' : 'групповой комментарий'}`}
@@ -69,7 +69,7 @@ const CommentForm = ({
           )}
 
           {selectedText && !isEditing && (
-            <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="mb-4 p-3 bg-gray-50 dark:bg-[#1F2136] rounded-lg">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                 Выделенный текст:
               </p>
@@ -90,7 +90,7 @@ const CommentForm = ({
               id="comment"
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-[#3B3D52] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-[#1F2136] text-gray-800 dark:text-gray-200 resize-none"
               rows="4"
               placeholder="Напишите ваш комментарий здесь..."
               required
@@ -111,7 +111,7 @@ const CommentForm = ({
                   className={`w-10 h-10 rounded-full border-2 transition-all ${
                     highlightColor === color.value
                       ? 'border-blue-600 scale-110'
-                      : 'border-gray-300 dark:border-gray-600 hover:scale-105'
+                      : 'border-gray-300 dark:border-[#3B3D52] hover:scale-105'
                   }`}
                   style={{ backgroundColor: color.value }}
                   title={color.label}
@@ -125,7 +125,7 @@ const CommentForm = ({
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#242535] rounded-lg hover:bg-gray-200 dark:hover:bg-[#2E3046] transition-colors"
               disabled={isSubmitting}
             >
               Отмена

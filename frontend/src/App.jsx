@@ -1,4 +1,4 @@
-import { lazy } from 'react'
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import AppLayout from './ui_components/AppLayout'
 import ProtectedRoute from './ui_components/ProtectedRoute'
@@ -132,7 +132,7 @@ const App = () => {
             element={<LoginPage />}
           />
         </Route>
-        <Route path="/books/:slug/page" element={<BookPagesPage />} />
+        <Route path="/books/:slug/page" element={<Suspense fallback={<div className="flex items-center justify-center min-h-screen">Загрузка...</div>}><BookPagesPage /></Suspense>} />
       </Routes>
     </BrowserRouter>
   )

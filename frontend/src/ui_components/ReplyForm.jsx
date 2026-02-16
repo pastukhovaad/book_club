@@ -53,8 +53,8 @@ const ReplyForm = ({
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Ответ..."
-          className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg
-                     bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200
+          className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-[#3B3D52] rounded-lg
+                     bg-white dark:bg-[#242535] text-gray-800 dark:text-gray-200
                      focus:ring-2 focus:ring-blue-500 focus:border-transparent
                      resize-none"
           rows={2}

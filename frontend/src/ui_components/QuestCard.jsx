@@ -5,9 +5,11 @@ import { resolveMediaUrl } from "@/api";
 const QuestCard = ({ quest, userProgress = null, className = "" }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("ru-RU", {
-      month: "short",
+    return date.toLocaleString("ru-RU", {
+      month: "long",
       day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -32,7 +34,7 @@ const QuestCard = ({ quest, userProgress = null, className = "" }) => {
   const participationBadgeClass =
     quest.participation_type === "personal"
       ? "bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200"
-      : "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200";
+      : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200";
 
   const progressData = userProgress || quest.progress_data;
   const currentCount = progressData?.current_count || 0;
@@ -94,7 +96,7 @@ const QuestCard = ({ quest, userProgress = null, className = "" }) => {
               </p>
 
             ) : (
-              <p className="text-sm px-3 py-2 rounded-full bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+              <p className="text-sm px-3 py-2 rounded-full bg-gray-100 dark:bg-[#141624] text-gray-800 dark:text-gray-200">
                 {isCompleted ? "Вы не участвовали в квесте" : "Вы еще не участвуете в квесте"}
               </p>
             )}
@@ -114,7 +116,7 @@ const QuestCard = ({ quest, userProgress = null, className = "" }) => {
       </div>
 
       {quest.reward_template && (
-        <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-600/20 rounded-md">
+        <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-[#2E3046]/20 rounded-md">
           <img
             src={resolveMediaUrl(quest.reward_template.image)}
             alt={quest.reward_template.name}

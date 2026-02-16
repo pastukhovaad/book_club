@@ -99,7 +99,7 @@ const CreateQuestPage = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-[#BABABF]">
               Название *
             </label>
             <input
@@ -107,13 +107,13 @@ const CreateQuestPage = () => {
               name="title"
               value={formData.title}
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-600"
+              className="w-full px-4 py-2 border rounded-md dark:bg-[#1F2136] dark:border-[#3B3D52]"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-[#BABABF]">
               Описание
             </label>
             <textarea
@@ -121,19 +121,19 @@ const CreateQuestPage = () => {
               value={formData.description}
               onChange={handleChange}
               rows={3}
-              className="w-full px-4 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-600"
+              className="w-full px-4 py-2 border rounded-md dark:bg-[#1F2136] dark:border-[#3B3D52]"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-[#BABABF]">
               Тип задания *
             </label>
             <select
               name="quest_type"
               value={formData.quest_type}
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-600"
+              className="w-full px-4 py-2 border rounded-md dark:bg-[#1F2136] dark:border-[#3B3D52]"
               required
             >
               <option value="read_books">Прочитать книги</option>
@@ -144,7 +144,7 @@ const CreateQuestPage = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-[#BABABF]">
               Целевое количество *
             </label>
             <input
@@ -159,7 +159,7 @@ const CreateQuestPage = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-[#BABABF]">
               Тип участия *
             </label>
             <select
@@ -175,7 +175,7 @@ const CreateQuestPage = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-[#BABABF]">
               Читательская группа (опционально)
             </label>
             <select
@@ -195,7 +195,7 @@ const CreateQuestPage = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-[#BABABF]">
                 Дата начала *
               </label>
               <input
@@ -208,7 +208,7 @@ const CreateQuestPage = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-[#BABABF]">
                 Дата окончания *
               </label>
               <input
@@ -223,7 +223,7 @@ const CreateQuestPage = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-[#BABABF]">
               Награда (опционально)
             </label>
             <select

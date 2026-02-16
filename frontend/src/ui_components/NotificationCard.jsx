@@ -91,7 +91,7 @@ const NotificationCard = ({ notification }) => {
   }
 
   return (
-    <div className="px-4 py-4 rounded-md w-[900px] h-auto flex flex-col gap-3 dark:border-gray-800 border shadow-lg hover:shadow-md transition-shadow">
+    <div className="px-4 py-4 rounded-md w-[900px] h-auto flex flex-col gap-3 dark:border-[#1F2136] border shadow-lg hover:shadow-md transition-shadow">
       <div className="flex flex-col gap-2">
         <p className="text-sm text-[#181A2A] dark:text-gray-200">
           {notification.category === "GroupJoinRequest" ? (
@@ -147,16 +147,17 @@ const NotificationCard = ({ notification }) => {
             </>
           ) : notification.category === "QuestCompleted" ? (
             <>
-              <div className="font-semibold text-green-600 dark:text-green-400 mb-2">
-                🎉 Задание выполнено!
-              </div>
-              {notification.related_quest && (
-                <div className="mb-2">
-                  Задание <span className="font-medium">"{notification.related_quest.title}"</span> было завершено!
-                </div>
+              {notification.related_quest ? (
+                <p>
+                  Задание "{notification.related_quest.title}" было завершено.
+                </p>
+              ) : (
+                <p>
+                Возникла непредвиденная ошибка с выполненным заданием.
+              </p>
               )}
               {notification.related_reward && (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-md mt-2">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#1F2136] rounded-md mt-2">
                   {notification.related_reward.image && (
                     <img
                       src={resolveMediaUrl(notification.related_reward.image)}

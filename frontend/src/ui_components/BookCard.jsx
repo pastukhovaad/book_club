@@ -12,7 +12,7 @@ const BookCard = ({book, showVisibilityLabels = false}) => {
         : null;
   const averageRating = book?.average_rating;
   return (
-    <div className="px-3 py-3 rounded-md w-[300px] h-auto flex flex-col gap-4 dark:border-gray-800 border shadow-lg">
+    <div className="px-3 py-3 rounded-md w-[300px] h-auto flex flex-col gap-4 dark:border-[#1F2136] border shadow-lg">
       <Link to={`/books/${book.slug}`}>
       <div className="w-full h-[200px] border rounded-md overflow-hidden">
         <img
@@ -66,18 +66,39 @@ const BookCard = ({book, showVisibilityLabels = false}) => {
         </p>
       )}
 
-      {book.hashtags?.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {book.hashtags.map((h) => (
-            <Link
-              key={h.id}
-              to={`/books?tag=${h.name}`}
-              className="text-xs text-[#4B6BFB] hover:underline"
-            >
-              #{h.name}
-            </Link>
-          ))}
-        </div>
+      {book.hashtags?.length > 0 ? (() => {
+        const maxChars = 38;
+        let total = 0;
+        let visibleCount = 0;
+        for (const h of book.hashtags) {
+          const len = h.name.length + 2;
+          if (total + len > maxChars && visibleCount > 0) break;
+          total += len;
+          visibleCount++;
+        }
+        const hiddenCount = book.hashtags.length - visibleCount;
+        return (
+          <div className="flex gap-1 overflow-hidden" style={{ whiteSpace: 'nowrap' }}>
+            {book.hashtags.slice(0, visibleCount).map((h) => (
+              <Link
+                key={h.id}
+                to={`/books?tag=${h.name}`}
+                className="text-xs text-[#4B6BFB] hover:underline shrink-0"
+              >
+                #{h.name}
+              </Link>
+            ))}
+            {hiddenCount > 0 && (
+              <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
+                и ещё {hiddenCount}
+              </span>
+            )}
+          </div>
+        );
+      })() : (
+        <p className="text-xs text-gray-400 dark:text-gray-500">
+          У этой книги нет хештегов
+        </p>
       )}
 
       <CardFooter book={book} />

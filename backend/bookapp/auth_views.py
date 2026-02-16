@@ -23,7 +23,7 @@ class RateLimitedTokenRefreshView(TokenRefreshView):
 
 
 @api_view(["POST"])
-@ratelimit(key="ip", rate="30/h", method="POST", block=True)  # TODO: change to 3/h
+@ratelimit(key="ip", rate="5/h", method="POST", block=True)
 def register_user(request):
     serializer = UserRegistrationSerializer(data=request.data)
     if serializer.is_valid():

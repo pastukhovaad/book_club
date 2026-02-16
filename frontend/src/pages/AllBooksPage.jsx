@@ -147,7 +147,7 @@ const AllBooksPage = () => {
                 }
               }}
               placeholder="Искать по названию или #хештегу..."
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 pr-10 text-sm text-[#181A2A] dark:text-white"
+              className="w-full rounded-md border border-gray-300 dark:border-[#3B3D52] bg-white dark:bg-[#1F2136] px-4 py-2 pr-10 text-sm text-[#181A2A] dark:text-white"
             />
             <FiSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>

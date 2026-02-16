@@ -80,27 +80,27 @@ const ProfilePage = () => {
             Статистика
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            <div className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="p-4 border rounded-lg dark:border-[#2E3046] bg-white dark:bg-[#1F2136]">
               <div className="text-3xl font-bold text-[#4B6BFB]">{userStats.total_quests_completed}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Заданий выполнено</div>
             </div>
-            <div className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="p-4 border rounded-lg dark:border-[#2E3046] bg-white dark:bg-[#1F2136]">
               <div className="text-3xl font-bold text-green-600">{userStats.total_books_read}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Книг прочитано</div>
             </div>
-            <div className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="p-4 border rounded-lg dark:border-[#2E3046] bg-white dark:bg-[#1F2136]">
               <div className="text-3xl font-bold text-purple-600">{userStats.total_comments_created}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Оставленных комментариев</div>
             </div>
-            <div className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="p-4 border rounded-lg dark:border-[#2E3046] bg-white dark:bg-[#1F2136]">
               <div className="text-3xl font-bold text-indigo-600">{userStats.total_replies_created ?? 0}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Ответов на комментарии</div>
             </div>
-            <div className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="p-4 border rounded-lg dark:border-[#2E3046] bg-white dark:bg-[#1F2136]">
               <div className="text-3xl font-bold text-yellow-600">{userStats.total_rewards_received}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Наград получено</div>
             </div>
-            <div className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="p-4 border rounded-lg dark:border-[#2E3046] bg-white dark:bg-[#1F2136]">
               <div className="text-l font-bold text-blue-800">
                 {userStats.favorite_genre || "–"}
               </div>
@@ -125,7 +125,7 @@ const ProfilePage = () => {
               <Link
                 key={group.id}
                 to={`/groups/${group.slug}`}
-                className="p-4 border rounded-lg dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-[#4B6BFB] transition-colors"
+                className="p-4 border rounded-lg dark:border-[#2E3046] bg-white dark:bg-[#1F2136] hover:border-[#4B6BFB] transition-colors"
               >
                 <div className="text-lg font-semibold text-[#181A2A] dark:text-white">
                   {group.name}

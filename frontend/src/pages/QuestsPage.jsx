@@ -166,7 +166,7 @@ const QuestsPage = () => {
     `px-4 py-2 rounded-md transition-colors ${
       filter === tabName
         ? 'bg-[#4B6BFB] text-white'
-        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+        : 'bg-gray-200 dark:bg-[#242535] text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-[#2E3046]'
     }`;
 
   return (
@@ -199,7 +199,7 @@ const QuestsPage = () => {
           <select
             value={selectedGroupId}
             onChange={(e) => setSelectedGroupId(e.target.value)}
-            className="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+            className="px-4 py-2 rounded-md border border-gray-300 dark:border-[#3B3D52] bg-white dark:bg-[#1F2136] text-gray-700 dark:text-gray-200"
           >
             <option value="all">Все группы</option>
             {(userGroups || []).map((group) => (
@@ -238,13 +238,13 @@ const QuestsPage = () => {
                   placeholder="Название"
                   value={questForm.title}
                   onChange={(e) => setQuestForm(prev => ({ ...prev, title: e.target.value }))}
-                  className="px-4 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                  className="px-4 py-2 border rounded-md dark:bg-[#1F2136] dark:border-[#3B3D52] dark:text-gray-200"
                   required
                 />
                 <select
                   value={questForm.quest_type}
                   onChange={(e) => setQuestForm(prev => ({ ...prev, quest_type: e.target.value }))}
-                  className="px-4 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                  className="px-4 py-2 border rounded-md dark:bg-[#1F2136] dark:border-[#3B3D52] dark:text-gray-200"
                 >
                   {QUEST_TYPE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -253,7 +253,7 @@ const QuestsPage = () => {
                 <select
                   value={questForm.quest_scope}
                   onChange={(e) => setQuestForm(prev => ({ ...prev, quest_scope: e.target.value }))}
-                  className="px-4 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                  className="px-4 py-2 border rounded-md dark:bg-[#1F2136] dark:border-[#3B3D52] dark:text-gray-200"
                 >
                   {QUEST_SCOPE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -265,7 +265,7 @@ const QuestsPage = () => {
                   value={questForm.target_count}
                   onChange={(e) => setQuestForm(prev => ({ ...prev, target_count: parseInt(e.target.value) || 1 }))}
                   min="1"
-                  className="px-4 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                  className="px-4 py-2 border rounded-md dark:bg-[#1F2136] dark:border-[#3B3D52] dark:text-gray-200"
                   required
                 />
                 <label className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
@@ -282,7 +282,7 @@ const QuestsPage = () => {
                 value={questForm.description}
                 onChange={(e) => setQuestForm(prev => ({ ...prev, description: e.target.value }))}
                 rows={2}
-                className="w-full px-4 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                className="w-full px-4 py-2 border rounded-md dark:bg-[#1F2136] dark:border-[#3B3D52] dark:text-gray-200"
               />
               <div className="flex gap-3">
                 <button
@@ -299,7 +299,7 @@ const QuestsPage = () => {
                       setEditingTemplate(null);
                       setQuestForm({ title: "", description: "", quest_type: "read_books", quest_scope: "personal", target_count: 1, is_active: true });
                     }}
-                    className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                    className="px-6 py-2 border border-gray-300 dark:border-[#3B3D52] rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                   >
                     Отмена
                   </button>
@@ -349,7 +349,7 @@ const QuestsPage = () => {
                             is_active: template.is_active,
                           });
                         }}
-                        className="px-3 py-1 text-sm border rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 dark:border-gray-600 text-gray-700 dark:text-gray-300"
+                        className="px-3 py-1 text-sm border rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 dark:border-[#3B3D52] text-gray-700 dark:text-gray-300"
                       >
                         Редактировать
                       </button>
@@ -399,14 +399,14 @@ const QuestsPage = () => {
                   placeholder="Название приза"
                   value={rewardForm.name}
                   onChange={(e) => setRewardForm(prev => ({ ...prev, name: e.target.value }))}
-                  className="px-4 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                  className="px-4 py-2 border rounded-md dark:bg-[#1F2136] dark:border-[#3B3D52] dark:text-gray-200"
                   required
                 />
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setRewardForm(prev => ({ ...prev, image: e.target.files[0] || null }))}
-                  className="px-4 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                  className="px-4 py-2 border rounded-md dark:bg-[#1F2136] dark:border-[#3B3D52] dark:text-gray-200"
                   required
                 />
               </div>

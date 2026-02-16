@@ -14,10 +14,10 @@ const TableOfContents = ({
 
   return (
     <div
-      className="w-80 bg-white dark:bg-[#141624] border-l dark:border-gray-700 overflow-y-auto"
+      className="w-80 bg-white dark:bg-[#141624] border-l dark:border-[#2E3046] overflow-y-auto"
       onWheel={(e) => e.stopPropagation()}
     >
-      <div className="sticky top-0 bg-white dark:bg-[#141624] border-b dark:border-gray-700 px-4 py-3 flex justify-between items-center z-10">
+      <div className="sticky top-0 bg-white dark:bg-[#141624] border-b dark:border-[#2E3046] px-4 py-3 flex justify-between items-center z-10">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
           Главы
         </h2>
@@ -41,7 +41,7 @@ const TableOfContents = ({
                   }}
                   className={`w-full text-left px-3 py-2 rounded transition-colors ${
                     item.href
-                      ? 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer'
+                      ? 'hover:bg-gray-100 dark:hover:bg-[#242535] text-gray-700 dark:text-gray-300 cursor-pointer'
                       : 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
                   }`}
                   style={{ paddingLeft: `${(item.level || 0) * 12 + 12}px` }}
@@ -64,7 +64,7 @@ const TableOfContents = ({
                   }}
                   className={`w-full text-left px-3 py-2 rounded transition-colors ${
                     chapter.href
-                      ? 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-pointer'
+                      ? 'hover:bg-gray-100 dark:hover:bg-[#242535] text-gray-700 dark:text-gray-300 cursor-pointer'
                       : 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
                   }`}
                   disabled={!chapter.href}

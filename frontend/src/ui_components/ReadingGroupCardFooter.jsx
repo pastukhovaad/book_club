@@ -20,7 +20,9 @@ const ReadingGroupCardFooter = ({ reading_group }) => {
             )}
           </div>
           <small className="text-[#97989F] text-[12px] font-semibold">
-            {reading_group.creator.first_name} {reading_group.creator.last_name}
+            {reading_group.creator.first_name || reading_group.creator.last_name
+              ? `${reading_group.creator.first_name || ''} ${reading_group.creator.last_name || ''}`.trim()
+              : `@${reading_group.creator.username}`}
           </small>
         </span>
 

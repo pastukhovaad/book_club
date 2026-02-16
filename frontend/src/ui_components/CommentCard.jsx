@@ -61,12 +61,12 @@ const CommentCard = ({
 
   return (
     <div
-      className={`border dark:border-gray-700 rounded-lg p-4 mb-3 transition-all hover:shadow-md ${
+      className={`border dark:border-[#2E3046] rounded-lg p-4 mb-3 transition-all hover:shadow-md ${
         comment.cfi_range || comment.selected_text ? 'cursor-pointer' : 'cursor-default'
       } ${
         isActive
           ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
-          : 'bg-white dark:bg-gray-800'
+          : 'bg-white dark:bg-[#1F2136]'
       }`}
       onClick={() => {
         if (comment.cfi_range) {
@@ -91,7 +91,9 @@ const CommentCard = ({
           )}
           <div>
             <p className="font-medium text-sm text-gray-800 dark:text-white">
-              {comment.user.username || comment.user.first_name}
+              {comment.user.first_name || comment.user.last_name
+                ? `${comment.user.first_name || ''} ${comment.user.last_name || ''}`.trim()
+                : `@${comment.user.username}`}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               {formatDate(comment.created_at)}
@@ -125,7 +127,7 @@ const CommentCard = ({
         )}
       </div>
 
-      <div className="mb-2 pl-3 border-l-3 border-gray-300 dark:border-gray-600">
+      <div className="mb-2 pl-3 border-l-3 border-gray-300 dark:border-[#3B3D52]">
         <div className="flex items-start gap-2">
           <BsQuote className="text-gray-400 dark:text-gray-500 flex-shrink-0 mt-1" size={14} />
           <p className="text-sm text-gray-600 dark:text-gray-400 italic line-clamp-2">
@@ -140,7 +142,7 @@ const CommentCard = ({
 
       <div className="flex items-center gap-2 mt-2">
         <div
-          className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-600"
+          className="w-4 h-4 rounded-full border border-gray-300 dark:border-[#3B3D52]"
           style={{ backgroundColor: comment.highlight_color }}
         />
         <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -165,7 +167,7 @@ const CommentCard = ({
             </button>
             <button
               onClick={() => setShowDeleteConfirm(false)}
-              className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              className="px-3 py-1 bg-gray-200 dark:bg-[#242535] text-gray-800 dark:text-gray-200 text-sm rounded hover:bg-gray-300 dark:hover:bg-[#2E3046] transition-colors"
             >
               Отмена
             </button>

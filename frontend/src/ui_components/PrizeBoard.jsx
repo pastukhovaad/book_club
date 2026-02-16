@@ -111,7 +111,7 @@ const PrizeBoard = ({
           <button
             type="button"
             onClick={() => setZoom((prev) => Math.max(0.6, prev - 0.1))}
-            className="px-3 py-1 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200"
+            className="px-3 py-1 rounded-md border border-gray-300 dark:border-[#3B3D52] text-gray-700 dark:text-gray-200"
           >
             −
           </button>
@@ -121,7 +121,7 @@ const PrizeBoard = ({
           <button
             type="button"
             onClick={() => setZoom((prev) => Math.min(1.6, prev + 0.1))}
-            className="px-3 py-1 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200"
+            className="px-3 py-1 rounded-md border border-gray-300 dark:border-[#3B3D52] text-gray-700 dark:text-gray-200"
           >
             +
           </button>
@@ -135,7 +135,7 @@ const PrizeBoard = ({
               className={`px-4 py-2 rounded-md border transition-colors ${
                 isEditing
                   ? "bg-[#4B6BFB] text-white border-[#4B6BFB]"
-                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200"
+                  : "border-gray-300 dark:border-[#3B3D52] text-gray-700 dark:text-gray-200"
               }`}
             >
               ✎ Редактировать
@@ -145,7 +145,7 @@ const PrizeBoard = ({
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4">
-        <div className="border dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 overflow-x-auto overflow-y-auto flex-1">
+        <div className="border dark:border-[#2E3046] rounded-lg p-4 bg-white dark:bg-[#1F2136] overflow-x-auto overflow-y-auto flex-1">
           <div className="relative inline-block" style={{ paddingLeft: 240, paddingBottom: 40, paddingTop: 60 }}>
             <div
               className="relative"
@@ -191,7 +191,7 @@ const PrizeBoard = ({
                       className={`
                         flex items-center justify-center
                         transition-all cursor-pointer relative overflow-hidden
-                        ${cellContent ? "bg-white" : "bg-white"}
+                        ${cellContent ? "bg-white dark:bg-[#242535]" : "bg-white dark:bg-[#242535]"}
                         ${isHovered && canPlace ? "ring-2 ring-blue-400" : ""}
                         ${isEditing ? "hover:ring-2 hover:ring-blue-300" : ""}
                       `}
@@ -221,7 +221,7 @@ const PrizeBoard = ({
                               event.stopPropagation();
                               onRemoveReward?.(x, y);
                             }}
-                            className="pointer-events-auto absolute top-0 right-0 w-6 h-6 rounded-full bg-white/90 text-red-500 text-sm flex items-center justify-center shadow"
+                            className="pointer-events-auto absolute top-0 right-0 w-6 h-6 rounded-full bg-white/90 dark:bg-[#1F2136]/90 text-red-500 text-sm flex items-center justify-center shadow"
                           >
                             ×
                           </button>
@@ -268,7 +268,7 @@ const PrizeBoard = ({
                             className="w-full h-full object-contain"
                           />
                           {canShowNames && placedByUsername && !isOwnPlacement && (
-                            <div className="absolute top-1 left-1/2 -translate-x-1/2 px-2 py-1 rounded-md bg-white/70 text-black text-sm font-semibold shadow">
+                            <div className="absolute top-1 left-1/2 -translate-x-1/2 px-2 py-1 rounded-md bg-white/70 dark:bg-[#1F2136]/70 text-black dark:text-white text-sm font-semibold shadow">
                               {placedByUsername}
                             </div>
                           )}
@@ -284,17 +284,17 @@ const PrizeBoard = ({
         </div>
 
         {canEdit && isEditing && (
-          <div className="border dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 w-full lg:w-72">
+          <div className="border dark:border-[#2E3046] rounded-lg p-4 bg-white dark:bg-[#1F2136] w-full lg:w-72">
             <h4 className="text-md font-semibold mb-3 text-gray-800 dark:text-gray-200">
               Ваши награды
             </h4>
             <div className="mb-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                 <span>Про размещение наград</span>
                 <div className="relative group">
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs cursor-help">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 dark:bg-[#242535] text-gray-700 dark:text-gray-200 text-xs cursor-help">
                     ?
                   </span>
-                  <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 rounded-md bg-gray-200 text-gray-700 text-xs px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                  <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 rounded-md bg-gray-200 dark:bg-[#242535] text-gray-700 dark:text-gray-200 text-xs px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                     На доску можно поставить любые имеющиеся награды. 
                     Для размещения награды, нажмите сначала на награду, а затем на свободную ячейку доски, на которую вы хотите поставить эту награду. 
                     Для удаления награды с доски, нажмите на ячейку доски, на которой она находится.
@@ -320,8 +320,8 @@ const PrizeBoard = ({
                       type="button"
                       className={`flex flex-col items-center gap-2 p-2 rounded-md border transition-all ${
                         isDisabled
-                          ? "border-gray-200 dark:border-gray-700 opacity-50 cursor-not-allowed"
-                          : "border-gray-300 dark:border-gray-600 hover:border-blue-400"
+                          ? "border-gray-200 dark:border-[#2E3046] opacity-50 cursor-not-allowed"
+                          : "border-gray-300 dark:border-[#3B3D52] hover:border-blue-400"
                       } ${
                         selectedRewardId &&
                         entry.rewards.some((reward) => reward.id === selectedRewardId)
@@ -332,7 +332,7 @@ const PrizeBoard = ({
                       disabled={isDisabled}
                       title={entry.template.name}
                     >
-                      <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700">
+                      <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 dark:bg-[#242535]">
                         <img
                           src={resolveMediaUrl(entry.template.image)}
                           alt={entry.template.name}

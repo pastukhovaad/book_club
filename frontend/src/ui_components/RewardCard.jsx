@@ -11,8 +11,8 @@ const RewardCard = ({ reward, showReceivedDate = true, className = "" }) => {
   };
 
   return (
-    <div className={`px-4 py-4 rounded-md w-[250px] h-auto flex flex-col gap-3 dark:border-gray-800 border shadow-lg ${className}`}>
-      <div className="w-full h-[180px] border rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800">
+    <div className={`px-4 py-4 rounded-md w-[250px] h-auto flex flex-col gap-3 dark:border-[#1F2136] border shadow-lg ${className}`}>
+      <div className="w-full h-[180px] border rounded-md overflow-hidden bg-gray-100 dark:bg-[#1F2136]">
         {reward?.reward_template?.image ? (
           <img
             src={resolveMediaUrl(reward.reward_template.image)}
