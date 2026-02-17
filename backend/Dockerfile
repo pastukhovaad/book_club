@@ -23,10 +23,11 @@ COPY . ./
 
 RUN addgroup --system app \
     && adduser --system --ingroup app app \
+    && chmod +x /app/entrypoint.sh \
     && chown -R app:app /app
 
 USER app
 
 EXPOSE 8000
 
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["sh", "./entrypoint.sh"]
