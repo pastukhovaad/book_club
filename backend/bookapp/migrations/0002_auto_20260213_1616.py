@@ -3,6 +3,14 @@ from django.db import migrations
 
 def seed_quest_templates(apps, schema_editor):
     QuestTemplate = apps.get_model("bookapp", "QuestTemplate")
+    table_name = QuestTemplate._meta.db_table
+
+    # Some environments have an older migration history where this table
+    # was not created before this data migration runs.
+    existing_tables = set(schema_editor.connection.introspection.table_names())
+    if table_name not in existing_tables:
+        schema_editor.create_model(QuestTemplate)
+
     templates = [
         {
             "title": "Активный читатель",
@@ -90,7 +98,12 @@ def seed_quest_templates(apps, schema_editor):
         },
     ]
     for t in templates:
-        QuestTemplate.objects.get_or_create(title=t["title"], defaults=t)
+        QuestTemplate.objects.get_or_create(
+            title=t["title"],
+            quest_type=t["quest_type"],
+            quest_scope=t["quest_scope"],
+            defaults=t,
+        )
 
 
 class Migration(migrations.Migration):
