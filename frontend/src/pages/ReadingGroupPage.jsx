@@ -205,7 +205,7 @@ const ReadingGroupPage = () => {
                 }}
                 className="rounded-full w-full h-full object-cover"
                 src={resolveMediaUrl(reading_group.featured_image)}
-                alt={`${reading_group.name} group image`}
+                alt={`изображение группы ${reading_group.name}`}
               />
             </div>
             <h1 className="py-6 leading-normal text-2xl md:text-3xl text-[#181A2A] tracking-wide font-semibold dark:text-[#FFFFFF]">

@@ -17,13 +17,13 @@ const EditReadingGroupForm = ({ reading_group, onClose }) => {
   const mutation = useMutation({
     mutationFn: (data) => updateReadingGroup(data, reading_group.id),
     onSuccess: () => {
-      toast.success("Group was successfully updated!");
+      toast.success("Группа успешно обновлена");
       queryClient.invalidateQueries({ queryKey: ["groups", reading_group.slug] });
       onClose();
     },
     onError: (err) => {
       console.log(err);
-      toast.error(err.message || "Error updating group.");
+      toast.error(err.message || "Ошибка при обновлении группы");
     },
   });
 

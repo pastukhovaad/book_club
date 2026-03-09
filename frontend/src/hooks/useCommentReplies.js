@@ -31,7 +31,7 @@ export const useCommentReplies = (slug, commentId, enabled = false) => {
       queryClient.invalidateQueries({ queryKey: ['bookComments', slug] });
       setShowReplyForm(false);
       setReplyFormError(null);
-      toast.success('Reply added');
+      toast.success('Ответ успешно добавлен');
     },
     onError: (err) => {
       const errorMessage = err.message || 'Failed to create reply';
@@ -47,7 +47,7 @@ export const useCommentReplies = (slug, commentId, enabled = false) => {
       setShowReplyForm(false);
       setEditingReply(null);
       setReplyFormError(null);
-      toast.success('Reply updated');
+      toast.success('Ответ успешно обновлен');
     },
     onError: (err) => {
       const errorMessage = err.message || 'Failed to update reply';
@@ -61,10 +61,10 @@ export const useCommentReplies = (slug, commentId, enabled = false) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['commentReplies', slug, commentId] });
       queryClient.invalidateQueries({ queryKey: ['bookComments', slug] });
-      toast.success('Reply deleted');
+      toast.success('Ответ удален');
     },
     onError: (err) => {
-      toast.error(err.message || 'Failed to delete reply');
+      toast.error(err.message || 'Ошибка при удалении ответа');
     },
   });
 

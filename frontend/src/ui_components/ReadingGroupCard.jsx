@@ -4,7 +4,9 @@ import { resolveMediaUrl } from "@/api";
 
 const ReadingGroupCard = ({reading_group}) => {
   const navigate = useNavigate();
-  const membersCount = reading_group?.user?.length || 0;
+  const membersCount = reading_group?.user?.filter(member =>
+    member.in_reading_group === true
+  ).length || 0;
 
   const handleCardClick = (e) => {
     const token = localStorage.getItem("access");

@@ -56,7 +56,7 @@ const CreateBookPage = ({ book }) => {
   const bookID = bookData?.id;
 
   useEffect(() => {
-    register("category", { required: "Категория книги обязательна" });
+    register("category", { required: "Жанр книги обязателен" });
     register("visibility", { required: "Тип книги обязателен" });
     if (!bookData) {
       setValue("visibility", "public");
@@ -349,14 +349,14 @@ const CreateBookPage = ({ book }) => {
       )}
 
       <div className="w-full">
-        <Label htmlFor="category">Категория *</Label>
+        <Label htmlFor="category">Жанр *</Label>
 
         <Select
           onValueChange={(value) => setValue("category", value, { shouldValidate: true })}
           defaultValue={bookData ? bookData.category : ""}
         >
           <SelectTrigger className="border-2 border-[#141624] dark:border-[#3B3C4A] focus:outline-0 h-[40px] w-full max-sm:w-[300px] max-sm:text-[14px]">
-            <SelectValue placeholder="Выберите категорию" />
+            <SelectValue placeholder="Выберите жанр" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
